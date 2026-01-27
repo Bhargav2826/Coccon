@@ -1,0 +1,49 @@
+services:
+  - type: static
+    name: someonesdreamproject-1
+    plan: starter
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://someonesdreamproject.onrender.com/api
+      - key: VITE_STREAM_API_KEY
+        sync: false
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: "/call/*"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/chat/*"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/login"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/signup"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/onboarding"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/faculty-dashboard"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/student-dashboard"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/parent-dashboard"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/faculty-messages"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/friends"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/notifications"
+        destination: "/index.html"
+      - type: rewrite
+        source: "/*"
+        destination: "/index.html"

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Call Routing Test - COCOON</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-link {
+            display: block;
+            padding: 10px;
+            margin: 10px 0;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .test-link:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-section">
+        <h1>🎥 Video Call Routing Test</h1>
+        <p>This page helps test if video call routing is working correctly on your device.</p>
+        
+        <div class="status success">
+            ✅ If you can see this page, basic routing is working!
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📱 Test Video Call Links</h2>
+        <p>Click these links to test if video call routing works on your device:</p>
+        
+        <a href="/call/test-call-123" class="test-link">🎥 Test Video Call 1 (/call/test-call-123)</a>
+        <a href="/call/faculty-cs02-1756030031996" class="test-link">🎥 Faculty Video Call (/call/faculty-cs02-1756030031996)</a>
+        <a href="/call/student-call-456" class="test-link">🎥 Student Video Call (/call/student-call-456)</a>
+        <a href="/call/random-call-id" class="test-link">🎥 Random Call ID (/call/random-call-id)</a>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Troubleshooting Video Call Issues</h2>
+        <p>If the video call links above show "Not Found" errors:</p>
+        <ul>
+            <li><strong>Clear browser cache</strong> - Mobile browsers cache aggressively</li>
+            <li><strong>Try incognito mode</strong> - Private browsing bypasses cache</li>
+            <li><strong>Check URL format</strong> - Should be /call/[call-id]</li>
+            <li><strong>Wait for deployment</strong> - Allow 2-3 minutes after changes</li>
+            <li><strong>Check network</strong> - Ensure stable internet connection</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Current URL Info</h2>
+        <p><strong>Current URL:</strong> <span id="current-url"></span></p>
+        <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+        <p><strong>Viewport:</strong> <span id="viewport"></span></p>
+        <p><strong>Protocol:</strong> <span id="protocol"></span></p>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Routing Configuration Status</h2>
+        <div id="routing-status">
+            <p>Checking routing configuration...</p>
+        </div>
+    </div>
+
+    <script>
+        // Display current URL and device info
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+        document.getElementById('viewport').textContent = `${window.innerWidth}x${window.innerHeight}`;
+        document.getElementById('protocol').textContent = window.location.protocol;
+        
+        // Test routing configuration
+        const testRoutes = [
+            '/call/test-call-123',
+            '/call/faculty-cs02-1756030031996',
+            '/chat/test-chat-123',
+            '/login',
+            '/signup'
+        ];
+        
+        const routingStatus = document.getElementById('routing-status');
+        let testsCompleted = 0;
+        let testsPassed = 0;
+        
+        testRoutes.forEach(route => {
+            fetch(route)
+                .then(response => {
+                    testsCompleted++;
+                    if (response.ok || response.status === 200) {
+                        testsPassed++;
+                    }
+                    
+                    if (testsCompleted === testRoutes.length) {
+                        if (testsPassed === testRoutes.length) {
+                            routingStatus.innerHTML = `
+                                <div class="status success">
+                                    ✅ All routing tests passed! (${testsPassed}/${testsCompleted})
+                                </div>
+                                <p>Video call routing should work correctly.</p>
+                            `;
+                        } else {
+                            routingStatus.innerHTML = `
+                                <div class="status warning">
+                                    ⚠️ Some routing tests failed (${testsPassed}/${testsCompleted})
+                                </div>
+                                <p>There might be routing configuration issues.</p>
+                            `;
+                        }
+                    }
+                })
+                .catch(error => {
+                    testsCompleted++;
+                    console.log(`❌ Error testing route ${route}:`, error);
+                    
+                    if (testsCompleted === testRoutes.length) {
+                        routingStatus.innerHTML = `
+                            <div class="status error">
+                                ❌ Routing tests failed (${testsPassed}/${testsCompleted})
+                            </div>
+                            <p>There are routing configuration issues.</p>
+                        `;
+                    }
+                });
+        });
+        
+        // Test if we can access the main app
+        fetch('/')
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ Main app accessible');
+                } else {
+                    console.log('❌ Main app not accessible:', response.status);
+                }
+            })
+            .catch(error => {
+                console.log('❌ Error accessing main app:', error);
+            });
+    </script>
+</body>
+</html>

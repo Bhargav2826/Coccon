@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Routing Test - COCOON</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-link {
+            display: block;
+            padding: 10px;
+            margin: 10px 0;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .test-link:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="test-section">
+        <h1>🎯 Simple Routing Test</h1>
+        <p>This page tests if our routing solution is working.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>📱 Test Video Call Links</h2>
+        <p>Click these links to test routing:</p>
+        
+        <a href="/call/test-call-123" class="test-link">🎥 Test Video Call (/call/test-call-123)</a>
+        <a href="/call/faculty-math01-1756030850537" class="test-link">🎥 Faculty Video Call (/call/faculty-math01-1756030850537)</a>
+        <a href="/chat/test-chat-123" class="test-link">💬 Test Chat (/chat/test-chat-123)</a>
+        <a href="/login" class="test-link">🔐 Login (/login)</a>
+        <a href="/faculty-dashboard" class="test-link">📊 Faculty Dashboard (/faculty-dashboard)</a>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 How It Works</h2>
+        <p>Our routing solution works in multiple layers:</p>
+        <ol>
+            <li><strong>Server-side redirects</strong> (via _redirects, vercel.json, etc.)</li>
+            <li><strong>404 page fallback</strong> (redirects to main app)</li>
+            <li><strong>Client-side routing</strong> (in index.html)</li>
+            <li><strong>React Router</strong> (handles the final routing)</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Current Status</h2>
+        <div id="status">
+            <p>Testing routing configuration...</p>
+        </div>
+    </div>
+
+    <script>
+        // Test if we can access the main app
+        fetch('/')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('status').innerHTML = `
+                        <div class="status success">
+                            ✅ Main app accessible - Routing should work!
+                        </div>
+                        <p>Try clicking the test links above. If they show a 404, they should redirect to the main app.</p>
+                    `;
+                } else {
+                    document.getElementById('status').innerHTML = `
+                        <div class="status error">
+                            ❌ Main app not accessible (${response.status})
+                        </div>
+                        <p>There might be a deployment issue.</p>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('status').innerHTML = `
+                    <div class="status error">
+                        ❌ Error accessing main app: ${error.message}
+                    </div>
+                    <p>There might be a network or deployment issue.</p>
+                `;
+            });
+
+        // Test sessionStorage functionality
+        try {
+            sessionStorage.setItem('test', 'working');
+            sessionStorage.removeItem('test');
+            console.log('✅ sessionStorage is working');
+        } catch (error) {
+            console.log('❌ sessionStorage error:', error);
+        }
+    </script>
+</body>
+</html>

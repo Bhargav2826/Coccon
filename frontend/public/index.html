@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>COCOON</title>
+    <script>
+      // Handle SPA routing before React loads
+      (function() {
+        const path = window.location.pathname;
+        const isRoot = path === '/' || path === '/index.html';
+        
+        // If we're not at root and this is a direct navigation, 
+        // store the path and redirect to root
+        if (!isRoot && !sessionStorage.getItem('intendedPath')) {
+          console.log('Direct navigation detected:', path);
+          sessionStorage.setItem('intendedPath', path);
+          window.location.href = '/';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
