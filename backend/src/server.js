@@ -1,6 +1,6 @@
 import "./polyfill.js";
 import express from "express";
-import "dotenv/config";
+import "./config/env.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
