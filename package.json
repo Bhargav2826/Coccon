@@ -4,7 +4,8 @@
   "main": "backend/src/server.js",
   "scripts": {
     "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
-    "start": "npm run start --prefix backend"
+    "start": "npm run start --prefix backend",
+    "postinstall": "npm install --prefix backend"
   },
   "keywords": [],
   "author": "",
