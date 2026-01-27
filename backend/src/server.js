@@ -92,6 +92,7 @@ if (process.env.NODE_ENV === "production") {
   const indexPath = path.join(frontendDistPath, "index.html");
 
   // Serve static files from the frontend build (if it exists)
+  console.log("📂 Serving frontend from:", frontendDistPath);
   app.use(express.static(frontendDistPath));
 
   // Handle all other routes by serving the React app (but not API routes)
