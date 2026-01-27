@@ -2,8 +2,8 @@ import axios from "axios";
 
 // In production, always use the full backend URL
 // In development, use localhost
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-                 (import.meta.env.MODE === "development" ? "http://localhost:5001/api" : "https://someonesdreamproject.onrender.com/api");
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.MODE === "development" ? "http://localhost:5001/api" : "/api");
 
 console.log('🔧 Axios Configuration:', {
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,

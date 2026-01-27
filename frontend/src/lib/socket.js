@@ -1,7 +1,7 @@
 
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.MODE === "development" ? "http://localhost:5001" : "/");
 
 let socket;
 
