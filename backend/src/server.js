@@ -26,7 +26,10 @@ const __dirname = path.resolve();
 
 // Security middleware - Disable helmet in development if needed
 if (!development.disableHelmet) {
+  console.log("🛡️ Applying Helmet Security Headers (CSP is active)");
   app.use(helmet(helmetConfig));
+} else {
+  console.log("🚫 Helmet Security Headers are DISABLED via DISABLE_HELMET environment variable");
 }
 
 // ... (retain rate limit config)
