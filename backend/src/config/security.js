@@ -11,7 +11,7 @@ export const securityConfig = {
       standardHeaders: true,
       legacyHeaders: false,
     },
-    
+
     // Rate limit for authentication endpoints
     auth: {
       windowMs: 15 * 60 * 1000, // 15 minutes
@@ -20,7 +20,7 @@ export const securityConfig = {
       standardHeaders: true,
       legacyHeaders: false,
     },
-    
+
     // Rate limit for link code endpoints
     linkCode: {
       windowMs: 15 * 60 * 1000, // 15 minutes
@@ -30,7 +30,7 @@ export const securityConfig = {
       legacyHeaders: false,
     },
   },
-  
+
   // Helmet configuration
   helmet: {
     // Content Security Policy
@@ -40,11 +40,11 @@ export const securityConfig = {
         styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
+        connectSrc: ["'self'", "http://localhost:*", "ws://localhost:*", "http://127.0.0.1:*", "ws://127.0.0.1:*", "https://*.livekit.cloud", "wss://*.livekit.cloud", "https://*.deepgram.com", "blob:", "data:"],
+        fontSrc: ["'self'", "https:", "data:"],
         objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
+        mediaSrc: ["'self'", "https:", "data:", "blob:"],
+        frameSrc: ["'self'", "https://*.livekit.cloud"],
       },
     },
     // Other helmet options
@@ -56,7 +56,7 @@ export const securityConfig = {
     noSniff: true,
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   },
-  
+
   // CORS configuration - Emergency fix for production
   cors: {
     origin: true, // Allow all origins temporarily for debugging
@@ -65,7 +65,7 @@ export const securityConfig = {
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
     exposedHeaders: ["Set-Cookie"],
   },
-  
+
   // Input validation configuration
   validation: {
     // Password requirements
@@ -74,39 +74,39 @@ export const securityConfig = {
       requireLetter: true,
       requireNumber: true,
     },
-    
+
     // Email validation
     email: {
       normalize: true,
     },
-    
+
     // Name validation
     name: {
       minLength: 2,
       maxLength: 50,
       pattern: /^[a-zA-Z\s]+$/,
     },
-    
+
     // Room name validation
     roomName: {
       minLength: 3,
       maxLength: 100,
       pattern: /^[a-zA-Z0-9\s\-_()]+$/,
     },
-    
+
     // Link code validation
     linkCode: {
       length: 6,
       pattern: /^[0-9]+$/,
     },
-    
+
     // Invite code validation
     inviteCode: {
       length: 6,
       pattern: /^[A-Z0-9]+$/,
     },
   },
-  
+
   // Session and cookie configuration
   session: {
     cookie: {
@@ -117,13 +117,13 @@ export const securityConfig = {
       domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined,
     },
   },
-  
+
   // Request size limits
   requestLimits: {
     json: "10mb",
     urlencoded: "10mb",
   },
-  
+
   // Development settings
   development: {
     disableRateLimit: process.env.DISABLE_RATE_LIMIT === "true",
