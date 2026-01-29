@@ -107,7 +107,6 @@ export const securityConfig = {
     },
   },
 
-  // Session and cookie configuration
   session: {
     cookie: {
       httpOnly: true,
@@ -117,6 +116,7 @@ export const securityConfig = {
       domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined,
     },
   },
+
 
   // Request size limits
   requestLimits: {

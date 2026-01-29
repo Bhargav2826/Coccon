@@ -37,12 +37,21 @@ export async function signup(req, res) {
       expiresIn: "7d",
     });
 
-    res.cookie("jwt", token, {
+    const cookieOptions = {
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true, // prevent XSS attacks,
+      httpOnly: true, // prevent XSS attacks
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // prevent CSRF attacks
       secure: process.env.NODE_ENV === "production",
-    });
+    };
+
+    // Special handling for local development/testing even in production mode
+    if (req.hostname === "localhost" || req.hostname === "127.0.0.1") {
+      cookieOptions.sameSite = "lax";
+      cookieOptions.secure = false;
+    }
+
+    res.cookie("jwt", token, cookieOptions);
+
 
     res.status(201).json({ success: true, user: newUser });
   } catch (error) {
@@ -65,12 +74,21 @@ export async function login(req, res) {
       expiresIn: "7d",
     });
 
-    res.cookie("jwt", token, {
+    const cookieOptions = {
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true, // prevent XSS attacks,
+      httpOnly: true, // prevent XSS attacks
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // prevent CSRF attacks
       secure: process.env.NODE_ENV === "production",
-    });
+    };
+
+    // Special handling for local development/testing even in production mode
+    if (req.hostname === "localhost" || req.hostname === "127.0.0.1") {
+      cookieOptions.sameSite = "lax";
+      cookieOptions.secure = false;
+    }
+
+    res.cookie("jwt", token, cookieOptions);
+
 
     res.status(200).json({ success: true, user });
   } catch (error) {
@@ -80,13 +98,21 @@ export async function login(req, res) {
 }
 
 export function logout(req, res) {
-  // Clear cookie with the same options used to set it
-  res.clearCookie("jwt", {
+  const cookieOptions = {
     httpOnly: true,
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     secure: process.env.NODE_ENV === "production",
     domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined,
-  });
+  };
+
+  // Special handling for local development/testing even in production mode
+  if (req.hostname === "localhost" || req.hostname === "127.0.0.1") {
+    cookieOptions.sameSite = "lax";
+    cookieOptions.secure = false;
+    cookieOptions.domain = undefined;
+  }
+
+  res.clearCookie("jwt", cookieOptions);
   res.status(200).json({ success: true, message: "Logout successful" });
 }
 
