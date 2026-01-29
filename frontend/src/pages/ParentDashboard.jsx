@@ -74,7 +74,12 @@ const AnalysisResultCard = ({ type, data, icon: Icon, title }) => (
         )}
       </div>
 
-      <p className="text-sm leading-relaxed text-base-content/80 mb-4 bg-base-200/50 p-4 rounded-lg border border-base-content/5 italic">
+      <p className={`text-sm leading-relaxed mb-4 p-4 rounded-lg border italic ${data.alert?.type === 'danger'
+        ? 'bg-error/5 border-error/20 text-error-content/90'
+        : data.alert?.type === 'warning'
+          ? 'bg-warning/5 border-warning/20 text-warning-content/90'
+          : 'bg-base-200/50 border-base-content/5 text-base-content/80'
+        }`}>
         "{data.summary}"
       </p>
 
@@ -672,10 +677,20 @@ const ParentDashboard = () => {
                                           </button>
                                         </div>
                                         {expandedCallId === call._id && (
-                                          <div className="mt-3 p-3 bg-base-100 rounded-lg italic text-sm">
+                                          <div className={`mt-3 p-3 rounded-lg border italic text-sm ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger')
+                                            ? 'bg-error/5 border-error/20 text-error-content/90'
+                                            : (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
+                                              ? 'bg-warning/5 border-warning/20 text-warning-content/90'
+                                              : 'bg-base-100 border-base-content/5 text-base-content/80'
+                                            }`}>
                                             "{callAnalysis?.summary || call.summary || "No safety report available."}"
                                             {(callAnalysis?.alert || call.safetyAlert) && (
-                                              <div className={`mt-2 font-bold flex items-center gap-1 ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' ? 'text-error' : 'text-success'}`}>
+                                              <div className={`mt-2 font-bold flex items-center gap-1 ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger'
+                                                  ? 'text-error'
+                                                  : (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
+                                                    ? 'text-warning'
+                                                    : 'text-success'
+                                                }`}>
                                                 <ShieldIcon className="size-3" /> {callAnalysis?.alert?.message || call.safetyAlert?.message}
                                               </div>
                                             )}
