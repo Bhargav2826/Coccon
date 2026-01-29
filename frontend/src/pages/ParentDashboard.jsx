@@ -32,73 +32,57 @@ import {
   FilterIcon
 } from "lucide-react";
 
-const AnalysisResultCard = ({ type, data, icon: Icon, title }) => (
-  <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-    <div className={`p-4 rounded-xl border flex items-start gap-4 shadow-sm ${(data.alert?.type === 'danger' || data.alert?.type === 'warning')
-      ? 'bg-error/10 border-error/50 text-error-content'
-      : 'bg-success/10 border-success/50 text-success-content'
-      }`}>
-      <div className="flex-shrink-0 mt-1">
-        {(data.alert?.type === 'danger' || data.alert?.type === 'warning') ? (
-          <AlertTriangleIcon className="size-6 text-error" />
-        ) : (
-          <CheckCircleIcon className="size-6 text-success" />
-        )}
-      </div>
-      <div className="flex-1">
-        <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-          {title} Safety: {data.alert?.type?.toUpperCase() || 'UNKNOWN'}
-        </h4>
-        <p className="text-sm opacity-90 leading-relaxed font-medium">
-          {data.alert?.message || "No specific alert generated."}
-        </p>
-      </div>
-    </div>
+const AnalysisResultCard = ({ data, icon: Icon, title, dateLabel }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const alertType = data.alert?.type || data.safetyAlert?.type;
+  const alertMessage = data.alert?.message || data.safetyAlert?.message;
 
-    <div className="bg-base-100 rounded-xl p-5 border border-base-content/10">
-      <div className="flex items-center justify-between mb-4">
+  return (
+    <div className="bg-base-300/50 p-3 rounded-xl border border-base-content/5 mt-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icon className="size-5 text-primary" />
-          <h4 className="font-bold">{title} Summary Report</h4>
+          <div className="text-xs font-bold font-mono flex items-center gap-1">
+            {Icon && <Icon className="size-3 text-primary opacity-50" />}
+            {dateLabel || `${title} Report`}
+          </div>
+          {(data.meta?.sentiment || data.sentiment) && (
+            <span className="badge badge-ghost badge-xs opacity-70">
+              {data.meta?.sentiment || data.sentiment}
+            </span>
+          )}
         </div>
-        {data.meta?.sentiment && (
-          <span className={`badge badge-sm font-medium ${data.meta.sentiment === 'positive' ? 'badge-success' :
-            data.meta.sentiment === 'negative' ? 'badge-error' : 'badge-ghost'
-            }`}>
-            Sentiment: {data.meta.sentiment}
-          </span>
-        )}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="btn btn-xs btn-ghost text-primary"
+        >
+          {isExpanded ? "Hide Summary" : "View Summary"}
+        </button>
       </div>
 
-      <p className={`text-sm leading-relaxed mb-4 p-4 rounded-lg border italic ${(data.alert?.type === 'danger' || data.alert?.type === 'warning')
-        ? 'bg-error/5 border-error/20 text-error-content/90'
-        : 'bg-base-200/50 border-base-content/5 text-base-content/80'
-        }`}>
-        "{data.summary}"
-      </p>
+      {isExpanded && (
+        <div className={`mt-3 p-3 rounded-lg border italic text-sm ${(alertType === 'danger' || alertType === 'warning')
+          ? 'bg-error/5 border-error/20 text-error-content/90'
+          : 'bg-base-100 border-base-content/5 text-base-content/80'
+          }`}>
+          "{data.summary || "No summary available."}"
+          {(alertType || alertMessage) && (
+            <div className={`mt-2 font-bold flex items-center gap-1 ${(alertType === 'danger' || alertType === 'warning') ? 'text-error' : 'text-success'}`}>
+              <ShieldIcon className="size-3" /> {alertMessage || "Safe content detected."}
+            </div>
+          )}
 
-      {data.specific_issues && data.specific_issues.length > 0 && (
-        <div className="mb-4 p-3 bg-error/5 border border-error/20 rounded-lg">
-          <h5 className="text-xs font-bold text-error mb-2 flex items-center gap-1">
-            <AlertTriangleIcon className="size-3" />
-            Flagged Content:
-          </h5>
-          <div className="flex flex-wrap gap-2">
-            {data.specific_issues.map((issue, idx) => (
-              <span key={issue + idx} className="badge badge-error badge-sm font-mono">
-                "{issue}"
-              </span>
-            ))}
-          </div>
+          {(data.specific_issues || data.specificIssues)?.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {(data.specific_issues || data.specificIssues).map((issue, idx) => (
+                <span key={idx} className="badge badge-error badge-xs font-mono">"{issue}"</span>
+              ))}
+            </div>
+          )}
         </div>
       )}
-
-      <div className="mt-2 text-[10px] font-bold uppercase opacity-20 tracking-widest flex justify-end">
-        AI Analysis Engine // Cocoon Protected
-      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ParentDashboard = () => {
   const queryClient = useQueryClient();
@@ -641,6 +625,23 @@ const ParentDashboard = () => {
                                 ))}
                                 <div className="divider divider-horizontal mx-1"></div>
                                 <button
+                                  onClick={() => analyzeCallMutation({
+                                    childUid: selectedChild._id,
+                                    targetUid: conversation._id,
+                                    callType: type
+                                  })}
+                                  disabled={conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio']}
+                                  className="btn btn-xs btn-neutral gap-1"
+                                >
+                                  {conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio'] ? (
+                                    <span className="loading loading-spinner loading-xs" />
+                                  ) : (
+                                    <ShieldIcon className="size-3" />
+                                  )}
+                                  Generate {type.charAt(0).toUpperCase() + type.slice(1)} Report
+                                </button>
+                                <div className="divider divider-horizontal mx-1"></div>
+                                <button
                                   onClick={() => {
                                     const currentSort = historyPreferences[historyKey]?.sort || 'desc';
                                     fetchCallHistory(selectedChild._id, conversation._id, type, { sort: currentSort === 'desc' ? 'asc' : 'desc' });
@@ -651,6 +652,16 @@ const ParentDashboard = () => {
                                 </button>
                               </div>
 
+                              {conversationAnalysis[type] && (
+                                <div className="mb-6">
+                                  <AnalysisResultCard
+                                    data={conversationAnalysis[type]}
+                                    icon={type === 'video' ? VideoIcon : PhoneIcon}
+                                    title={`${type.charAt(0).toUpperCase() + type.slice(1)} Recent`}
+                                  />
+                                </div>
+                              )}
+
                               <div className="grid grid-cols-1 gap-2">
                                 {calls.length === 0 ? (
                                   <div className="text-center py-8 opacity-50 text-sm italic">No recorded calls in this period.</div>
@@ -660,8 +671,15 @@ const ParentDashboard = () => {
                                     return (
                                       <div key={call._id} className="bg-base-300/50 p-3 rounded-xl border border-base-content/5">
                                         <div className="flex items-center justify-between">
-                                          <div className="text-xs font-bold font-mono">
-                                            {new Date(call.startedAt || call.createdAt).toLocaleString()}
+                                          <div className="flex items-center gap-2">
+                                            <div className="text-xs font-bold font-mono">
+                                              {new Date(call.startedAt || call.createdAt).toLocaleString()}
+                                            </div>
+                                            {(callAnalysis?.meta?.sentiment || call.sentiment) && (
+                                              <span className="badge badge-ghost badge-xs opacity-70">
+                                                {callAnalysis?.meta?.sentiment || call.sentiment}
+                                              </span>
+                                            )}
                                           </div>
                                           <button
                                             onClick={() => setExpandedCallId(expandedCallId === call._id ? null : call._id)}
@@ -678,10 +696,17 @@ const ParentDashboard = () => {
                                             "{callAnalysis?.summary || call.summary || "No safety report available."}"
                                             {(callAnalysis?.alert || call.safetyAlert) && (
                                               <div className={`mt-2 font-bold flex items-center gap-1 ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
-                                                  ? 'text-error'
-                                                  : 'text-success'
+                                                ? 'text-error'
+                                                : 'text-success'
                                                 }`}>
-                                                <ShieldIcon className="size-3" /> {callAnalysis?.alert?.message || call.safetyAlert?.message}
+                                                <ShieldIcon className="size-3" /> {callAnalysis?.alert?.message || call.safetyAlert?.message || "Safety status verified."}
+                                              </div>
+                                            )}
+                                            {(callAnalysis?.specific_issues || call.specificIssues)?.length > 0 && (
+                                              <div className="mt-2 flex flex-wrap gap-1">
+                                                {(callAnalysis?.specific_issues || call.specificIssues).map((issue, idx) => (
+                                                  <span key={idx} className="badge badge-error badge-xs font-mono">"{issue}"</span>
+                                                ))}
                                               </div>
                                             )}
                                           </div>
