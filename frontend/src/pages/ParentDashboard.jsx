@@ -34,17 +34,13 @@ import {
 
 const AnalysisResultCard = ({ type, data, icon: Icon, title }) => (
   <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-    <div className={`p-4 rounded-xl border flex items-start gap-4 shadow-sm ${data.alert?.type === 'danger'
+    <div className={`p-4 rounded-xl border flex items-start gap-4 shadow-sm ${(data.alert?.type === 'danger' || data.alert?.type === 'warning')
       ? 'bg-error/10 border-error/50 text-error-content'
-      : data.alert?.type === 'warning'
-        ? 'bg-warning/10 border-warning/50 text-warning-content'
-        : 'bg-success/10 border-success/50 text-success-content'
+      : 'bg-success/10 border-success/50 text-success-content'
       }`}>
       <div className="flex-shrink-0 mt-1">
-        {data.alert?.type === 'danger' ? (
+        {(data.alert?.type === 'danger' || data.alert?.type === 'warning') ? (
           <AlertTriangleIcon className="size-6 text-error" />
-        ) : data.alert?.type === 'warning' ? (
-          <AlertTriangleIcon className="size-6 text-warning" />
         ) : (
           <CheckCircleIcon className="size-6 text-success" />
         )}
@@ -74,11 +70,9 @@ const AnalysisResultCard = ({ type, data, icon: Icon, title }) => (
         )}
       </div>
 
-      <p className={`text-sm leading-relaxed mb-4 p-4 rounded-lg border italic ${data.alert?.type === 'danger'
+      <p className={`text-sm leading-relaxed mb-4 p-4 rounded-lg border italic ${(data.alert?.type === 'danger' || data.alert?.type === 'warning')
         ? 'bg-error/5 border-error/20 text-error-content/90'
-        : data.alert?.type === 'warning'
-          ? 'bg-warning/5 border-warning/20 text-warning-content/90'
-          : 'bg-base-200/50 border-base-content/5 text-base-content/80'
+        : 'bg-base-200/50 border-base-content/5 text-base-content/80'
         }`}>
         "{data.summary}"
       </p>
@@ -677,19 +671,15 @@ const ParentDashboard = () => {
                                           </button>
                                         </div>
                                         {expandedCallId === call._id && (
-                                          <div className={`mt-3 p-3 rounded-lg border italic text-sm ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger')
+                                          <div className={`mt-3 p-3 rounded-lg border italic text-sm ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning')
                                             ? 'bg-error/5 border-error/20 text-error-content/90'
-                                            : (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
-                                              ? 'bg-warning/5 border-warning/20 text-warning-content/90'
-                                              : 'bg-base-100 border-base-content/5 text-base-content/80'
+                                            : 'bg-base-100 border-base-content/5 text-base-content/80'
                                             }`}>
                                             "{callAnalysis?.summary || call.summary || "No safety report available."}"
                                             {(callAnalysis?.alert || call.safetyAlert) && (
-                                              <div className={`mt-2 font-bold flex items-center gap-1 ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger'
+                                              <div className={`mt-2 font-bold flex items-center gap-1 ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
                                                   ? 'text-error'
-                                                  : (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
-                                                    ? 'text-warning'
-                                                    : 'text-success'
+                                                  : 'text-success'
                                                 }`}>
                                                 <ShieldIcon className="size-3" /> {callAnalysis?.alert?.message || call.safetyAlert?.message}
                                               </div>
