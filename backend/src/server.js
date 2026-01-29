@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
@@ -95,30 +96,41 @@ app.get('/api/health', (req, res) => {
 
 // Production static files
 if (process.env.NODE_ENV === "production") {
-  const frontendDistPath = path.join(monorepoRoot, "frontend/dist");
-  const indexPath = path.join(frontendDistPath, "index.html");
+  const frontendDistPath = path.resolve(monorepoRoot, "frontend/dist");
+  const indexPath = path.resolve(frontendDistPath, "index.html");
 
-  // Serve static files from the frontend build (if it exists)
-  console.log("📂 Serving frontend from:", frontendDistPath);
+  console.log("📂 Static File Diagnostics:");
+  console.log("   - Frontend Dist Path:", frontendDistPath);
+  console.log("   - Index Path:", indexPath);
+  console.log("   - Dist folder exists:", fs.existsSync(frontendDistPath));
+  console.log("   - Index file exists:", fs.existsSync(indexPath));
+
+  if (fs.existsSync(frontendDistPath)) {
+    console.log("   - Files in dist:", fs.readdirSync(frontendDistPath).slice(0, 5));
+  } else {
+    console.warn("   ⚠️ WARNING: frontend/dist folder not found at", frontendDistPath);
+  }
+
+  // Serve static files from the frontend build
   app.use(express.static(frontendDistPath));
 
-  // Handle all other routes by serving the React app (but not API routes)
+  // Handle all other routes by serving the React app (the SPA fallback)
   app.get("*", (req, res, next) => {
-    // Skip API routes - let them be handled by the API middleware or 404 handler
+    // Skip API routes
     if (req.path.startsWith('/api/')) {
       return next();
     }
 
-    // Try to serve the React app, fallback to error if not found
-    res.sendFile(indexPath, (err) => {
-      if (err) {
-        console.log('Frontend build not found, returning API-only response');
-        res.status(404).json({
-          message: 'Frontend not built. Please ensure frontend is built before deployment.',
-          error: 'Frontend build missing'
-        });
-      }
-    });
+    // Try to serve the React app
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      console.error('❌ SPA Error: index.html not found at', indexPath);
+      res.status(404).json({
+        message: 'Frontend application not found. Please ensure the build command ran successfully.',
+        pathTested: indexPath
+      });
+    }
   });
 }
 
