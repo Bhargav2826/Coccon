@@ -44,13 +44,16 @@ const callSchema = new mongoose.Schema(
         safetyAlert: {
             type: {
                 type: String,
+                default: "safe",
             },
             message: {
                 type: String,
+                default: "",
             },
         },
         sentiment: {
             type: String,
+            default: "neutral",
         },
         specificIssues: [
             {
@@ -77,6 +80,7 @@ const callSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+
 
 const Call = mongoose.model("Call", callSchema);
 

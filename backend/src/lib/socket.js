@@ -73,10 +73,19 @@ io.on("connection", (socket) => {
                 participants: [data.callerInfo.id, data.recipientId],
                 callerName: data.callerInfo.name,
                 receiverName: receiverName,
-                type: data.type,
+                type: data.type || "video",
                 status: 'ongoing',
-                startedAt: new Date()
+                startedAt: new Date(),
+                summary: "",
+                safetyAlert: {
+                    type: "safe",
+                    message: ""
+                },
+                sentiment: "neutral",
+                specificIssues: [],
+                transcripts: []
             });
+
             console.log("📝 New separate Call record created:", data.callId);
         } catch (err) {
             console.error("Error creating call record:", err);
