@@ -4,6 +4,7 @@ import "./config/env.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
+import { fileURLToPath } from "url";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
@@ -22,7 +23,10 @@ import { errorHandler, notFound } from "./middleware/error.middleware.js";
 
 const PORT = process.env.PORT || 5001;
 
-const __dirname = path.resolve();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname_src = path.dirname(__filename);
+const rootPath = path.join(__dirname_src, ".."); // points to backend/
+const monorepoRoot = path.join(rootPath, ".."); // points to root/
 
 // Security middleware - Disable helmet in development if needed
 if (!development.disableHelmet) {
@@ -91,7 +95,7 @@ app.get('/api/health', (req, res) => {
 
 // Production static files
 if (process.env.NODE_ENV === "production") {
-  const frontendDistPath = path.join(__dirname, "../frontend/dist");
+  const frontendDistPath = path.join(monorepoRoot, "frontend/dist");
   const indexPath = path.join(frontendDistPath, "index.html");
 
   // Serve static files from the frontend build (if it exists)
