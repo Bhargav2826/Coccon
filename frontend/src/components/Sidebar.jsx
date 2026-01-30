@@ -8,7 +8,7 @@ const Sidebar = ({ onMobileClose }) => {
   const { authUser } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
-  
+
   // Track unread faculty messages for students
   const { unreadCount, hasUnread } = useUnreadFacultyMessages();
 
@@ -20,7 +20,7 @@ const Sidebar = ({ onMobileClose }) => {
   };
 
   return (
-    <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col min-h-screen sticky top-0">
+    <aside className="w-full flex flex-col h-full bg-base-200">
       {/* Logo section - hidden on mobile since it's in the overlay header */}
       <div className="p-5 border-b border-base-300 hidden lg:block">
         <Link to="/" className="flex items-center gap-2.5">
@@ -34,9 +34,8 @@ const Sidebar = ({ onMobileClose }) => {
           <Link
             to="/parent-dashboard"
             onClick={handleLinkClick}
-            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${
-              currentPath === "/parent-dashboard" ? "btn-active" : ""
-            }`}
+            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/parent-dashboard" ? "btn-active" : ""
+              }`}
           >
             <ShieldIcon className="size-4 sm:size-5 text-base-content opacity-70" />
             <span>Parent Dashboard</span>
@@ -48,9 +47,8 @@ const Sidebar = ({ onMobileClose }) => {
           <Link
             to="/faculty-dashboard"
             onClick={handleLinkClick}
-            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${
-              currentPath === "/faculty-dashboard" ? "btn-active" : ""
-            }`}
+            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/faculty-dashboard" ? "btn-active" : ""
+              }`}
           >
             <GraduationCapIcon className="size-4 sm:size-5 text-base-content opacity-70" />
             <span>Faculty Dashboard</span>
@@ -64,9 +62,8 @@ const Sidebar = ({ onMobileClose }) => {
             <Link
               to="/student-dashboard"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${
-                currentPath === "/student-dashboard" ? "btn-active" : ""
-              }`}
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/student-dashboard" ? "btn-active" : ""
+                }`}
             >
               <UserIcon className="size-4 sm:size-5 text-base-content opacity-70" />
               <span>Student Dashboard</span>
@@ -76,9 +73,8 @@ const Sidebar = ({ onMobileClose }) => {
             <Link
               to="/"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${
-                currentPath === "/" ? "btn-active" : ""
-              }`}
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/" ? "btn-active" : ""
+                }`}
             >
               <HomeIcon className="size-4 sm:size-5 text-base-content opacity-70" />
               <span>Classroom Members</span>
@@ -88,9 +84,8 @@ const Sidebar = ({ onMobileClose }) => {
             <Link
               to="/friends"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${
-                currentPath === "/friends" ? "btn-active" : ""
-              }`}
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/friends" ? "btn-active" : ""
+                }`}
             >
               <UsersIcon className="size-4 sm:size-5 text-base-content opacity-70" />
               <span>Friends</span>
@@ -100,9 +95,8 @@ const Sidebar = ({ onMobileClose }) => {
             <Link
               to="/faculty-messages"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${
-                currentPath === "/faculty-messages" ? "btn-active" : ""
-              }`}
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/faculty-messages" ? "btn-active" : ""
+                }`}
             >
               <div className="relative">
                 <MessageCircleIcon className="size-4 sm:size-5 text-base-content opacity-70" />
@@ -127,9 +121,8 @@ const Sidebar = ({ onMobileClose }) => {
           <Link
             to="/notifications"
             onClick={handleLinkClick}
-            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${
-              currentPath === "/notifications" ? "btn-active" : ""
-            }`}
+            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/notifications" ? "btn-active" : ""
+              }`}
           >
             <BellIcon className="size-4 sm:size-5 text-base-content opacity-70" />
             <span>Notifications</span>

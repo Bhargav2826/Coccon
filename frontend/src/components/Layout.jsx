@@ -11,11 +11,11 @@ const Layout = ({ children, showSidebar = false, fullWidth = false }) => {
   };
 
   return (
-    <div className="min-h-screen bg-base-100">
-      <div className="flex">
+    <div className="h-screen flex flex-col bg-base-100 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         {showSidebar && (
-          <div className="hidden lg:block sticky top-0 h-screen shrink-0">
+          <div className="hidden lg:block w-64 h-full shrink-0 border-r border-base-300 bg-base-200">
             <Sidebar />
           </div>
         )}
@@ -39,7 +39,7 @@ const Layout = ({ children, showSidebar = false, fullWidth = false }) => {
           </div>
         )}
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <Navbar onMenuClick={showSidebar ? toggleSidebar : undefined} />
 
           <main
