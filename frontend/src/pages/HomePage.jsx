@@ -11,6 +11,7 @@ import { UsersIcon } from "lucide-react";
 import useAuthUser from "../hooks/useAuthUser";
 
 import RoomMembersCard from "../components/RoomMembersCard";
+import { MemberCardSkeleton } from "../components/SkeletonLoaders";
 
 const HomePage = () => {
   const { authUser } = useAuthUser();
@@ -55,7 +56,7 @@ const HomePage = () => {
 
   // Create set of existing friends IDs
   const existingFriendsIds = new Set(existingFriends.map(friend => friend._id));
-  
+
   // Debug logging
   console.log("🔍 Debug - existingFriends:", existingFriends);
   console.log("🔍 Debug - existingFriendsIds:", Array.from(existingFriendsIds));
@@ -102,15 +103,15 @@ const HomePage = () => {
             {selectedRoom && (
               <>
                 {loadingRoomMembers ? (
-                  <div className="flex justify-center py-12">
-                    <span className="loading loading-spinner loading-lg" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => <MemberCardSkeleton key={i} />)}
                   </div>
                 ) : roomMembersData?.members?.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {roomMembersData.members.map((member) => (
-                      <RoomMembersCard 
-                        key={member._id} 
-                        member={member} 
+                      <RoomMembersCard
+                        key={member._id}
+                        member={member}
                         roomName={roomMembersData.roomName}
                         outgoingRequestsIds={outgoingRequestsIds}
                         isCurrentUser={member._id === authUser?._id}

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { acceptFriendRequest, getFriendRequests, rejectFriendRequest } from "../lib/api";
 import { BellIcon, ClockIcon, MessageSquareIcon, UserCheckIcon } from "lucide-react";
 import NoNotificationsFound from "../components/NoNotificationsFound";
+import { ListSkeleton } from "../components/SkeletonLoaders";
 
 const NotificationsPage = () => {
   const queryClient = useQueryClient();
@@ -37,8 +38,8 @@ const NotificationsPage = () => {
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">Notifications</h1>
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <span className="loading loading-spinner loading-lg"></span>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <ListSkeleton key={i} />)}
           </div>
         ) : (
           <>

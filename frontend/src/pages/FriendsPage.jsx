@@ -5,6 +5,7 @@ import { UsersIcon } from "lucide-react";
 import FriendCard from "../components/FriendCard";
 import NoFriendsFound from "../components/NoFriendsFound";
 import BackButton from "../components/BackButton";
+import { MemberCardSkeleton } from "../components/SkeletonLoaders";
 
 const FriendsPage = () => {
   const { data: friends = [], isLoading: loadingFriends } = useQuery({
@@ -16,12 +17,12 @@ const FriendsPage = () => {
     <div className="p-4 sm:p-6 lg:p-8 relative">
       {/* Back Button - Absolute positioned */}
       <div className="absolute top-6 left-6 z-10">
-        <BackButton 
-          className="hover:bg-base-200/50 rounded-full p-2 transition-all duration-300 shadow-lg" 
+        <BackButton
+          className="hover:bg-base-200/50 rounded-full p-2 transition-all duration-300 shadow-lg"
           variant="outline"
         />
       </div>
-      
+
       <div className="container mx-auto space-y-10 pt-16 sm:pt-20">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="space-y-2">
@@ -37,8 +38,8 @@ const FriendsPage = () => {
         </div>
 
         {loadingFriends ? (
-          <div className="flex justify-center py-12">
-            <span className="loading loading-spinner loading-lg" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => <MemberCardSkeleton key={i} />)}
           </div>
         ) : friends.length === 0 ? (
           <NoFriendsFound />

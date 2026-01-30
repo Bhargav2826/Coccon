@@ -18,6 +18,7 @@ import {
 import FacultyMessaging from "../components/FacultyMessaging";
 import VideoCallLoader from "../components/VideoCallLoader";
 import useVideoCallStore from "../store/useVideoCallStore";
+import { CardSkeleton } from "../components/SkeletonLoaders";
 
 const FacultyDashboard = () => {
   const queryClient = useQueryClient();
@@ -321,8 +322,8 @@ const FacultyDashboard = () => {
           </div>
 
           {loadingRooms ? (
-            <div className="flex justify-center py-12">
-              <span className="loading loading-spinner loading-lg" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
             </div>
           ) : roomsError ? (
             <div className="card bg-error/10 p-8 text-center">
@@ -356,8 +357,8 @@ const FacultyDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {rooms.map((room) => (
                 <div key={room._id} className={`card bg-base-200 hover:shadow-lg transition-all duration-300 ${isDeleteMode && selectedRooms.has(room._id)
-                    ? 'ring-2 ring-error shadow-lg bg-error/5 border border-error/20'
-                    : 'hover:shadow-lg'
+                  ? 'ring-2 ring-error shadow-lg bg-error/5 border border-error/20'
+                  : 'hover:shadow-lg'
                   }`}>
                   <div className="card-body p-6">
                     {/* Delete Mode Checkbox */}

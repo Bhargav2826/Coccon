@@ -12,6 +12,7 @@ import {
   UserIcon,
   GraduationCapIcon
 } from "lucide-react";
+import { DashboardCardSkeleton } from "../components/SkeletonLoaders";
 
 const StudentDashboard = () => {
   const queryClient = useQueryClient();
@@ -238,8 +239,8 @@ const StudentDashboard = () => {
           </div>
 
           {loadingJoinedRooms ? (
-            <div className="flex justify-center py-12">
-              <span className="loading loading-spinner loading-lg" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => <DashboardCardSkeleton key={i} />)}
             </div>
           ) : roomsError ? (
             <div className="card bg-error/10 p-8 text-center">
@@ -302,8 +303,8 @@ const StudentDashboard = () => {
           </div>
 
           {loadingLinkedAccounts ? (
-            <div className="flex justify-center py-12">
-              <span className="loading loading-spinner loading-lg" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => <DashboardCardSkeleton key={i} />)}
             </div>
           ) : linkedAccounts.length === 0 ? (
             <div className="card bg-base-200 p-8 text-center">

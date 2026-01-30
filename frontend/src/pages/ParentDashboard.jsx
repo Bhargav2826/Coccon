@@ -31,6 +31,11 @@ import {
   ArrowUpDownIcon,
   FilterIcon
 } from "lucide-react";
+import {
+  DashboardCardSkeleton,
+  CardSkeleton,
+  AnalysisSkeleton
+} from "../components/SkeletonLoaders";
 
 const AnalysisResultCard = ({ data, icon: Icon, title, dateLabel }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -461,7 +466,9 @@ const ParentDashboard = () => {
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold">Your Children</h2>
         {loadingChildren ? (
-          <div className="flex justify-center py-12"><span className="loading loading-spinner loading-lg" /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map(i => <DashboardCardSkeleton key={i} />)}
+          </div>
         ) : children.length === 0 ? (
           <div className="card bg-base-200 p-8 text-center">
             <UsersIcon className="size-12 mx-auto mb-4 opacity-50" />
@@ -516,8 +523,31 @@ const ParentDashboard = () => {
           </div>
 
           {loadingConversations ? (
-            <div className="grid grid-cols-1 gap-4">
-              {[1, 2, 3].map(i => <div key={i} className="h-32 bg-base-200 animate-pulse rounded-xl" />)}
+            <div className="grid grid-cols-1 gap-6">
+              {[1, 2].map(i => (
+                <div key={i} className="card bg-base-200 animate-pulse">
+                  <div className="card-body p-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-base-300" />
+                        <div className="space-y-2">
+                          <div className="h-5 bg-base-300 rounded w-48" />
+                          <div className="flex gap-1">
+                            <div className="h-4 bg-base-300 rounded w-16" />
+                            <div className="h-4 bg-base-300 rounded w-16" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="h-8 bg-base-300 rounded w-24" />
+                        <div className="h-8 bg-base-300 rounded w-28" />
+                        <div className="h-8 bg-base-300 rounded w-28" />
+                      </div>
+                    </div>
+                    <div className="h-20 bg-base-300/30 rounded-xl" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="card bg-base-200 p-8 text-center opacity-70">No conversations found.</div>
@@ -603,6 +633,8 @@ const ParentDashboard = () => {
                             </div>
                             {conversationAnalysis.chat ? (
                               <AnalysisResultCard type="chat" data={conversationAnalysis.chat} icon={ShieldIcon} title="Interaction Analysis" />
+                            ) : isAnalyzingChat ? (
+                              <AnalysisSkeleton />
                             ) : (
                               <div className="text-center py-8 opacity-50 text-sm">No recent chat analysis. Click Chat AI to generate.</div>
                             )}
@@ -656,7 +688,7 @@ const ParentDashboard = () => {
                                 </button>
                               </div>
 
-                              {conversationAnalysis[type] && (
+                              {conversationAnalysis[type] ? (
                                 <div className="mb-6">
                                   <AnalysisResultCard
                                     data={conversationAnalysis[type]}
@@ -664,7 +696,11 @@ const ParentDashboard = () => {
                                     title={`${type.charAt(0).toUpperCase() + type.slice(1)} Recent`}
                                   />
                                 </div>
-                              )}
+                              ) : conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio'] ? (
+                                <div className="mb-6">
+                                  <AnalysisSkeleton />
+                                </div>
+                              ) : null}
 
                               <div className="grid grid-cols-1 gap-2">
                                 {calls.length === 0 ? (
