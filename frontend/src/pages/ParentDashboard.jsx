@@ -60,7 +60,7 @@ const AnalysisResultCard = ({ data, icon: Icon, title, dateLabel }) => {
       </div>
 
       {isExpanded && (
-        <div className={`mt-3 p-3 rounded-lg border italic text-sm ${(alertType === 'danger' || alertType === 'warning')
+        <div className={`mt-3 p-4 rounded-xl border italic text-sm ${(alertType === 'danger' || alertType === 'warning')
           ? 'bg-error/5 border-error/20 text-error-content/90'
           : 'bg-base-100 border-base-content/5 text-base-content/80'
           }`}>
@@ -72,9 +72,13 @@ const AnalysisResultCard = ({ data, icon: Icon, title, dateLabel }) => {
           )}
 
           {(data.specific_issues || data.specificIssues)?.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-1 not-italic">Safety Issues Detected</div>
               {(data.specific_issues || data.specificIssues).map((issue, idx) => (
-                <span key={idx} className="badge badge-error badge-xs font-mono">"{issue}"</span>
+                <div key={idx} className="bg-error/15 border border-error/20 text-error-content/90 text-xs px-4 py-2.5 rounded-full flex items-start gap-3 not-italic shadow-sm">
+                  <AlertTriangleIcon className="size-3.5 mt-0.5 shrink-0 text-error" />
+                  <span className="leading-relaxed">{issue}</span>
+                </div>
               ))}
             </div>
           )}
@@ -689,7 +693,7 @@ const ParentDashboard = () => {
                                           </button>
                                         </div>
                                         {expandedCallId === call._id && (
-                                          <div className={`mt-3 p-3 rounded-lg border italic text-sm ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning')
+                                          <div className={`mt-3 p-4 rounded-xl border italic text-sm ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning')
                                             ? 'bg-error/5 border-error/20 text-error-content/90'
                                             : 'bg-base-100 border-base-content/5 text-base-content/80'
                                             }`}>
@@ -703,9 +707,13 @@ const ParentDashboard = () => {
                                               </div>
                                             )}
                                             {(callAnalysis?.specific_issues || call.specificIssues)?.length > 0 && (
-                                              <div className="mt-2 flex flex-wrap gap-1">
+                                              <div className="mt-4 flex flex-col gap-2">
+                                                <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-1 not-italic">Safety Issues Detected</div>
                                                 {(callAnalysis?.specific_issues || call.specificIssues).map((issue, idx) => (
-                                                  <span key={idx} className="badge badge-error badge-xs font-mono">"{issue}"</span>
+                                                  <div key={idx} className="bg-error/15 border border-error/20 text-error-content/90 text-xs px-4 py-2.5 rounded-full flex items-start gap-3 not-italic shadow-sm">
+                                                    <AlertTriangleIcon className="size-3.5 mt-0.5 shrink-0 text-error" />
+                                                    <span className="leading-relaxed">{issue}</span>
+                                                  </div>
                                                 ))}
                                               </div>
                                             )}
