@@ -25,21 +25,19 @@ const Navbar = ({ onMenuClick }) => {
             {onMenuClick && (
               <button
                 onClick={onMenuClick}
-                className="btn btn-ghost btn-sm btn-circle lg:hidden"
+                className="btn btn-ghost btn-sm btn-circle md:hidden"
                 aria-label="Open menu"
               >
                 <MenuIcon className="h-5 w-5" />
               </button>
             )}
-            
-            {isChatPage && (
-              <Link to="/" className="flex items-center gap-2.5">
-                <Logo showText={false} />
-                <span className="text-xl sm:text-2xl lg:text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-wider">
-                  COCOON
-                </span>
-              </Link>
-            )}
+
+            <Link to="/" className="flex items-center gap-2 sm:gap-2.5">
+              <Logo showText={false} size="sm" />
+              <span className="text-lg sm:text-xl lg:text-2xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-wider">
+                COCOON
+              </span>
+            </Link>
           </div>
 
           {/* Right side - Actions */}
@@ -63,8 +61,8 @@ const Navbar = ({ onMenuClick }) => {
               </div>
             </div>
 
-            <button 
-              className="btn btn-ghost btn-circle btn-sm sm:btn-md" 
+            <button
+              className="btn btn-ghost btn-circle btn-sm sm:btn-md"
               onClick={handleLogout}
               title="Logout"
             >

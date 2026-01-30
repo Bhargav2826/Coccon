@@ -395,12 +395,12 @@ const ParentDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-12 pb-24">
+    <div className="space-y-8 sm:space-y-12 pb-24">
       {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold">Parent Dashboard</h1>
-          <p className="text-base-content opacity-70">
+          <h1 className="text-2xl sm:text-3xl font-bold">Parent Dashboard</h1>
+          <p className="text-sm sm:text-base text-base-content opacity-70">
             Monitor your children's online interactions and ensure their digital safety
           </p>
         </div>
@@ -441,8 +441,8 @@ const ParentDashboard = () => {
               <div className="space-y-4">
                 <div className="text-center">
                   <p className="text-sm opacity-70 mb-2">Share this code with your child</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <code className="bg-base-300 px-4 py-2 rounded text-2xl font-mono font-bold">
+                  <div className="flex items-center justify-center gap-2 overflow-x-auto py-2">
+                    <code className="bg-base-300 px-3 py-1.5 sm:px-4 sm:py-2 rounded text-xl sm:text-2xl font-mono font-bold">
                       {linkCode}
                     </code>
                     <button onClick={copyLinkCode} className="btn btn-ghost btn-sm">
@@ -483,7 +483,7 @@ const ParentDashboard = () => {
                 className={`card cursor-pointer transition-all ${selectedChild?._id === child._id ? "bg-primary text-primary-content" : "bg-base-200 hover:shadow-lg"}`}
                 onClick={() => setSelectedChild(child)}
               >
-                <div className="card-body p-4">
+                <div className="card-body p-3 sm:p-4">
                   <div className="flex items-center gap-3">
                     <div className="avatar">
                       <div className="w-12 rounded-full">

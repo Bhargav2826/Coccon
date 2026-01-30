@@ -1,29 +1,30 @@
 import FacultyMessagesViewer from "../components/FacultyMessagesViewer";
-import { MessageCircleIcon, SparklesIcon } from "lucide-react";
+import { MessageCircleIcon } from "lucide-react";
 import BackButton from "../components/BackButton";
 
 const FacultyMessagesPage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-100 via-base-200/50 to-base-100 relative">
-      {/* Back Button - Absolute positioned */}
-      <div className="absolute top-6 left-6 z-10">
-        <BackButton 
-          className="hover:bg-base-200/50 rounded-full p-2 transition-all duration-300 shadow-lg" 
+    <div className="relative">
+      {/* Back Button - Responsive positioning */}
+      <div className="absolute -top-2 left-0 sm:top-2 sm:left-2 z-10">
+        <BackButton
+          className="hover:bg-base-200/50 rounded-full p-2 transition-all duration-300 shadow-md"
           variant="outline"
+          size="sm"
         />
       </div>
-      
-      <div className="p-4 sm:p-6 lg:p-8 pt-20 sm:pt-24">
+
+      <div className="pt-12 sm:pt-16">
         <div className="max-w-6xl mx-auto">
           {/* Clean Header */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl shadow-lg mb-6">
-              <MessageCircleIcon className="size-8 text-primary-content" />
+          <div className="text-center mb-8 sm:mb-12">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl shadow-lg mb-4 sm:mb-6">
+              <MessageCircleIcon className="size-6 sm:size-8 text-primary-content" />
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Faculty Messages
             </h1>
-            <p className="text-lg text-base-content/70 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base lg:text-lg text-base-content/70 max-w-2xl mx-auto">
               Stay connected with your teachers through messages, files, and video calls
             </p>
           </div>
@@ -43,46 +44,38 @@ const FacultyMessagesPage = () => {
                 Get the most out of your communication with teachers
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="text-center p-6 rounded-xl bg-base-100 hover:bg-base-200 transition-colors">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">📝</span>
                 </div>
                 <h4 className="font-semibold mb-2">Text Messages</h4>
-                <p className="text-sm text-base-content/70">
-                  Read announcements and updates from teachers
-                </p>
+                <p className="text-sm text-base-content/70">Read announcements and updates from teachers</p>
               </div>
-              
+
               <div className="text-center p-6 rounded-xl bg-base-100 hover:bg-base-200 transition-colors">
                 <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">📎</span>
                 </div>
                 <h4 className="font-semibold mb-2">File Attachments</h4>
-                <p className="text-sm text-base-content/70">
-                  Download assignments and study materials
-                </p>
+                <p className="text-sm text-base-content/70">Download assignments and study materials</p>
               </div>
-              
+
               <div className="text-center p-6 rounded-xl bg-base-100 hover:bg-base-200 transition-colors">
                 <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🎥</span>
                 </div>
                 <h4 className="font-semibold mb-2">Video Calls</h4>
-                <p className="text-sm text-base-content/70">
-                  Join virtual classroom sessions
-                </p>
+                <p className="text-sm text-base-content/70">Join virtual classroom sessions</p>
               </div>
-              
+
               <div className="text-center p-6 rounded-xl bg-base-100 hover:bg-base-200 transition-colors">
                 <div className="w-12 h-12 bg-info/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🔄</span>
                 </div>
                 <h4 className="font-semibold mb-2">Real-time</h4>
-                <p className="text-sm text-base-content/70">
-                  Messages update automatically
-                </p>
+                <p className="text-sm text-base-content/70">Messages update automatically</p>
               </div>
             </div>
           </div>

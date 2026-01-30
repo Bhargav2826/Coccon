@@ -4,11 +4,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { completeOnboarding } from "../lib/api";
-import { 
-  LoaderIcon, 
-  ShuffleIcon, 
-  ShieldIcon, 
-  GraduationCapIcon, 
+import {
+  LoaderIcon,
+  ShuffleIcon,
+  ShieldIcon,
+  GraduationCapIcon,
   UsersIcon,
   CameraIcon,
   UserIcon,
@@ -28,7 +28,7 @@ const OnboardingPage = () => {
     // Basic Information (all roles)
     fullName: authUser?.fullName || "",
     profilePic: authUser?.profilePic || "",
-    
+
     // Student-specific fields
     age: "",
     grade: "",
@@ -36,16 +36,16 @@ const OnboardingPage = () => {
     safetyLevel: "moderate",
     allowDirectMessages: true,
     allowGroupChats: true,
-    
+
     // Parent-specific fields
     monitoringEnabled: true,
     realTimeAlerts: true,
     weeklyReports: true,
-    
+
     // Faculty-specific fields
     bio: "",
     department: "",
-    
+
     // Emergency Contact (mainly for students)
     emergencyContactName: "",
     emergencyContactPhone: "",
@@ -64,7 +64,7 @@ const OnboardingPage = () => {
         faculty: "Faculty profile setup completed!"
       };
       toast.success(roleMessages[userRole] || "Profile setup completed!");
-      
+
       // Immediately update the auth query data to mark user as onboarded
       queryClient.setQueryData(["authUser"], (oldData) => ({
         user: {
@@ -73,18 +73,18 @@ const OnboardingPage = () => {
         }
       }));
       console.log("🔄 Auth query data updated - user marked as onboarded");
-      
+
       // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
       setValidationErrors({});
-      
+
       // Redirect to appropriate dashboard based on role
       const dashboardPaths = {
         student: "/student-dashboard",
         parent: "/parent-dashboard",
         faculty: "/faculty-dashboard"
       };
-      
+
       const dashboardPath = dashboardPaths[userRole] || "/";
       console.log(`🎯 Redirecting ${userRole} to ${dashboardPath} after onboarding`);
       navigate(dashboardPath, { replace: true });
@@ -104,17 +104,17 @@ const OnboardingPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     setValidationErrors({});
-    
+
     // Role-specific validation
     const clientErrors = {};
-    
+
     // Basic validation for all roles
     if (!formState.fullName.trim()) {
       clientErrors.fullName = ["Full name is required"];
     }
-    
+
     // Student-specific validation
     if (userRole === 'student') {
       if (!formState.emergencyContactName.trim()) {
@@ -124,12 +124,12 @@ const OnboardingPage = () => {
         clientErrors.emergencyContactPhone = ["Emergency contact phone is required"];
       }
     }
-    
+
     // Email validation if provided
     if (formState.emergencyContactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formState.emergencyContactEmail)) {
       clientErrors.emergencyContactEmail = ["Please provide a valid email address"];
     }
-    
+
     if (Object.keys(clientErrors).length > 0) {
       setValidationErrors(clientErrors);
       toast.error("Please fill in all required fields");
@@ -229,7 +229,7 @@ const OnboardingPage = () => {
         color: "text-secondary"
       },
       parent: {
-        title: "Parent Setup", 
+        title: "Parent Setup",
         subtitle: "Configure monitoring and safety settings for your child",
         icon: UsersIcon,
         color: "text-info"
@@ -252,12 +252,12 @@ const OnboardingPage = () => {
     <div className="min-h-screen bg-base-100 flex items-center justify-center p-4">
       <div className="card bg-base-200 w-full max-w-2xl shadow-xl">
         <div className="card-body p-6 sm:p-8">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-4 bg-primary rounded-full flex items-center justify-center">
-              <RoleIcon className={`size-8 ${roleContent.color}`} />
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center shadow-inner">
+              <RoleIcon className={`size-7 sm:size-8 ${roleContent.color}`} />
             </div>
-            <h1 className="text-3xl font-bold">{roleContent.title}</h1>
-            <p className="text-base-content opacity-70 mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{roleContent.title}</h1>
+            <p className="text-sm sm:text-base text-base-content opacity-70 mt-2 max-w-md mx-auto">
               {roleContent.subtitle}
             </p>
           </div>
@@ -281,7 +281,7 @@ const OnboardingPage = () => {
                 </div>
               </div>
             )}
-            
+
             {/* Profile Picture */}
             <div className="flex flex-col items-center justify-center space-y-4">
               <div className="size-24 rounded-full bg-base-300 overflow-hidden">
@@ -305,7 +305,7 @@ const OnboardingPage = () => {
                 <UserIcon className="size-5 text-secondary" />
                 Basic Information
               </h3>
-              
+
               <div className="form-control">
                 <label className="label">
                   <span className="label-text">Full Name *</span>
@@ -451,7 +451,7 @@ const OnboardingPage = () => {
                   <ShieldIcon className="size-5 text-accent" />
                   Safety Settings
                 </h3>
-                
+
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">Safety Level</span>
@@ -502,7 +502,7 @@ const OnboardingPage = () => {
                   <ShieldIcon className="size-5 text-accent" />
                   Monitoring Settings
                 </h3>
-                
+
                 <div className="space-y-3">
                   <label className="label cursor-pointer justify-start gap-2">
                     <input
@@ -542,7 +542,7 @@ const OnboardingPage = () => {
                   <UsersIcon className="size-5 text-info" />
                   Emergency Contact
                 </h3>
-                
+
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">Contact Name *</span>
