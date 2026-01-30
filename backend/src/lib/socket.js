@@ -126,6 +126,7 @@ io.on("connection", (socket) => {
                     model: "nova-2",
                     mimetype: data.mimetype || "audio/webm",
                     smart_format: true,
+                    detect_language: true, // Enable multi-language detection
                 });
 
                 connection.on(LiveTranscriptionEvents.Open, () => {

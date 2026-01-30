@@ -65,7 +65,7 @@ const AnalysisResultCard = ({ data, icon: Icon, title, dateLabel }) => {
       </div>
 
       {isExpanded && (
-        <div className={`mt-3 p-4 rounded-xl border italic text-sm ${(alertType === 'danger' || alertType === 'warning')
+        <div className={`mt-3 p-3 sm:p-4 rounded-xl border italic text-xs sm:text-sm ${(alertType === 'danger' || alertType === 'warning')
           ? 'bg-red-500/10 border-red-500/20 text-red-100/90'
           : 'bg-base-100 border-base-content/5 text-base-content/80'
           }`}>
@@ -510,12 +510,12 @@ const ParentDashboard = () => {
               <MessageSquareIcon className="size-6" />
               <h2 className="text-2xl font-semibold">Conversations Analysis</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide">
               {['all', 'friends', 'classroom', 'direct'].map(f => (
                 <button
                   key={f}
                   onClick={() => setConversationFilter(f)}
-                  className={`btn btn-xs sm:btn-sm ${conversationFilter === f ? 'btn-primary' : 'btn-outline'}`}
+                  className={`btn btn-xs sm:btn-sm whitespace-nowrap ${conversationFilter === f ? 'btn-primary' : 'btn-outline'}`}
                 >
                   {f.toUpperCase()}
                 </button>
@@ -579,11 +579,11 @@ const ParentDashboard = () => {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
                           <button
                             onClick={() => handleAnalyzeChat(selectedChild._id, conversation._id)}
                             disabled={isAnalyzingChat}
-                            className={`btn btn-xs sm:btn-sm ${activeCallView[convKey] === 'chat' ? 'btn-neutral' : 'btn-outline opacity-60'}`}
+                            className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${activeCallView[convKey] === 'chat' ? 'btn-neutral' : 'btn-outline opacity-60'}`}
                           >
                             {isAnalyzingChat ? <span className="loading loading-spinner loading-xs" /> : <ShieldIcon className="size-4 mr-1" />}
                             Chat AI
@@ -594,7 +594,7 @@ const ParentDashboard = () => {
                               fetchCallHistory(selectedChild._id, conversation._id, 'video', {});
                             }}
                             disabled={loadingHistories[`${convKey}-video`]}
-                            className={`btn btn-xs sm:btn-sm ${activeCallView[convKey] === 'video' ? 'btn-secondary' : 'btn-outline opacity-60'}`}
+                            className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${activeCallView[convKey] === 'video' ? 'btn-secondary' : 'btn-outline opacity-60'}`}
                           >
                             <VideoIcon className="size-4 mr-1" /> Video Summary
                           </button>
@@ -604,7 +604,7 @@ const ParentDashboard = () => {
                               fetchCallHistory(selectedChild._id, conversation._id, 'audio', {});
                             }}
                             disabled={loadingHistories[`${convKey}-audio`]}
-                            className={`btn btn-xs sm:btn-sm ${activeCallView[convKey] === 'audio' ? 'btn-accent' : 'btn-outline opacity-60'}`}
+                            className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${activeCallView[convKey] === 'audio' ? 'btn-accent' : 'btn-outline opacity-60'}`}
                           >
                             <PhoneIcon className="size-4 mr-1" /> Voice Summary
                           </button>
@@ -621,12 +621,12 @@ const ParentDashboard = () => {
                         {activeCallView[convKey] === 'chat' && (
                           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="divider text-xs opacity-50">Chat Analysis Intelligence</div>
-                            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
                               {['all', 'today', '7d', '30d', '90d', '180d', '365d'].map(p => (
                                 <button
                                   key={p}
                                   onClick={() => handleAnalyzeChat(selectedChild._id, conversation._id, { preset: p })}
-                                  className={`btn btn-xs ${historyPreferences[convKey + '-chat']?.preset === p ? 'btn-neutral' : 'btn-ghost opacity-60'}`}
+                                  className={`btn btn-xs whitespace-nowrap ${historyPreferences[convKey + '-chat']?.preset === p ? 'btn-neutral' : 'btn-ghost opacity-60'}`}
                                 >
                                   {p === 'all' ? 'All' : p.toUpperCase()}
                                 </button>
