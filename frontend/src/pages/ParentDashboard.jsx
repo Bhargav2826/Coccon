@@ -43,48 +43,74 @@ const AnalysisResultCard = ({ data, icon: Icon, title, dateLabel }) => {
   const alertMessage = data.alert?.message || data.safetyAlert?.message;
 
   return (
-    <div className="bg-base-300/50 p-3 rounded-xl border border-base-content/5 mt-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="text-xs font-bold font-mono flex items-center gap-1">
-            {Icon && <Icon className="size-3 text-primary opacity-50" />}
-            {dateLabel || `${title} Report`}
+    <div className="bg-base-300/30 p-4 rounded-2xl border border-base-content/5 mt-4 animate-in fade-in duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-xl">
+            {Icon && <Icon className="size-4 text-primary" />}
           </div>
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider opacity-50">
+              {title}
+            </div>
+            <div className="text-sm font-semibold truncate max-w-[200px] sm:max-w-none">
+              {dateLabel || "Summary Report"}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between sm:justify-end gap-3">
           {(data.meta?.sentiment || data.sentiment) && (
-            <span className="badge badge-ghost badge-xs opacity-70">
+            <span className="badge badge-ghost badge-sm font-medium opacity-80">
               {data.meta?.sentiment || data.sentiment}
             </span>
           )}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="btn btn-xs btn-ghost text-primary hover:bg-primary/10"
+          >
+            {isExpanded ? "Hide Details" : "View Details"}
+          </button>
         </div>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="btn btn-xs btn-ghost text-primary"
-        >
-          {isExpanded ? "Hide Summary" : "View Summary"}
-        </button>
       </div>
 
       {isExpanded && (
-        <div className={`mt-3 p-3 sm:p-4 rounded-xl border italic text-xs sm:text-sm ${(alertType === 'danger' || alertType === 'warning')
-          ? 'bg-red-500/10 border-red-500/20 text-red-100/90'
-          : 'bg-base-100 border-base-content/5 text-base-content/80'
+        <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all duration-300 ${(alertType === 'danger' || alertType === 'warning')
+          ? 'bg-error/5 border-error/10 text-error-content'
+          : 'bg-base-100/50 border-base-content/5 text-base-content/90'
           }`}>
-          "{data.summary || "No summary available."}"
-          {(alertType || alertMessage) && (
-            <div className={`mt-2 font-bold flex items-center gap-1 ${(alertType === 'danger' || alertType === 'warning') ? 'text-red-400' : 'text-success'}`}>
-              <ShieldIcon className="size-3" /> {alertMessage || "Safe content detected."}
+          <div className="relative">
+            <span className="text-2xl opacity-20 absolute -top-2 -left-2 italic font-serif">"</span>
+            <p className="italic text-sm sm:text-base leading-relaxed pl-4 pr-2">
+              {data.summary || "No summary available."}
+            </p>
+            <span className="text-2xl opacity-20 absolute -bottom-4 -right-2 italic font-serif">"</span>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-base-content/5">
+            <div className={`flex items-center gap-2 p-3 rounded-xl font-bold text-sm ${(alertType === 'danger' || alertType === 'warning')
+              ? 'bg-error/10 text-error'
+              : 'bg-success/5 text-success'
+              }`}>
+              {alertType === 'danger' || alertType === 'warning' ? (
+                <ShieldIcon className="size-4 animate-pulse" />
+              ) : (
+                <ShieldCheckIcon className="size-4" />
+              )}
+              {alertMessage || "Safe content detected."}
             </div>
-          )}
+          </div>
 
           {(data.specific_issues || data.specificIssues)?.length > 0 && (
-            <div className="mt-4 flex flex-col gap-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-red-400/60 mb-1 not-italic">Safety Issues Detected</div>
-              {(data.specific_issues || data.specificIssues).map((issue, idx) => (
-                <div key={idx} className="bg-red-500/20 border border-red-500/30 text-red-50 text-xs px-4 py-2.5 rounded-full flex items-start gap-3 not-italic shadow-sm">
-                  <AlertTriangleIcon className="size-3.5 mt-0.5 shrink-0 text-red-400" />
-                  <span className="leading-relaxed font-medium">{issue}</span>
-                </div>
-              ))}
+            <div className="mt-6">
+              <div className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3 px-1">Flagged Content Details</div>
+              <div className="grid grid-cols-1 gap-2">
+                {(data.specific_issues || data.specificIssues).map((issue, idx) => (
+                  <div key={idx} className="bg-error/10 border border-error/20 text-error p-3 rounded-xl flex items-start gap-3 shadow-sm text-sm">
+                    <AlertTriangleIcon className="size-4 mt-0.5 shrink-0" />
+                    <span className="font-medium leading-snug">{issue}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -397,65 +423,86 @@ const ParentDashboard = () => {
   return (
     <div className="space-y-8 sm:space-y-12 pb-24">
       {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold">Parent Dashboard</h1>
-          <p className="text-sm sm:text-base text-base-content opacity-70">
-            Monitor your children's online interactions and ensure their digital safety
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 overflow-hidden">
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Parent Dashboard</h1>
+          <p className="text-sm sm:text-base text-base-content/70 max-w-2xl">
+            Monitor your children's online interactions and ensure their digital safety with AI-powered insights.
           </p>
         </div>
         <button
           onClick={() => setIsLinkModalOpen(true)}
-          className="btn btn-primary"
+          className="btn btn-primary shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all w-full md:w-auto"
           disabled={linkingChild}
         >
           <UserPlusIcon className="mr-2 size-4" />
-          Link Child
+          Link Child Account
         </button>
       </div>
 
-      {/* Generation of Link Code Part */}
+      {/* Link Child Account Section */}
       <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <KeyIcon className="size-6" />
-          <h2 className="text-2xl font-semibold">Link Child Account</h2>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-base-200 rounded-xl">
+            <KeyIcon className="size-5 sm:size-6 text-primary" />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold">Account Pairing</h2>
         </div>
 
-        <div className="card bg-base-200">
-          <div className="card-body p-6">
+        <div className="card bg-gradient-to-br from-base-200 to-base-300/50 border border-base-content/5 shadow-inner">
+          <div className="card-body p-6 sm:p-8">
             {!linkCode ? (
-              <div className="text-center space-y-4">
-                <p className="text-base-content opacity-70">
-                  Generate a secure 6-digit code to link your child's account
-                </p>
+              <div className="text-center space-y-6">
+                <div className="max-w-md mx-auto">
+                  <p className="text-sm sm:text-base opacity-70 leading-relaxed">
+                    Generate a secure link code to pair with your child's account. This code allows you to monitor their activity in real-time.
+                  </p>
+                </div>
                 <button
                   onClick={() => generateLinkCodeMutation()}
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-md sm:btn-lg px-8 shadow-lg hover:shadow-xl transition-all"
                   disabled={generatingCode}
                 >
-                  {generatingCode ? <span className="loading loading-spinner loading-sm" /> : <KeyIcon className="size-4 mr-2" />}
-                  Generate Link Code
+                  {generatingCode ? (
+                    <span className="loading loading-spinner loading-sm" />
+                  ) : (
+                    <KeyIcon className="size-5 mr-1" />
+                  )}
+                  Generate Secure Code
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6 animate-in zoom-in-95 duration-300">
                 <div className="text-center">
-                  <p className="text-sm opacity-70 mb-2">Share this code with your child</p>
-                  <div className="flex items-center justify-center gap-2 overflow-x-auto py-2">
-                    <code className="bg-base-300 px-3 py-1.5 sm:px-4 sm:py-2 rounded text-xl sm:text-2xl font-mono font-bold">
+                  <p className="text-xs sm:text-sm font-bold uppercase tracking-widest opacity-50 mb-4">Your Pairing Code</p>
+                  <div className="inline-flex items-center justify-center p-1 bg-base-100 rounded-2xl border border-base-content/10 shadow-lg w-full sm:w-auto">
+                    <code className="px-6 py-3 text-2xl sm:text-4xl font-mono font-black tracking-[0.2em] text-primary">
                       {linkCode}
                     </code>
-                    <button onClick={copyLinkCode} className="btn btn-ghost btn-sm">
-                      <CopyIcon className="size-4" />
+                    <button
+                      onClick={copyLinkCode}
+                      className="btn btn-primary btn-square h-auto min-h-0 py-3 px-4 rounded-xl ml-1"
+                      title="Copy code"
+                    >
+                      <CopyIcon className="size-5" />
                     </button>
                   </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-sm opacity-70 mb-1">Code expires in</p>
-                  <div className={`text-lg font-mono ${timeLeft < 60 ? 'text-error' : 'text-success'}`}>{formatTime(timeLeft)}</div>
-                </div>
-                <div className="text-center">
-                  <button onClick={() => generateLinkCodeMutation()} className="btn btn-outline btn-sm">Regenerate Code</button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-base-100 rounded-full border border-base-content/5 shadow-sm">
+                    <ClockIcon className={`size-4 ${timeLeft < 60 ? 'text-error animate-pulse' : 'text-success'}`} />
+                    <span className="text-sm font-mono font-bold">Expires in:</span>
+                    <span className={`text-sm font-mono font-bold ${timeLeft < 60 ? 'text-error' : 'text-success'}`}>
+                      {formatTime(timeLeft)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => generateLinkCodeMutation()}
+                    className="btn btn-outline btn-sm rounded-full"
+                    disabled={generatingCode}
+                  >
+                    Regenerate Code
+                  </button>
                 </div>
               </div>
             )}
@@ -465,7 +512,7 @@ const ParentDashboard = () => {
 
       {/* Children List */}
       <div className="space-y-6">
-        <h2 className="text-2xl font-semibold">Your Children</h2>
+        <h2 className="text-xl sm:text-2xl font-semibold">Your Children</h2>
         {loadingChildren ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map(i => <DashboardCardSkeleton key={i} />)}
@@ -476,23 +523,23 @@ const ParentDashboard = () => {
             <p className="opacity-70">No children linked yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {children.map((child) => (
               <div
                 key={child._id}
-                className={`card cursor-pointer transition-all ${selectedChild?._id === child._id ? "bg-primary text-primary-content" : "bg-base-200 hover:shadow-lg"}`}
+                className={`card cursor-pointer transition-all border-2 ${selectedChild?._id === child._id ? "bg-primary text-primary-content border-primary" : "bg-base-200 hover:shadow-lg border-transparent"}`}
                 onClick={() => setSelectedChild(child)}
               >
                 <div className="card-body p-3 sm:p-4">
                   <div className="flex items-center gap-3">
                     <div className="avatar">
-                      <div className="w-12 rounded-full">
+                      <div className="w-10 sm:w-12 rounded-full ring ring-base-100 ring-offset-base-100 ring-offset-2">
                         <img src={child.profilePic} alt={child.fullName} />
                       </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{child.fullName}</h3>
-                      <p className="text-sm opacity-70">{child.email}</p>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold truncate">{child.fullName}</h3>
+                      <p className="text-xs opacity-70 truncate">{child.email}</p>
                     </div>
                   </div>
                 </div>
@@ -504,18 +551,18 @@ const ParentDashboard = () => {
 
       {/* Conversations Analysis */}
       {selectedChild && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-base-content/5 pb-4">
             <div className="flex items-center gap-2">
-              <MessageSquareIcon className="size-6" />
-              <h2 className="text-2xl font-semibold">Conversations Analysis</h2>
+              <MessageSquareIcon className="size-5 sm:size-6 text-primary" />
+              <h2 className="text-xl sm:text-2xl font-semibold">Conversations Analysis</h2>
             </div>
-            <div className="flex flex-wrap gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide">
+            <div className="flex flex-wrap gap-2">
               {['all', 'friends', 'classroom', 'direct'].map(f => (
                 <button
                   key={f}
                   onClick={() => setConversationFilter(f)}
-                  className={`btn btn-xs sm:btn-sm whitespace-nowrap ${conversationFilter === f ? 'btn-primary' : 'btn-outline'}`}
+                  className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${conversationFilter === f ? 'btn-primary shadow-md' : 'btn-outline border-base-content/10'}`}
                 >
                   {f.toUpperCase()}
                 </button>
@@ -527,31 +574,28 @@ const ParentDashboard = () => {
             <div className="grid grid-cols-1 gap-6">
               {[1, 2].map(i => (
                 <div key={i} className="card bg-base-200 animate-pulse">
-                  <div className="card-body p-6">
+                  <div className="card-body p-4 sm:p-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-base-300" />
                         <div className="space-y-2">
                           <div className="h-5 bg-base-300 rounded w-48" />
-                          <div className="flex gap-1">
-                            <div className="h-4 bg-base-300 rounded w-16" />
-                            <div className="h-4 bg-base-300 rounded w-16" />
-                          </div>
+                          <div className="h-4 bg-base-300 rounded w-32" />
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <div className="h-8 bg-base-300 rounded w-24" />
-                        <div className="h-8 bg-base-300 rounded w-28" />
-                        <div className="h-8 bg-base-300 rounded w-28" />
+                        {[1, 2, 3].map(j => <div key={j} className="h-8 bg-base-300 rounded w-24" />)}
                       </div>
                     </div>
-                    <div className="h-20 bg-base-300/30 rounded-xl" />
+                    <div className="h-24 bg-base-300/30 rounded-xl" />
                   </div>
                 </div>
               ))}
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="card bg-base-200 p-8 text-center opacity-70">No conversations found.</div>
+            <div className="card bg-base-200 p-8 text-center opacity-70 border-2 border-dashed border-base-content/10">
+              No conversations found for this filter.
+            </div>
           ) : (
             <div className="grid grid-cols-1 gap-6">
               {filteredConversations.map((conversation) => {
@@ -560,32 +604,32 @@ const ParentDashboard = () => {
                 const isAnalyzingChat = chatAnalyzing && conversationAnalysis.isAnalyzingChat;
 
                 return (
-                  <div key={conversation._id} className="card bg-base-200 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="card-body p-4 md:p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3">
+                  <div key={conversation._id} className="card bg-base-200 shadow-sm hover:shadow-xl transition-all duration-300 border border-base-content/5">
+                    <div className="card-body p-4 sm:p-6">
+                      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 mb-6">
+                        <div className="flex items-center gap-4">
                           <div className="avatar">
-                            <div className="w-12 rounded-full">
+                            <div className="w-12 sm:w-14 rounded-full ring-2 ring-primary ring-offset-base-100 ring-offset-2">
                               <img src={conversation.profilePic} alt={conversation.fullName} />
                             </div>
                           </div>
                           <div>
-                            <h3 className="font-semibold text-lg">{conversation.fullName}</h3>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {conversation.isFriend && <span className="badge badge-primary badge-xs">Friend</span>}
-                              {conversation.isRoomMember && <span className="badge badge-secondary badge-xs">Classroom</span>}
-                              {conversation.hasDirectChat && <span className="badge badge-accent badge-xs">Direct</span>}
+                            <h3 className="font-bold text-lg sm:text-xl">{conversation.fullName}</h3>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {conversation.isFriend && <span className="badge badge-primary badge-sm font-medium">Friend</span>}
+                              {conversation.isRoomMember && <span className="badge badge-secondary badge-sm font-medium">Classroom</span>}
+                              {conversation.hasDirectChat && <span className="badge badge-accent badge-sm font-medium">Direct</span>}
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full xl:w-auto">
                           <button
                             onClick={() => handleAnalyzeChat(selectedChild._id, conversation._id)}
                             disabled={isAnalyzingChat}
-                            className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${activeCallView[convKey] === 'chat' ? 'btn-neutral' : 'btn-outline opacity-60'}`}
+                            className={`btn btn-sm ${activeCallView[convKey] === 'chat' ? 'btn-neutral shadow-lg translate-y-[-1px]' : 'btn-ghost bg-base-300/50 hover:bg-base-300'}`}
                           >
-                            {isAnalyzingChat ? <span className="loading loading-spinner loading-xs" /> : <ShieldIcon className="size-4 mr-1" />}
+                            {isAnalyzingChat ? <span className="loading loading-spinner loading-xs" /> : <ShieldIcon className="size-4 mr-1.5" />}
                             Chat AI
                           </button>
                           <button
@@ -594,9 +638,9 @@ const ParentDashboard = () => {
                               fetchCallHistory(selectedChild._id, conversation._id, 'video', {});
                             }}
                             disabled={loadingHistories[`${convKey}-video`]}
-                            className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${activeCallView[convKey] === 'video' ? 'btn-secondary' : 'btn-outline opacity-60'}`}
+                            className={`btn btn-sm ${activeCallView[convKey] === 'video' ? 'btn-secondary shadow-lg translate-y-[-1px]' : 'btn-ghost bg-base-300/50 hover:bg-base-300'}`}
                           >
-                            <VideoIcon className="size-4 mr-1" /> Video Summary
+                            <VideoIcon className="size-4 mr-1.5" /> Video Call
                           </button>
                           <button
                             onClick={() => {
@@ -604,9 +648,9 @@ const ParentDashboard = () => {
                               fetchCallHistory(selectedChild._id, conversation._id, 'audio', {});
                             }}
                             disabled={loadingHistories[`${convKey}-audio`]}
-                            className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${activeCallView[convKey] === 'audio' ? 'btn-accent' : 'btn-outline opacity-60'}`}
+                            className={`btn btn-sm ${activeCallView[convKey] === 'audio' ? 'btn-accent shadow-lg translate-y-[-1px]' : 'btn-ghost bg-base-300/50 hover:bg-base-300'}`}
                           >
-                            <PhoneIcon className="size-4 mr-1" /> Voice Summary
+                            <PhoneIcon className="size-4 mr-1.5" /> Voice Call
                           </button>
                         </div>
                       </div>
@@ -709,51 +753,64 @@ const ParentDashboard = () => {
                                 ) : (
                                   calls.map(call => {
                                     const callAnalysis = analysisResults[`${selectedChild._id}-${call._id}`];
+                                    const hasAnalysis = !!(callAnalysis?.summary || call.summary);
+
                                     return (
-                                      <div key={call._id} className="bg-base-300/50 p-3 rounded-xl border border-base-content/5">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2">
-                                            <div className="text-xs font-bold font-mono">
-                                              {new Date(call.startedAt || call.createdAt).toLocaleString()}
+                                      <div key={call._id} className="bg-base-300/30 p-4 rounded-2xl border border-base-content/5 hover:border-primary/20 transition-all duration-300">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                          <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-base-100 rounded-lg">
+                                              {type === 'video' ? <VideoIcon className="size-4 text-secondary" /> : <PhoneIcon className="size-4 text-accent" />}
+                                            </div>
+                                            <div>
+                                              <div className="text-sm font-bold">
+                                                {new Date(call.startedAt || call.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                              </div>
+                                              <div className="text-[10px] font-mono opacity-50 uppercase tracking-wider">
+                                                {new Date(call.startedAt || call.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                              </div>
                                             </div>
                                             {(callAnalysis?.meta?.sentiment || call.sentiment) && (
-                                              <span className="badge badge-ghost badge-xs opacity-70">
+                                              <span className="badge badge-ghost badge-sm opacity-70 ml-1">
                                                 {callAnalysis?.meta?.sentiment || call.sentiment}
                                               </span>
                                             )}
                                           </div>
-                                          <div className="flex items-center gap-2">
+
+                                          <div className="flex items-center gap-2 w-full sm:w-auto">
                                             <button
                                               onClick={() => setShowTranscripts(prev => ({ ...prev, [call._id]: !prev[call._id] }))}
-                                              className="btn btn-xs btn-ghost text-primary opacity-70 hover:opacity-100"
+                                              className="btn btn-xs sm:btn-sm btn-ghost flex-1 sm:flex-none text-primary/70 hover:bg-primary/5"
                                             >
                                               {showTranscripts[call._id] ? "Hide Transcript" : "View Transcript"}
                                             </button>
                                             <button
                                               onClick={() => setExpandedCallId(expandedCallId === call._id ? null : call._id)}
-                                              className="btn btn-xs btn-ghost text-primary font-bold"
+                                              className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${expandedCallId === call._id ? 'btn-neutral' : 'btn-ghost text-primary hover:bg-primary/5'}`}
                                             >
                                               {expandedCallId === call._id ? "Hide Summary" : "View Summary"}
                                             </button>
                                           </div>
                                         </div>
+
                                         {expandedCallId === call._id && (
-                                          <div className={`mt-3 p-4 rounded-xl border italic text-sm ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning')
-                                            ? 'bg-red-500/10 border-red-500/20 text-red-100/90'
-                                            : 'bg-base-100 border-base-content/5 text-base-content/80'
+                                          <div className={`mt-4 p-4 sm:p-5 rounded-2xl border-2 animate-in slide-in-from-top-2 duration-300 ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning')
+                                            ? 'bg-error/5 border-error/10 text-error-content'
+                                            : 'bg-base-100 border-base-content/5 text-base-content/90'
                                             }`}>
                                             {callAnalysis?.isAnalyzing ? (
-                                              <div className="py-2">
-                                                <div className="flex items-center gap-2 mb-2">
+                                              <div className="py-4 text-center">
+                                                <div className="inline-flex items-center gap-3 px-4 py-2 bg-base-200 rounded-full">
                                                   <span className="loading loading-spinner loading-xs text-primary" />
-                                                  <span className="text-xs opacity-70 uppercase tracking-widest font-bold">AI Analyzing...</span>
+                                                  <span className="text-xs font-bold uppercase tracking-widest opacity-70">AI Analyzing...</span>
                                                 </div>
                                               </div>
                                             ) : (
                                               <>
-                                                {!(callAnalysis?.summary || call.summary) ? (
-                                                  <div className="text-center py-4 bg-base-200/50 rounded-lg">
-                                                    <p className="text-xs opacity-60 italic mb-3">No AI summary generated.</p>
+                                                {!hasAnalysis ? (
+                                                  <div className="text-center py-6 bg-base-200/50 rounded-2xl border border-dashed border-base-content/10">
+                                                    <BrainIcon className="size-8 mx-auto mb-3 opacity-20" />
+                                                    <p className="text-xs opacity-60 italic mb-4">No AI summary available for this call.</p>
                                                     <button
                                                       onClick={() => analyzeCallMutation({
                                                         childUid: selectedChild._id,
@@ -761,34 +818,42 @@ const ParentDashboard = () => {
                                                         callType: type,
                                                         callId: call._id
                                                       })}
-                                                      className="btn btn-xs btn-neutral gap-1.5"
+                                                      className="btn btn-sm btn-neutral gap-2 px-6"
                                                     >
-                                                      <BrainIcon className="size-3" /> Generate Analysis
+                                                      <BrainIcon className="size-4" /> Generate Analysis
                                                     </button>
                                                   </div>
                                                 ) : (
-                                                  <>
-                                                    "{callAnalysis?.summary || call.summary}"
-                                                    {(callAnalysis?.alert || call.safetyAlert) && (
-                                                      <div className={`mt-2 font-bold flex items-center gap-1 ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
-                                                        ? 'text-red-400'
-                                                        : 'text-success'
+                                                  <div className="space-y-4">
+                                                    <div className="relative">
+                                                      <span className="text-2xl opacity-20 absolute -top-1 -left-1 italic font-serif">"</span>
+                                                      <p className="italic text-sm sm:text-base leading-relaxed pl-4 pr-2">
+                                                        {callAnalysis?.summary || call.summary}
+                                                      </p>
+                                                    </div>
+
+                                                    <div className="pt-4 border-t border-base-content/5">
+                                                      <div className={`flex items-center gap-2 p-3 rounded-xl font-bold text-xs sm:text-sm ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
+                                                        ? 'bg-error/10 text-error'
+                                                        : 'bg-success/5 text-success'
                                                         }`}>
-                                                        <ShieldIcon className="size-3" /> {callAnalysis?.alert?.message || call.safetyAlert?.message || "Safety status verified."}
+                                                        <ShieldIcon className="size-4" />
+                                                        {callAnalysis?.alert?.message || call.safetyAlert?.message || "Safety status fully verified."}
                                                       </div>
-                                                    )}
+                                                    </div>
+
                                                     {(callAnalysis?.specific_issues || call.specificIssues)?.length > 0 && (
-                                                      <div className="mt-4 flex flex-col gap-2">
-                                                        <div className="text-[10px] font-bold uppercase tracking-wider text-red-400/60 mb-1 not-italic">Safety Issues Detected</div>
+                                                      <div className="space-y-2 mt-4">
+                                                        <div className="text-[10px] font-bold uppercase tracking-widest opacity-50 px-1">Specific Red Flags</div>
                                                         {(callAnalysis?.specific_issues || call.specificIssues).map((issue, idx) => (
-                                                          <div key={idx} className="bg-red-500/20 border border-red-500/30 text-red-50 text-xs px-4 py-2.5 rounded-full flex items-start gap-3 not-italic">
-                                                            <AlertTriangleIcon className="size-3.5 mt-0.5 shrink-0 text-red-400" />
-                                                            <span className="leading-relaxed font-medium">{issue}</span>
+                                                          <div key={idx} className="bg-error/10 border border-error/10 text-error p-3 rounded-xl flex items-start gap-3 text-sm">
+                                                            <AlertTriangleIcon className="size-4 mt-0.5 shrink-0" />
+                                                            <span className="font-medium">{issue}</span>
                                                           </div>
                                                         ))}
                                                       </div>
                                                     )}
-                                                  </>
+                                                  </div>
                                                 )}
                                               </>
                                             )}
@@ -796,8 +861,8 @@ const ParentDashboard = () => {
                                         )}
 
                                         {showTranscripts[call._id] && (
-                                          <div className="mt-3 p-4 rounded-xl border border-base-content/5 bg-base-100 text-xs font-mono space-y-2 max-h-60 overflow-y-auto">
-                                            <div className="flex items-center justify-between mb-2">
+                                          <div className="mt-4 p-4 rounded-2xl border border-base-content/5 bg-base-100 text-xs sm:text-sm font-mono space-y-3 max-h-72 overflow-y-auto shadow-inner animate-in slide-in-from-top-2 duration-300">
+                                            <div className="flex items-center justify-between border-b border-base-content/5 pb-2 mb-2 sticky top-0 bg-base-100 z-10">
                                               <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">Call Transcript</span>
                                               <span className="badge badge-outline badge-xs opacity-40">{call.type === 'video' ? 'Video' : 'Audio'}</span>
                                             </div>
