@@ -108,6 +108,7 @@ const ParentDashboard = () => {
   const [expandedCallId, setExpandedCallId] = useState(null);
   const [historyPreferences, setHistoryPreferences] = useState({}); // {key: {limit: 10, sort: 'desc', startDate: '', endDate: ''}}
   const [activeCallView, setActiveCallView] = useState({}); // {convKey: 'video' | 'audio'}
+  const [showTranscripts, setShowTranscripts] = useState({}); // {callId: boolean}
 
   // Fetch parent's children
   const { data: children = [], isLoading: loadingChildren } = useQuery({
@@ -721,42 +722,102 @@ const ParentDashboard = () => {
                                               </span>
                                             )}
                                           </div>
-                                          <button
-                                            onClick={() => setExpandedCallId(expandedCallId === call._id ? null : call._id)}
-                                            className="btn btn-xs btn-ghost text-primary"
-                                          >
-                                            {expandedCallId === call._id ? "Hide Summary" : "View Summary"}
-                                          </button>
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              onClick={() => setShowTranscripts(prev => ({ ...prev, [call._id]: !prev[call._id] }))}
+                                              className="btn btn-xs btn-ghost text-primary opacity-70 hover:opacity-100"
+                                            >
+                                              {showTranscripts[call._id] ? "Hide Transcript" : "View Transcript"}
+                                            </button>
+                                            <button
+                                              onClick={() => setExpandedCallId(expandedCallId === call._id ? null : call._id)}
+                                              className="btn btn-xs btn-ghost text-primary font-bold"
+                                            >
+                                              {expandedCallId === call._id ? "Hide Summary" : "View Summary"}
+                                            </button>
+                                          </div>
                                         </div>
                                         {expandedCallId === call._id && (
                                           <div className={`mt-3 p-4 rounded-xl border italic text-sm ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning')
                                             ? 'bg-red-500/10 border-red-500/20 text-red-100/90'
                                             : 'bg-base-100 border-base-content/5 text-base-content/80'
                                             }`}>
-                                            "{callAnalysis?.summary || call.summary || "No safety report available."}"
-                                            {(callAnalysis?.alert || call.safetyAlert) && (
-                                              <div className={`mt-2 font-bold flex items-center gap-1 ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
-                                                ? 'text-red-400'
-                                                : 'text-success'
-                                                }`}>
-                                                <ShieldIcon className="size-3" /> {callAnalysis?.alert?.message || call.safetyAlert?.message || "Safety status verified."}
+                                            {callAnalysis?.isAnalyzing ? (
+                                              <div className="py-2">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  <span className="loading loading-spinner loading-xs text-primary" />
+                                                  <span className="text-xs opacity-70 uppercase tracking-widest font-bold">AI Analyzing...</span>
+                                                </div>
                                               </div>
-                                            )}
-                                            {(callAnalysis?.specific_issues || call.specificIssues)?.length > 0 && (
-                                              <div className="mt-4 flex flex-col gap-2">
-                                                <div className="text-[10px] font-bold uppercase tracking-wider text-red-400/60 mb-1 not-italic">Safety Issues Detected</div>
-                                                {(callAnalysis?.specific_issues || call.specificIssues).map((issue, idx) => (
-                                                  <div key={idx} className="bg-red-500/20 border border-red-500/30 text-red-50 text-xs px-4 py-2.5 rounded-full flex items-start gap-3 not-italic shadow-sm">
-                                                    <AlertTriangleIcon className="size-3.5 mt-0.5 shrink-0 text-red-400" />
-                                                    <span className="leading-relaxed font-medium">{issue}</span>
+                                            ) : (
+                                              <>
+                                                {!(callAnalysis?.summary || call.summary) ? (
+                                                  <div className="text-center py-4 bg-base-200/50 rounded-lg">
+                                                    <p className="text-xs opacity-60 italic mb-3">No AI summary generated.</p>
+                                                    <button
+                                                      onClick={() => analyzeCallMutation({
+                                                        childUid: selectedChild._id,
+                                                        targetUid: conversation._id,
+                                                        callType: type,
+                                                        callId: call._id
+                                                      })}
+                                                      className="btn btn-xs btn-neutral gap-1.5"
+                                                    >
+                                                      <BrainIcon className="size-3" /> Generate Analysis
+                                                    </button>
                                                   </div>
-                                                ))}
-                                              </div>
+                                                ) : (
+                                                  <>
+                                                    "{callAnalysis?.summary || call.summary}"
+                                                    {(callAnalysis?.alert || call.safetyAlert) && (
+                                                      <div className={`mt-2 font-bold flex items-center gap-1 ${(callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning'
+                                                        ? 'text-red-400'
+                                                        : 'text-success'
+                                                        }`}>
+                                                        <ShieldIcon className="size-3" /> {callAnalysis?.alert?.message || call.safetyAlert?.message || "Safety status verified."}
+                                                      </div>
+                                                    )}
+                                                    {(callAnalysis?.specific_issues || call.specificIssues)?.length > 0 && (
+                                                      <div className="mt-4 flex flex-col gap-2">
+                                                        <div className="text-[10px] font-bold uppercase tracking-wider text-red-400/60 mb-1 not-italic">Safety Issues Detected</div>
+                                                        {(callAnalysis?.specific_issues || call.specificIssues).map((issue, idx) => (
+                                                          <div key={idx} className="bg-red-500/20 border border-red-500/30 text-red-50 text-xs px-4 py-2.5 rounded-full flex items-start gap-3 not-italic">
+                                                            <AlertTriangleIcon className="size-3.5 mt-0.5 shrink-0 text-red-400" />
+                                                            <span className="leading-relaxed font-medium">{issue}</span>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                )}
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {showTranscripts[call._id] && (
+                                          <div className="mt-3 p-4 rounded-xl border border-base-content/5 bg-base-100 text-xs font-mono space-y-2 max-h-60 overflow-y-auto">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">Call Transcript</span>
+                                              <span className="badge badge-outline badge-xs opacity-40">{call.type === 'video' ? 'Video' : 'Audio'}</span>
+                                            </div>
+                                            {(!call.transcripts || call.transcripts.length === 0) ? (
+                                              <div className="text-center py-4 opacity-40 italic">No transcript data recorded for this call session.</div>
+                                            ) : (
+                                              call.transcripts.map((t, tid) => (
+                                                <div key={tid} className="flex flex-col gap-1 border-b border-base-content/5 pb-2 last:border-0">
+                                                  <div className="flex items-center justify-between">
+                                                    <span className="font-bold text-primary opacity-80">{t.sender?.fullName || "Participant"}</span>
+                                                    <span className="text-[9px] opacity-40">{new Date(t.timestamp).toLocaleTimeString()}</span>
+                                                  </div>
+                                                  <p className="text-base-content/80 leading-relaxed font-sans">{t.text}</p>
+                                                </div>
+                                              ))
                                             )}
                                           </div>
                                         )}
                                       </div>
-                                    )
+                                    );
                                   })
                                 )}
                               </div>
