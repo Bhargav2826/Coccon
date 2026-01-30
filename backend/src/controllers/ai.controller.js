@@ -385,27 +385,29 @@ export async function analyzeCall(req, res) {
       });
     }
 
-    // Combine transcripts (usually just one if callId provided)
+    // Combine transcripts
     let transcriptToAnalyze = "";
-    calls.forEach(call => {
-      const callDate = new Date(call.startedAt || call.createdAt).toLocaleDateString();
-      const callTime = new Date(call.startedAt || call.createdAt).toLocaleTimeString();
-      transcriptToAnalyze += `\n--- ${call.type || 'Video'} Call on ${callDate} at ${callTime} ---\n`;
+    let hasActualTranscripts = false;
 
+    calls.forEach(call => {
       if (call.transcripts && call.transcripts.length > 0) {
+        hasActualTranscripts = true;
+        const callDate = new Date(call.startedAt || call.createdAt).toLocaleDateString();
+        const callTime = new Date(call.startedAt || call.createdAt).toLocaleTimeString();
+        transcriptToAnalyze += `\n--- ${call.type || 'Video'} Call on ${callDate} at ${callTime} ---\n`;
+
         call.transcripts.forEach(t => {
           transcriptToAnalyze += `${t.sender?.fullName || "Participant"}: ${t.text}\n`;
         });
-      } else {
-        transcriptToAnalyze += "(No transcript recorded)\n";
       }
     });
 
-    if (!transcriptToAnalyze.trim()) {
+    if (!hasActualTranscripts) {
+      console.log('ℹ️ No meaningful transcripts found after processing', calls.length, 'calls');
       return res.status(200).json({
         success: true,
-        summary: "Call found, but no transcriptions available.",
-        alert: { type: "safe", message: "No audio data to analyze." }
+        summary: "No spoken communication was recorded during this session.",
+        alert: { type: "safe", message: "No conversation content available to analyze." }
       });
     }
 

@@ -116,17 +116,13 @@ io.on("connection", (socket) => {
 
         if (!transcriptionServices[socket.id]) {
             try {
-                console.log("📡 Opening Deepgram connection with options:", {
-                    model: "nova-2",
-                    mimetype: data.mimetype || "audio/webm",
-                    smart_format: true,
-                });
+                console.log("📡 Opening Deepgram connection for", socket.id);
 
                 const connection = deepgram.listen.live({
                     model: "nova-2",
-                    mimetype: data.mimetype || "audio/webm",
                     smart_format: true,
-                    detect_language: true, // Enable multi-language detection
+                    // language: "en-US", // Default is English, can be customized
+                    interim_results: false, // Only get final transcripts to reduce DB writes
                 });
 
                 connection.on(LiveTranscriptionEvents.Open, () => {
@@ -151,7 +147,8 @@ io.on("connection", (socket) => {
                         console.log(`💾 Attempting to save transcript for Call: ${socket.activeCallId}`);
                         try {
                             if (socket.activeCallId && userId) {
-                                const updatedCall = await Call.findOneAndUpdate(
+                                // Try to find the ongoing call first
+                                let updatedCall = await Call.findOneAndUpdate(
                                     { roomId: socket.activeCallId, status: 'ongoing' },
                                     {
                                         $push: {
@@ -163,13 +160,35 @@ io.on("connection", (socket) => {
                                         },
                                         $addToSet: { participants: userId }
                                     },
-                                    { new: true, upsert: false } // Do not upsert new ones here, should be created by call:start
+                                    { new: true }
                                 );
 
+                                // Fallback: if no ongoing call, try to append to the most recent call for this room
+                                if (!updatedCall) {
+                                    console.warn(`⚠️ No 'ongoing' call for ${socket.activeCallId}, trying fallback to latest record...`);
+                                    const latestCall = await Call.findOne({ roomId: socket.activeCallId }).sort({ createdAt: -1 });
+                                    if (latestCall) {
+                                        updatedCall = await Call.findByIdAndUpdate(
+                                            latestCall._id,
+                                            {
+                                                $push: {
+                                                    transcripts: {
+                                                        sender: userId,
+                                                        text: transcript,
+                                                        timestamp: new Date()
+                                                    }
+                                                },
+                                                $addToSet: { participants: userId }
+                                            },
+                                            { new: true }
+                                        );
+                                    }
+                                }
+
                                 if (updatedCall) {
-                                    console.log(`✅ DB SAVED: "${transcript.substring(0, 15)}..."`);
+                                    console.log(`✅ DB SAVED [${socket.activeCallId}] [${userId}]: "${transcript.substring(0, 30)}..." (Status: ${updatedCall.status})`);
                                 } else {
-                                    console.error(`❌ DB ERROR: Update failed for room ${socket.activeCallId}`);
+                                    console.error(`❌ DB ERROR: No call record found whatsoever for roomId: ${socket.activeCallId}. Transcript lost.`);
                                 }
 
                             } else {
@@ -183,6 +202,12 @@ io.on("connection", (socket) => {
 
                 connection.on(LiveTranscriptionEvents.Close, () => {
                     console.log("🌚 Deepgram Connection CLOSED for", socket.id);
+                    delete transcriptionServices[socket.id];
+                });
+
+                connection.on('close', () => {
+                    console.log("🌚 Deepgram Connection CLOSED (fallback) for", socket.id);
+                    delete transcriptionServices[socket.id];
                 });
 
                 connection.on(LiveTranscriptionEvents.Error, (err) => {
