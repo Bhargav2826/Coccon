@@ -15,7 +15,7 @@ const Layout = ({ children, showSidebar = false, fullWidth = false }) => {
       <div className="flex">
         {/* Desktop Sidebar */}
         {showSidebar && (
-          <div className="hidden lg:block">
+          <div className="hidden lg:block sticky top-0 h-screen shrink-0">
             <Sidebar />
           </div>
         )}
