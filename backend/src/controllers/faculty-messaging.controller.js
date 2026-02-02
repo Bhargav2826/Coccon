@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import Message from "../models/Message.js";
 import { streamServerClient } from "../lib/stream.js";
 import cloudinary from "cloudinary";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 // Send message to all room members or specific user
 export async function sendRoomMessage(req, res) {
@@ -14,7 +15,7 @@ export async function sendRoomMessage(req, res) {
       headers: req.headers
     });
 
-    
+
     const { roomId, message, messageType = "text", targetUserId = null } = req.body;
     const facultyId = req.user._id;
 
@@ -38,7 +39,7 @@ export async function sendRoomMessage(req, res) {
       // Create direct message channel with target user
       const channelId = [facultyId.toString(), targetUserId].sort().join("-");
       console.log("🔍 Creating channel with ID:", channelId);
-      
+
       const channel = streamServerClient.channel("messaging", channelId, {
         members: [facultyId.toString(), targetUserId],
         created_by_id: facultyId.toString()
@@ -76,20 +77,20 @@ export async function sendRoomMessage(req, res) {
     // Send to all room members
     const results = [];
     console.log("🔍 Sending to", room.members.length, "room members");
-    
+
     // Check if Stream Chat is properly configured
     if (!process.env.STREAM_API_KEY || !process.env.STREAM_API_SECRET) {
       console.warn("⚠️ Stream Chat API credentials are missing - proceeding with local storage only");
     }
-    
+
     for (const member of room.members) {
       if (member._id.toString() === facultyId.toString()) continue; // Skip self
 
       try {
         console.log("🔍 Sending message to member:", member.fullName);
-        
+
         let streamMessageId = null;
-        
+
         // Try to send via Stream Chat if available
         if (streamServerClient) {
           try {
@@ -105,11 +106,11 @@ export async function sendRoomMessage(req, res) {
               }
             ]);
             console.log("🔍 Users upserted in Stream Chat");
-            
+
             // Create direct message channel with each member
             const channelId = [facultyId.toString(), member._id.toString()].sort().join("-");
             console.log("🔍 Channel ID:", channelId);
-            
+
             const channel = streamServerClient.channel("messaging", channelId, {
               members: [facultyId.toString(), member._id.toString()],
               created_by_id: facultyId.toString()
@@ -158,7 +159,7 @@ export async function sendRoomMessage(req, res) {
           memberId: member._id,
           facultyId: facultyId
         });
-        
+
         results.push({
           _id: member._id,
           fullName: member.fullName,
@@ -180,9 +181,9 @@ export async function sendRoomMessage(req, res) {
   } catch (error) {
     console.log("Error in sendRoomMessage controller", error.message);
     console.log("Error stack:", error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Internal Server Error",
-      error: error.message 
+      error: error.message
     });
   }
 }
@@ -196,7 +197,7 @@ export async function sendRoomFile(req, res) {
   console.log('🔍 Request headers:', req.headers);
   console.log('🔍 Request cookies:', req.cookies);
   console.log('🔍 Request authorization:', req.headers.authorization);
-  
+
   // Set a timeout for the entire operation
   const timeout = setTimeout(() => {
     console.log('❌ File upload timeout - operation took too long');
@@ -220,7 +221,7 @@ export async function sendRoomFile(req, res) {
 
     const { roomId, targetUserId = null } = req.body;
     const facultyId = req.user._id;
-    
+
     // Check if file was uploaded
     if (!req.file) {
       console.log('❌ No file uploaded');
@@ -232,7 +233,7 @@ export async function sendRoomFile(req, res) {
     try {
       if (req.file.buffer) {
         console.log('🔍 File received in memory, uploading to Cloudinary...');
-        
+
         // Upload to Cloudinary manually
         const uploadResult = await new Promise((resolve, reject) => {
           const uploadStream = cloudinary.v2.uploader.upload_stream(
@@ -254,10 +255,10 @@ export async function sendRoomFile(req, res) {
               }
             }
           );
-          
+
           uploadStream.end(req.file.buffer);
         });
-        
+
         fileUrl = uploadResult.secure_url;
         console.log('🔍 File uploaded to Cloudinary:', fileUrl);
       } else {
@@ -268,7 +269,7 @@ export async function sendRoomFile(req, res) {
       console.error('❌ Error uploading file to Cloudinary:', error);
       return res.status(400).json({ message: "Error uploading file: " + error.message });
     }
-    
+
     const fileName = req.file.originalname;
     const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'file';
 
@@ -290,7 +291,7 @@ export async function sendRoomFile(req, res) {
       }
 
       let streamMessageId = null;
-      
+
       // Try to send via Stream Chat if available
       if (streamServerClient) {
         try {
@@ -417,9 +418,9 @@ export async function sendRoomFile(req, res) {
     console.error("Error stack:", error.stack);
     clearTimeout(timeout); // Clear the timeout on error
     if (!res.headersSent) {
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Internal Server Error",
-        error: error.message 
+        error: error.message
       });
     }
   }
@@ -542,9 +543,9 @@ export async function sendVideoCallLink(req, res) {
   } catch (error) {
     console.log("Error in sendVideoCallLink controller", error.message);
     console.log("Error stack:", error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Internal Server Error",
-      error: error.message 
+      error: error.message
     });
   }
 }
@@ -565,8 +566,8 @@ export async function startFacultyVideoCall(req, res) {
     // Check if Stream Chat is properly configured
     if (!process.env.STREAM_API_KEY || !process.env.STREAM_API_SECRET) {
       console.error("❌ Stream Chat API credentials are missing");
-      return res.status(500).json({ 
-        message: "Video call service is not properly configured. Please contact support." 
+      return res.status(500).json({
+        message: "Video call service is not properly configured. Please contact support."
       });
     }
 
@@ -583,12 +584,11 @@ export async function startFacultyVideoCall(req, res) {
     // Generate a unique call ID for this faculty video call
     // Use a more descriptive format that includes room name and timestamp
     const timestamp = Date.now();
-    const roomNameSlug = room.roomName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().substring(0, 20);
-    const callId = `faculty-${roomNameSlug}-${timestamp}`;
-    
+    const callId = `faculty-${room._id}-${timestamp}`;
+
     // Create the video call URL
     const callUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/call/${callId}`;
-    
+
     const videoCallMessage = `🎥 ${callTitle}\n\nI've started a video call. Join me here: ${callUrl}`;
 
     console.log("🎥 Generated call details:", {
@@ -643,9 +643,9 @@ export async function startFacultyVideoCall(req, res) {
         });
       } catch (error) {
         console.error("❌ Error sending video call to specific user:", error);
-        return res.status(500).json({ 
+        return res.status(500).json({
           message: "Failed to send video call link to user",
-          error: error.message 
+          error: error.message
         });
       }
     }
@@ -653,7 +653,7 @@ export async function startFacultyVideoCall(req, res) {
     // Send to all room members
     const results = [];
     console.log("🎥 Sending video call to", room.members.length, "room members");
-    
+
     for (const member of room.members) {
       if (member._id.toString() === facultyId.toString()) continue;
 
@@ -664,6 +664,25 @@ export async function startFacultyVideoCall(req, res) {
           created_by_id: facultyId.toString()
         });
 
+        // 1. Send Socket.io notification for real-time ring/popup
+        const receiverSocketId = getReceiverSocketId(member._id.toString());
+        if (receiverSocketId) {
+          console.log(`📡 Emitting call:incoming to member via socket: ${member.fullName}`);
+          io.to(receiverSocketId).emit("call:incoming", {
+            recipientId: member._id.toString(),
+            callId: callId,
+            type: "video",
+            callerInfo: {
+              id: facultyId.toString(),
+              name: req.user.fullName,
+              profilePic: req.user.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user.fullName)}&background=random`
+            },
+            isClassroomCall: true,
+            roomName: room.roomName
+          });
+        }
+
+        // 2. Send Stream message (fallback/history)
         await channel.create();
         const streamMessage = await channel.sendMessage({
           text: videoCallMessage,
@@ -727,9 +746,9 @@ export async function startFacultyVideoCall(req, res) {
   } catch (error) {
     console.log("❌ Error in startFacultyVideoCall controller:", error.message);
     console.log("Error stack:", error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Internal Server Error",
-      error: error.message 
+      error: error.message
     });
   }
 }
@@ -741,20 +760,20 @@ export async function getStudentFacultyMessages(req, res) {
     if (!req.user || !req.user._id) {
       return res.status(401).json({ message: "User not authenticated" });
     }
-    
+
     const studentId = req.user._id;
-    
+
     console.log("🔍 getStudentFacultyMessages - studentId:", studentId);
     console.log("🔍 getStudentFacultyMessages - user:", req.user);
-    
+
     // Get all rooms where the student is a member
-    const studentRooms = await Room.find({ 
-      members: studentId 
+    const studentRooms = await Room.find({
+      members: studentId
     }).populate("faculty", "fullName email");
-    
+
     console.log("🔍 getStudentFacultyMessages - studentRooms:", studentRooms.length);
     console.log("🔍 getStudentFacultyMessages - first room:", studentRooms[0]);
-    
+
     if (studentRooms.length === 0) {
       return res.status(200).json({
         success: true,
@@ -762,13 +781,13 @@ export async function getStudentFacultyMessages(req, res) {
         rooms: []
       });
     }
-    
+
     // Filter out rooms that don't have faculty or have invalid faculty
     const validRooms = studentRooms.filter(room => room.faculty && room.faculty._id);
-    
+
     console.log("🔍 getStudentFacultyMessages - validRooms:", validRooms.length);
     console.log("🔍 getStudentFacultyMessages - validRooms faculty:", validRooms.map(r => ({ roomName: r.roomName, faculty: r.faculty?.fullName })));
-    
+
     if (validRooms.length === 0) {
       return res.status(200).json({
         success: true,
@@ -776,28 +795,28 @@ export async function getStudentFacultyMessages(req, res) {
         rooms: studentRooms
       });
     }
-    
+
     // Get faculty IDs from valid rooms
     const facultyIds = validRooms.map(room => room.faculty._id);
-    
+
     console.log("🔍 getStudentFacultyMessages - facultyIds:", facultyIds);
-    
+
     // Get messages sent to this student by faculty
     const messages = await Message.find({
       recipient: studentId,
       sender: { $in: facultyIds }
     })
-    .populate("sender", "fullName email")
-    .populate("roomId", "roomName")
-    .sort({ createdAt: -1 })
-    .limit(50);
-    
+      .populate("sender", "fullName email")
+      .populate("roomId", "roomName")
+      .sort({ createdAt: -1 })
+      .limit(50);
+
     console.log("🔍 getStudentFacultyMessages - messages found:", messages.length);
-    
+
     // Transform messages to include file information if present
     const transformedMessages = messages.map(message => {
       const messageObj = message.toObject();
-      
+
       // Check if content contains file information
       if (messageObj.content.includes("📎")) {
         // Extract file information from content
@@ -808,22 +827,22 @@ export async function getStudentFacultyMessages(req, res) {
           messageObj.fileUrl = "#"; // This would need to be updated with actual file URLs
         }
       }
-      
+
       return messageObj;
     });
-    
+
     res.status(200).json({
       success: true,
       messages: transformedMessages,
       rooms: studentRooms
     });
-    
+
   } catch (error) {
     console.log("Error in getStudentFacultyMessages controller", error.message);
     console.log("Error stack:", error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Internal Server Error",
-      error: error.message 
+      error: error.message
     });
   }
 }
@@ -833,24 +852,24 @@ export async function getRoomMessages(req, res) {
   try {
     const { roomId } = req.params;
     const userId = req.user._id;
-    
+
     // Verify the room exists and user is a member
     const room = await Room.findById(roomId)
       .populate("faculty", "fullName email")
       .populate("members", "fullName email");
-    
+
     if (!room) {
       return res.status(404).json({ message: "Room not found" });
     }
-    
+
     // Check if user is faculty or member
     const isFaculty = room.faculty._id.toString() === userId.toString();
     const isMember = room.members.some(member => member._id.toString() === userId.toString());
-    
+
     if (!isFaculty && !isMember) {
       return res.status(403).json({ message: "Access denied" });
     }
-    
+
     // Get messages for this room
     const messages = await Message.find({
       roomId: roomId,
@@ -860,17 +879,17 @@ export async function getRoomMessages(req, res) {
         { targetUserId: null } // Messages sent to all members
       ]
     })
-    .populate("sender", "fullName email")
-    .populate("recipient", "fullName email")
-    .sort({ createdAt: -1 })
-    .limit(100);
-    
+      .populate("sender", "fullName email")
+      .populate("recipient", "fullName email")
+      .sort({ createdAt: -1 })
+      .limit(100);
+
     res.status(200).json({
       success: true,
       messages: messages,
       room: room
     });
-    
+
   } catch (error) {
     console.log("Error in getRoomMessages controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
@@ -882,35 +901,35 @@ export async function markMessageAsRead(req, res) {
   try {
     const { messageId } = req.params;
     const studentId = req.user._id;
-    
+
     console.log("🔍 markMessageAsRead - messageId:", messageId);
     console.log("🔍 markMessageAsRead - studentId:", studentId);
-    
+
     // Find the message and verify it belongs to this student
     const message = await Message.findById(messageId);
-    
+
     if (!message) {
       return res.status(404).json({ message: "Message not found" });
     }
-    
+
     // Verify the message is for this student
     if (message.recipient.toString() !== studentId.toString()) {
       return res.status(403).json({ message: "Access denied" });
     }
-    
+
     // Mark message as read
     message.isRead = true;
     message.readAt = new Date();
     await message.save();
-    
+
     console.log("✅ Message marked as read:", messageId);
-    
+
     res.status(200).json({
       success: true,
       message: "Message marked as read",
       messageId: messageId
     });
-    
+
   } catch (error) {
     console.log("Error in markMessageAsRead controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });

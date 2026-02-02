@@ -1,6 +1,7 @@
 import Room from "../models/Room.js";
 import User from "../models/User.js";
 import Message from "../models/Message.js";
+import Call from "../models/Call.js";
 
 // Generate a unique invite code
 const generateInviteCode = () => {
@@ -104,9 +105,25 @@ export async function getFacultyRooms(req, res) {
       .populate("members", "fullName email role")
       .sort({ createdAt: -1 });
 
+    // For each room, check if there's an ongoing faculty call
+    const roomsWithCallStatus = await Promise.all(rooms.map(async (room) => {
+      const activeCall = await Call.findOne({
+        roomId: { $regex: `^faculty-${room._id}-` },
+        status: 'ongoing'
+      });
+
+      return {
+        ...room.toObject(),
+        activeCall: activeCall ? {
+          callId: activeCall.roomId,
+          startedAt: activeCall.startedAt
+        } : null
+      };
+    }));
+
     res.status(200).json({
       success: true,
-      rooms,
+      rooms: roomsWithCallStatus,
     });
   } catch (error) {
     console.log("Error in getFacultyRooms controller", error);
@@ -123,9 +140,25 @@ export async function getStudentRooms(req, res) {
       .populate("members", "fullName email role")
       .sort({ createdAt: -1 });
 
+    // For each room, check if there's an ongoing faculty call
+    const roomsWithCallStatus = await Promise.all(rooms.map(async (room) => {
+      const activeCall = await Call.findOne({
+        roomId: { $regex: `^faculty-${room._id}-` },
+        status: 'ongoing'
+      });
+
+      return {
+        ...room.toObject(),
+        activeCall: activeCall ? {
+          callId: activeCall.roomId,
+          startedAt: activeCall.startedAt
+        } : null
+      };
+    }));
+
     res.status(200).json({
       success: true,
-      rooms,
+      rooms: roomsWithCallStatus,
     });
   } catch (error) {
     console.log("Error in getStudentRooms controller", error);
@@ -149,7 +182,7 @@ export async function getRoomMembers(req, res) {
 
     // Check if user is a member of this room
     const isMember = room.members.some(member => member._id.toString() === userId.toString()) ||
-                    room.faculty._id.toString() === userId.toString();
+      room.faculty._id.toString() === userId.toString();
 
     if (!isMember) {
       return res.status(403).json({ message: "You are not a member of this room" });
@@ -157,10 +190,10 @@ export async function getRoomMembers(req, res) {
 
     // Return all members including faculty
     // Filter out faculty from members array to avoid duplication
-    const membersWithoutFaculty = room.members.filter(member => 
+    const membersWithoutFaculty = room.members.filter(member =>
       member._id.toString() !== room.faculty._id.toString()
     );
-    
+
     const allMembers = [
       {
         ...room.faculty.toObject(),
@@ -229,9 +262,9 @@ export async function deleteRooms(req, res) {
     const mongoose = await import("mongoose");
     const invalidIds = roomIds.filter(id => !mongoose.Types.ObjectId.isValid(id));
     if (invalidIds.length > 0) {
-      return res.status(400).json({ 
-        message: "Invalid room ID format", 
-        invalidIds 
+      return res.status(400).json({
+        message: "Invalid room ID format",
+        invalidIds
       });
     }
 
@@ -248,9 +281,9 @@ export async function deleteRooms(req, res) {
     // Check if all requested rooms belong to this faculty
     const foundRoomIds = rooms.map(room => room._id.toString());
     const notFoundIds = roomIds.filter(id => !foundRoomIds.includes(id));
-    
+
     if (notFoundIds.length > 0) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: "You can only delete rooms that you created",
         notFoundIds
       });

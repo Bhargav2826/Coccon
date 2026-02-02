@@ -83,9 +83,11 @@ const IncomingCall = () => {
                             </div>
                         </div>
                         <div>
-                            <h3 className="font-bold text-lg">{incomingCall.callerInfo?.name || "Unknown"}</h3>
+                            <h3 className="font-bold text-lg">
+                                {incomingCall.isClassroomCall ? incomingCall.roomName : (incomingCall.callerInfo?.name || "Unknown")}
+                            </h3>
                             <p className="text-sm opacity-70">
-                                Incoming {incomingCall.type === 'audio' ? 'Voice' : 'Video'} Call...
+                                {incomingCall.isClassroomCall ? `Classroom Video Call from ${incomingCall.callerInfo?.name}` : `Incoming ${incomingCall.type === 'audio' ? 'Voice' : 'Video'} Call...`}
                             </p>
                         </div>
                     </div>

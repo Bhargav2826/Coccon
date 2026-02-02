@@ -134,14 +134,14 @@ const CallPage = () => {
         const isInitiating = location.state?.initiating || queryParams.get('initiating') === 'true';
 
         if (isInitiating && socket && !startEmittedRef.current) {
-          const userIds = callId.split('-');
-          let recipientId = userIds.find(id => id !== authUser._id);
+          let recipientId = null;
 
-          // For faculty calls, the recipient might not be in the callId string
-          // In those cases, we still want to create the record
-          if (!recipientId && callId.startsWith('faculty-')) {
+          if (callId.startsWith('faculty-')) {
             console.log("🏫 CallPage: Initiating faculty room call");
-            recipientId = null; // No single recipient
+            recipientId = null;
+          } else {
+            const userIds = callId.split('-');
+            recipientId = userIds.find(id => id !== authUser?._id);
           }
 
           if (recipientId !== undefined) {

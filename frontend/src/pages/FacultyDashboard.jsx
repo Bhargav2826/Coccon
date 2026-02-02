@@ -282,14 +282,24 @@ const FacultyDashboard = () => {
                       <button className="btn btn-primary btn-sm" onClick={() => setSelectedRoomForMessaging(room)}>
                         <MessageCircleIcon className="size-4 mr-1" /> Send Message
                       </button>
-                      <button className="btn btn-success btn-sm" onClick={() => {
-                        if (!canStartVideoCall()) return toast.error("A video call is already in progress.");
-                        startVideoCall();
-                        startVideoCallMutation({ roomId: room._id, callTitle: `${room.roomName} - Video Call` });
-                      }} disabled={startingVideoCall || showVideoCallLoader || !canStartVideoCall()}>
-                        {startingVideoCall ? <span className="loading loading-spinner loading-xs" /> : <VideoIcon className="size-4 mr-1" />}
-                        Start Video Call
-                      </button>
+                      {room.activeCall ? (
+                        <button
+                          className="btn btn-success btn-sm animate-pulse"
+                          onClick={() => navigate(`/call/${room.activeCall.callId}?initiating=true`, { state: { initiating: true } })}
+                        >
+                          <VideoIcon className="size-4 mr-1" />
+                          Ongoing Call
+                        </button>
+                      ) : (
+                        <button className="btn btn-success btn-sm" onClick={() => {
+                          if (!canStartVideoCall()) return toast.error("A video call is already in progress.");
+                          startVideoCall();
+                          startVideoCallMutation({ roomId: room._id, callTitle: `${room.roomName} - Video Call` });
+                        }} disabled={startingVideoCall || showVideoCallLoader || !canStartVideoCall()}>
+                          {startingVideoCall ? <span className="loading loading-spinner loading-xs" /> : <VideoIcon className="size-4 mr-1" />}
+                          Start Video Call
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

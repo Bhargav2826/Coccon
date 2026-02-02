@@ -119,6 +119,18 @@ io.on("connection", (socket) => {
 
         socket.activeCallId = data.callId;
 
+        // Add joiner to participants list if they aren't already there
+        if (userId && data.callId) {
+            try {
+                await Call.findOneAndUpdate(
+                    { roomId: data.callId, status: 'ongoing' },
+                    { $addToSet: { participants: userId } }
+                );
+            } catch (err) {
+                console.error("Error adding participant on join:", err);
+            }
+        }
+
         if (!transcriptionServices[socket.id]) {
             try {
                 console.log("📡 Opening Deepgram connection for", socket.id);

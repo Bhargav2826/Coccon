@@ -10,7 +10,9 @@ import {
   CheckCircleIcon,
   AlertTriangleIcon,
   UserIcon,
-  GraduationCapIcon
+  UserIcon,
+  GraduationCapIcon,
+  VideoIcon
 } from "lucide-react";
 import { DashboardCardSkeleton } from "../components/SkeletonLoaders";
 
@@ -281,10 +283,20 @@ const StudentDashboard = () => {
                     <div className="flex-1">
                       <h3 className="font-semibold">{room.roomName}</h3>
                       <p className="text-sm opacity-70">Teacher: {room.faculty.fullName}</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <CheckCircleIcon className="size-4 text-success" />
-                        <span className="text-xs text-success">Joined</span>
-                      </div>
+                      {room.activeCall ? (
+                        <Link
+                          to={`/call/${room.activeCall.callId}`}
+                          className="btn btn-success btn-xs mt-2 w-full animate-pulse shadow-md hover:shadow-lg transition-all"
+                        >
+                          <VideoIcon className="size-3 mr-1" />
+                          Join Live Class
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-1 mt-1">
+                          <CheckCircleIcon className="size-4 text-success" />
+                          <span className="text-xs text-success">Joined</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
