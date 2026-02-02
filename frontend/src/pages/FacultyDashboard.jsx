@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { getFacultyRooms, createRoom, startFacultyVideoCall, deleteRoom, deleteRooms } from "../lib/api";
 import { toast } from "react-hot-toast";
 import {
@@ -21,6 +21,7 @@ import useVideoCallStore from "../store/useVideoCallStore";
 import { CardSkeleton } from "../components/SkeletonLoaders";
 
 const FacultyDashboard = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roomName, setRoomName] = useState("");
@@ -123,7 +124,16 @@ const FacultyDashboard = () => {
     setShowVideoCallLoader(false);
     if (isOpeningVideoCall || !currentCallUrl) return;
     setOpeningVideoCall(true);
-    window.open(currentCallUrl, '_blank');
+
+    try {
+      const url = new URL(currentCallUrl);
+      const callPath = url.pathname; // Gets /call/callId
+      navigate(`${callPath}?initiating=true`, { state: { initiating: true } });
+    } catch (e) {
+      // Fallback if URL is invalid
+      window.open(currentCallUrl, '_blank');
+    }
+
     completeVideoCall();
   };
 

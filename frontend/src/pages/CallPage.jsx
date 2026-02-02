@@ -130,12 +130,22 @@ const CallPage = () => {
         setToken(res.token);
         setLiveKitUrl(res.url);
 
-        if (location.state?.initiating && socket && !startEmittedRef.current) {
-          const userIds = callId.split('-');
-          const recipientId = userIds.find(id => id !== authUser._id);
+        const queryParams = new URLSearchParams(window.location.search);
+        const isInitiating = location.state?.initiating || queryParams.get('initiating') === 'true';
 
-          if (recipientId) {
-            console.log("📞 CallPage: Emitting call:start event to", recipientId);
+        if (isInitiating && socket && !startEmittedRef.current) {
+          const userIds = callId.split('-');
+          let recipientId = userIds.find(id => id !== authUser._id);
+
+          // For faculty calls, the recipient might not be in the callId string
+          // In those cases, we still want to create the record
+          if (!recipientId && callId.startsWith('faculty-')) {
+            console.log("🏫 CallPage: Initiating faculty room call");
+            recipientId = null; // No single recipient
+          }
+
+          if (recipientId !== undefined) {
+            console.log("📞 CallPage: Emitting call:start event", recipientId ? `to ${recipientId}` : "for room");
             startEmittedRef.current = true;
             socket.emit("call:start", {
               recipientId,

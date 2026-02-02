@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
 import { useQuery } from "@tanstack/react-query";
 import { getStreamToken } from "../lib/api";
@@ -25,6 +25,7 @@ import BackButton from "../components/BackButton";
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
 const ChatPage = () => {
+  const navigate = useNavigate();
   const { id: targetUserId } = useParams();
   const { theme } = useThemeStore();
 
@@ -182,13 +183,19 @@ const ChatPage = () => {
 
   const handleVideoCall = () => {
     if (channel) {
-      const callUrl = `${window.location.origin}/call/${channel.id}`;
+      const callId = channel.id;
+      const callUrl = `${window.location.origin}/call/${callId}`;
 
       channel.sendMessage({
         text: `I've started a video call. Join me here: ${callUrl}`,
       });
 
       toast.success("Video call link sent successfully!");
+
+      // Navigate initiator to the call page
+      setTimeout(() => {
+        navigate(`/call/${callId}?initiating=true`, { state: { initiating: true } });
+      }, 500);
     }
   };
 
@@ -259,22 +266,22 @@ const ChatPage = () => {
           <div className="w-full h-full min-w-0 flex flex-col overflow-hidden">
             {/* Custom Header with Stream Chat Header + Call Button */}
             <div className={`${themeColors.headerBg} ${themeColors.headerText} px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between shadow-lg flex-shrink-0 sticky top-0 z-10`}>
-              <ChannelHeader 
+              <ChannelHeader
                 className="!bg-transparent !border-none !p-0 !flex-1 !min-w-0"
               />
               <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
                 <CallButton handleVideoCall={handleVideoCall} />
               </div>
             </div>
-            
+
             {/* Chat Window */}
             <div className="flex-1 relative overflow-hidden">
               <Window className={`h-full min-w-0 ${themeColors.chatBg} overflow-y-auto`} style={{ height: "100%" }}>
-                <MessageList 
+                <MessageList
                   className="!p-1 sm:!p-4 !bg-transparent"
                 />
-                <MessageInput 
-                  focus 
+                <MessageInput
+                  focus
                   className={`!p-1 sm:!p-4 ${themeColors.inputBg} !border-t ${themeColors.inputBorder} input-theme-${theme}`}
                   placeholder="Type a message..."
                   sendButtonStyle={{

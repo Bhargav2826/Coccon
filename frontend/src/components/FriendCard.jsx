@@ -70,7 +70,7 @@ const FriendCard = ({ friend }) => {
           <Link
             to={{
               pathname: `/call/${callId}`,
-              search: '?type=audio'
+              search: '?type=audio&initiating=true'
             }}
             state={{ initiating: true }}
             className={`btn btn-secondary btn-sm ${!callId ? 'btn-disabled' : ''}`}
@@ -82,7 +82,7 @@ const FriendCard = ({ friend }) => {
           <Link
             to={{
               pathname: `/call/${callId}`,
-              search: '?type=video'
+              search: '?type=video&initiating=true'
             }}
             state={{ initiating: true }}
             className={`btn btn-success btn-sm ${!callId ? 'btn-disabled' : ''}`}

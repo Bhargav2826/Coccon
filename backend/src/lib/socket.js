@@ -64,13 +64,18 @@ io.on("connection", (socket) => {
             );
 
             // Fetch receiver name
-            let receiverName = "Unknown";
-            const receiver = await User.findById(data.recipientId);
-            if (receiver) receiverName = receiver.fullName;
+            let receiverName = data.recipientId === null ? "Room Members" : "Unknown";
+            if (data.recipientId) {
+                const receiver = await User.findById(data.recipientId);
+                if (receiver) receiverName = receiver.fullName;
+            }
+
+            const participants = [data.callerInfo.id];
+            if (data.recipientId) participants.push(data.recipientId);
 
             await Call.create({
                 roomId: data.callId,
-                participants: [data.callerInfo.id, data.recipientId],
+                participants: participants,
                 callerName: data.callerInfo.name,
                 receiverName: receiverName,
                 type: data.type || "video",
@@ -230,17 +235,9 @@ io.on("connection", (socket) => {
         // data: raw audio buffer
         const service = transcriptionServices[socket.id];
         if (service && service.getReadyState() === 1) { // 1 = OPEN
-            // Log every 50th chunk to verify flow without spamming (Commented out for production)
-            // if (!socket.chunkCount) socket.chunkCount = 0;
-            // socket.chunkCount++;
-            // if (socket.chunkCount % 50 === 0 || socket.chunkCount === 1) {
-            //      console.log(`🎤 Audio chunks received from ${socket.id} (Count: ${socket.chunkCount})`);
-            // }
-
             service.send(data);
         } else {
             if (!socket.warnedDeepgram) {
-                // console.warn(`⚠️ Received audio but Deepgram service not ready for ${socket.id}`);
                 socket.warnedDeepgram = true;
             }
         }

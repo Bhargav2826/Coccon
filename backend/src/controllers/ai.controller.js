@@ -292,7 +292,8 @@ export async function getChildCalls(req, res) {
 
     const calls = await Call.find(query)
       .sort({ startedAt: -1 })
-      .limit(50);
+      .limit(50)
+      .populate("transcripts.sender", "fullName");
 
     res.status(200).json(calls);
   } catch (error) {
@@ -334,7 +335,8 @@ export async function getCallHistory(req, res) {
 
     const calls = await Call.find(query)
       .sort({ startedAt: sortVal })
-      .limit(limitVal);
+      .limit(limitVal)
+      .populate("transcripts.sender", "fullName");
 
     res.status(200).json(calls);
   } catch (error) {
