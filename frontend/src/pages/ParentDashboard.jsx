@@ -762,20 +762,18 @@ const ParentDashboard = () => {
                                             <div className="p-2 bg-base-100 rounded-lg">
                                               {type === 'video' ? <VideoIcon className="size-4 text-secondary" /> : <PhoneIcon className="size-4 text-accent" />}
                                             </div>
-                                            <div className="flex flex-col flex-1">
-                                              <div className="flex items-center gap-2 flex-wrap">
-                                                <div className="text-sm font-bold">
-                                                  {new Date(call.startedAt || call.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                </div>
+                                            <div className="flex flex-col gap-1">
+                                              <div className="text-sm font-bold">
+                                                {new Date(call.startedAt || call.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                               </div>
-                                              {call.displayLabel && (
-                                                <div className={`text-[10px] font-bold uppercase tracking-tight mt-1 ${call.category === 'Classroom Call' ? 'text-primary' : call.category === 'Faculty Call' ? 'text-secondary' : 'text-accent'}`}>
-                                                  {call.displayLabel}
-                                                </div>
-                                              )}
-                                              <div className="text-[10px] font-mono opacity-50 uppercase tracking-wider mt-0.5">
+                                              <div className="text-[10px] font-mono opacity-50 uppercase tracking-wider">
                                                 {new Date(call.startedAt || call.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                               </div>
+                                              {call.callLabel && (
+                                                <div className={`text-[10px] font-bold uppercase tracking-tight mt-1 ${call.category === 'Classroom Call' ? 'text-primary' : 'text-accent'}`}>
+                                                  {call.callLabel}
+                                                </div>
+                                              )}
                                             </div>
                                             {(callAnalysis?.meta?.sentiment || call.sentiment) && (
                                               <span className="badge badge-ghost badge-sm opacity-70 ml-1">

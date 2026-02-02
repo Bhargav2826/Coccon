@@ -338,41 +338,37 @@ export async function getCallHistory(req, res) {
       .limit(limitVal)
       .populate("transcripts.sender", "fullName role");
 
-    // Add detailed category metadata to each call
+    // Add detailed call metadata to each call
     const callsWithMetadata = await Promise.all(calls.map(async (call) => {
       const callObj = call.toObject();
+
+      // Determine if this is a classroom call
       const isClassroomCall = call.roomId?.startsWith('faculty-') || call.receiverName === "Room Members";
 
-      let category = "Student Call";
-      let displayLabel = "";
+      let callLabel = "";
 
       if (isClassroomCall) {
-        category = "Classroom Call";
-        displayLabel = "CLASSROOM CALL";
+        callLabel = "CLASSROOM CALL";
       } else {
-        // Get participant details to determine call type
+        // Get participant details to determine roles
         const participants = await User.find({ _id: { $in: call.participants } }).select("fullName role");
-        const caller = participants.find(p => p._id.toString() === call.participants[0]?.toString());
-        const receiver = participants.find(p => p._id.toString() === call.participants[1]?.toString());
 
-        if (caller && receiver) {
-          const callerRole = caller.role === 'faculty' ? 'FACULTY' : 'STUDENT';
-          const receiverRole = receiver.role === 'faculty' ? 'FACULTY' : 'STUDENT';
+        if (participants.length >= 2) {
+          const caller = participants.find(p => p._id.toString() === call.participants[0]?.toString());
+          const receiver = participants.find(p => p._id.toString() === call.participants[1]?.toString());
 
-          if (caller.role === 'faculty' || receiver.role === 'faculty') {
-            category = "Faculty Call";
-            displayLabel = `${callerRole}: ${caller.fullName} → ${receiverRole}: ${receiver.fullName}`;
-          } else {
-            category = "Student Call";
-            displayLabel = `${callerRole}: ${caller.fullName} → ${receiverRole}: ${receiver.fullName}`;
+          if (caller && receiver) {
+            const callerRole = caller.role === 'faculty' ? 'FACULTY' : 'STUDENT';
+            const receiverRole = receiver.role === 'faculty' ? 'FACULTY' : 'STUDENT';
+            callLabel = `${callerRole}: ${caller.fullName} → ${receiverRole}: ${receiver.fullName}`;
           }
         }
       }
 
       return {
         ...callObj,
-        category,
-        displayLabel
+        callLabel: callLabel || "Call",
+        category: isClassroomCall ? "Classroom Call" : "Direct Call"
       };
     }));
 
