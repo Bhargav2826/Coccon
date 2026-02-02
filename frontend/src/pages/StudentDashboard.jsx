@@ -10,7 +10,6 @@ import {
   CheckCircleIcon,
   AlertTriangleIcon,
   UserIcon,
-  UserIcon,
   GraduationCapIcon,
   VideoIcon
 } from "lucide-react";
