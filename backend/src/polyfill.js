@@ -10,6 +10,13 @@ if (!buffer.SlowBuffer) {
     };
     mockSlowBuffer.prototype = Buffer.prototype;
 
+    // Polyfill .equal for legacy libraries (buffer-equal-constant-time)
+    if (!mockSlowBuffer.prototype.equal) {
+        mockSlowBuffer.prototype.equal = function (other) {
+            return this.equals(other);
+        };
+    }
+
     // Inject into the buffer module so that other packages requiring it will see it
     buffer.SlowBuffer = mockSlowBuffer;
 }

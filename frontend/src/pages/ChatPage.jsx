@@ -143,6 +143,7 @@ const ChatPage = () => {
 
       try {
         console.log("Initializing stream chat client...");
+        console.log("🔌 Stream API Key:", STREAM_API_KEY);
 
         const client = StreamChat.getInstance(STREAM_API_KEY);
 
