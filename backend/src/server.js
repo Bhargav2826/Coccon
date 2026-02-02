@@ -126,6 +126,7 @@ if (process.env.NODE_ENV === "production") {
 
     // Try to serve the React app
     if (fs.existsSync(indexPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(indexPath);
     } else {
       console.error('❌ SPA Error: index.html not found at', indexPath);
