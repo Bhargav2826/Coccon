@@ -24,6 +24,9 @@ import { errorHandler, notFound } from "./middleware/error.middleware.js";
 
 const PORT = process.env.PORT || 5001;
 
+// Trust proxy for Render/proxies
+app.set('trust proxy', 1);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname_src = path.dirname(__filename);
 const rootPath = path.join(__dirname_src, ".."); // points to backend/
