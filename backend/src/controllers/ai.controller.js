@@ -346,9 +346,26 @@ export async function getCallHistory(req, res) {
       const isClassroomCall = call.roomId?.startsWith('faculty-') || call.receiverName === "Room Members";
 
       let callLabel = "";
+      const Room = (await import("../models/Room.js")).default;
 
       if (isClassroomCall) {
-        callLabel = "CLASSROOM CALL";
+        // Try to extract Room ID from faculty-ROOMID-timestamp
+        const parts = call.roomId.split('-');
+        if (parts.length >= 2 && parts[0] === 'faculty') {
+          const roomId = parts[1];
+          try {
+            const room = await Room.findById(roomId).select("roomName");
+            if (room) {
+              callLabel = `CLASSROOM: ${room.roomName}`;
+            } else {
+              callLabel = "CLASSROOM CALL";
+            }
+          } catch (e) {
+            callLabel = "CLASSROOM CALL";
+          }
+        } else {
+          callLabel = "CLASSROOM CALL";
+        }
       } else {
         // Get participant details to determine roles
         const participants = await User.find({ _id: { $in: call.participants } }).select("fullName role");

@@ -138,6 +138,7 @@ io.on("connection", (socket) => {
                 const connection = deepgram.listen.live({
                     model: "nova-2",
                     smart_format: true,
+                    diarize: true, // Enable diarization for better accuracy, even though we use per-socket streams
                     // language: "en-US", // Default is English, can be customized
                     interim_results: false, // Only get final transcripts to reduce DB writes
                 });
@@ -161,9 +162,13 @@ io.on("connection", (socket) => {
                     }
 
                     if (transcript && dgData.is_final && transcript.trim().length > 0) {
-                        console.log(`💾 Attempting to save transcript for Call: ${socket.activeCallId}`);
+                        if (!userId) {
+                            console.error(`❌ CRITICAL: Missing userId for socket ${socket.id}. Cannot attribute transcript.`);
+                            return;
+                        }
+                        console.log(`💾 Attempting to save transcript for Call: ${socket.activeCallId} from User: ${userId}`);
                         try {
-                            if (socket.activeCallId && userId) {
+                            if (socket.activeCallId) {
                                 // STRATEGY 1: Try to find the ongoing call first
                                 let updatedCall = await Call.findOneAndUpdate(
                                     { roomId: socket.activeCallId, status: 'ongoing' },
