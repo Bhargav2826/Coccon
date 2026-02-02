@@ -22,7 +22,7 @@ import ChatLoader from "../components/ChatLoader";
 import CallButton from "../components/CallButton";
 import BackButton from "../components/BackButton";
 
-const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
+const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY || "7trtqn6jnm9d";
 
 const ChatPage = () => {
   const navigate = useNavigate();
@@ -32,6 +32,7 @@ const ChatPage = () => {
   const [chatClient, setChatClient] = useState(null);
   const [channel, setChannel] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [targetUser, setTargetUser] = useState(null);
 
   const { authUser } = useAuthUser();
@@ -145,7 +146,8 @@ const ChatPage = () => {
         console.log("Initializing stream chat client...");
         console.log("🔌 Stream API Key:", STREAM_API_KEY);
 
-        const client = StreamChat.getInstance(STREAM_API_KEY);
+        // Force new instance to avoid singleton issues with invalid keys
+        const client = new StreamChat(STREAM_API_KEY);
 
         await client.connectUser(
           {
@@ -173,6 +175,7 @@ const ChatPage = () => {
         setChannel(currChannel);
       } catch (error) {
         console.error("Error initializing chat:", error);
+        setError(error.message || "Failed to connect to chat");
         toast.error("Could not connect to chat. Please try again.");
       } finally {
         setLoading(false);
@@ -199,6 +202,23 @@ const ChatPage = () => {
       }, 500);
     }
   };
+
+  if (error) {
+    return (
+      <div className={`w-full h-full flex flex-col items-center justify-center ${themeColors.background} p-4`}>
+        <div className="text-error mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h3 className="text-lg font-bold text-center">Connection Failed</h3>
+          <p className="text-center opacity-70">{error}</p>
+        </div>
+        <button onClick={() => window.location.reload()} className="btn btn-primary">
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (loading || !chatClient || !channel) return <ChatLoader />;
 
