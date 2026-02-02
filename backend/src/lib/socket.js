@@ -164,7 +164,7 @@ io.on("connection", (socket) => {
                         console.log(`💾 Attempting to save transcript for Call: ${socket.activeCallId}`);
                         try {
                             if (socket.activeCallId && userId) {
-                                // Try to find the ongoing call first
+                                // STRATEGY 1: Try to find the ongoing call first
                                 let updatedCall = await Call.findOneAndUpdate(
                                     { roomId: socket.activeCallId, status: 'ongoing' },
                                     {
@@ -180,7 +180,7 @@ io.on("connection", (socket) => {
                                     { new: true }
                                 );
 
-                                // Fallback: if no ongoing call, try to append to the most recent call for this room
+                                // STRATEGY 2: Fallback - if no ongoing call, try to append to the most recent call for this room
                                 if (!updatedCall) {
                                     console.warn(`⚠️ No 'ongoing' call for ${socket.activeCallId}, trying fallback to latest record...`);
                                     const latestCall = await Call.findOne({ roomId: socket.activeCallId }).sort({ createdAt: -1 });
@@ -199,13 +199,43 @@ io.on("connection", (socket) => {
                                             },
                                             { new: true }
                                         );
+                                        console.log(`✅ Appended to latest call record (ID: ${latestCall._id})`);
+                                    }
+                                }
+
+                                // STRATEGY 3: Last resort - create a new call record if none exists
+                                if (!updatedCall) {
+                                    console.warn(`⚠️ No call record found at all for ${socket.activeCallId}. Creating emergency backup record...`);
+                                    try {
+                                        const newCall = await Call.create({
+                                            roomId: socket.activeCallId,
+                                            participants: [userId],
+                                            callerName: "Unknown",
+                                            receiverName: "Unknown",
+                                            type: "video",
+                                            status: 'ongoing',
+                                            startedAt: new Date(),
+                                            transcripts: [{
+                                                sender: userId,
+                                                text: transcript,
+                                                timestamp: new Date()
+                                            }],
+                                            summary: "",
+                                            safetyAlert: { type: "safe", message: "" },
+                                            sentiment: "neutral",
+                                            specificIssues: []
+                                        });
+                                        console.log(`🆘 Emergency call record created (ID: ${newCall._id})`);
+                                        updatedCall = newCall;
+                                    } catch (createErr) {
+                                        console.error(`❌ Failed to create emergency call record:`, createErr);
                                     }
                                 }
 
                                 if (updatedCall) {
-                                    console.log(`✅ DB SAVED [${socket.activeCallId}] [${userId}]: "${transcript.substring(0, 30)}..." (Status: ${updatedCall.status})`);
+                                    console.log(`✅ DB SAVED [${socket.activeCallId}] [${userId}]: "${transcript.substring(0, 30)}..." (Status: ${updatedCall.status}, Total transcripts: ${updatedCall.transcripts.length})`);
                                 } else {
-                                    console.error(`❌ DB ERROR: No call record found whatsoever for roomId: ${socket.activeCallId}. Transcript lost.`);
+                                    console.error(`❌ CRITICAL: All fallback strategies failed. Transcript LOST: "${transcript}"`);
                                 }
 
                             } else {
