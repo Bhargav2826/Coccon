@@ -293,7 +293,7 @@ export async function getChildCalls(req, res) {
     const calls = await Call.find(query)
       .sort({ startedAt: -1 })
       .limit(50)
-      .populate("transcripts.sender", "fullName");
+      .populate("transcripts.sender", "fullName role");
 
     res.status(200).json(calls);
   } catch (error) {
@@ -336,9 +336,19 @@ export async function getCallHistory(req, res) {
     const calls = await Call.find(query)
       .sort({ startedAt: sortVal })
       .limit(limitVal)
-      .populate("transcripts.sender", "fullName");
+      .populate("transcripts.sender", "fullName role");
 
-    res.status(200).json(calls);
+    // Add category metadata to each call
+    const callsWithMetadata = calls.map(call => {
+      const callObj = call.toObject();
+      const isFacultyCall = call.roomId?.startsWith('faculty-') || call.callerName?.toLowerCase().includes('faculty') || call.receiverName === "Room Members";
+      return {
+        ...callObj,
+        category: isFacultyCall ? "Faculty Call" : "Student Call"
+      };
+    });
+
+    res.status(200).json(callsWithMetadata);
   } catch (error) {
     console.error("Error in getCallHistory:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -365,7 +375,7 @@ export async function analyzeCall(req, res) {
     let calls = [];
     if (callId) {
       // Analyze one specific call
-      const specificCall = await Call.findById(callId).populate("transcripts.sender", "fullName");
+      const specificCall = await Call.findById(callId).populate("transcripts.sender", "fullName role");
       if (specificCall) calls = [specificCall];
     } else {
       // Fallback to recent calls logic if no specific callId
@@ -376,7 +386,7 @@ export async function analyzeCall(req, res) {
       calls = await Call.find(query)
         .sort({ startedAt: -1 })
         .limit(5)
-        .populate("transcripts.sender", "fullName");
+        .populate("transcripts.sender", "fullName role");
     }
 
     if (!calls || calls.length === 0) {

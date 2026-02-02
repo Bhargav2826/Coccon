@@ -762,9 +762,16 @@ const ParentDashboard = () => {
                                             <div className="p-2 bg-base-100 rounded-lg">
                                               {type === 'video' ? <VideoIcon className="size-4 text-secondary" /> : <PhoneIcon className="size-4 text-accent" />}
                                             </div>
-                                            <div>
-                                              <div className="text-sm font-bold">
-                                                {new Date(call.startedAt || call.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            <div className="flex flex-col">
+                                              <div className="flex items-center gap-2">
+                                                <div className="text-sm font-bold">
+                                                  {new Date(call.startedAt || call.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </div>
+                                                {call.category && (
+                                                  <span className={`badge badge-xs font-bold uppercase tracking-tighter ${call.category === 'Faculty Call' ? 'badge-primary' : 'badge-ghost opacity-60'}`}>
+                                                    {call.category}
+                                                  </span>
+                                                )}
                                               </div>
                                               <div className="text-[10px] font-mono opacity-50 uppercase tracking-wider">
                                                 {new Date(call.startedAt || call.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
@@ -872,7 +879,12 @@ const ParentDashboard = () => {
                                               call.transcripts.map((t, tid) => (
                                                 <div key={tid} className="flex flex-col gap-1 border-b border-base-content/5 pb-2 last:border-0">
                                                   <div className="flex items-center justify-between">
-                                                    <span className="font-bold text-primary opacity-80">{t.sender?.fullName || "Participant"}</span>
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="font-bold text-primary opacity-80">{t.sender?.fullName || "Participant"}</span>
+                                                      {t.sender?.role && (
+                                                        <span className="badge badge-outline badge-xs opacity-50 capitalize">{t.sender.role}</span>
+                                                      )}
+                                                    </div>
                                                     <span className="text-[9px] opacity-40">{new Date(t.timestamp).toLocaleTimeString()}</span>
                                                   </div>
                                                   <p className="text-base-content/80 leading-relaxed font-sans">{t.text}</p>
