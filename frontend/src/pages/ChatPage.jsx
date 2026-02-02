@@ -244,80 +244,102 @@ const ChatPage = () => {
     >
       <style>
         {`
-          .chat-theme-${theme} .str-chat__message-text,
-          .chat-theme-${theme} .str-chat__message-text * {
-            color: ${textColor} !important;
-          }
-          .chat-theme-${theme} .str-chat__message * {
-            color: ${textColor} !important;
+          /* Chat Container */
+          .chat-theme-${theme} .str-chat {
+            background-color: transparent !important;
+            height: 100%;
           }
           
-          /* Input area theme colors */
-          .chat-theme-${theme} .str-chat__input,
+          /* Message List */
+          .chat-theme-${theme} .str-chat__list {
+            background-color: transparent !important;
+          }
+          
+          /* Message Bubbles */
+          .chat-theme-${theme} .str-chat__message-simple__content {
+            background-color: ${theme === 'light' ? '#ffffff' : theme === 'dark' ? '#374151' : '#1f2937'} !important;
+            border-radius: 18px 18px 18px 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            color: ${textColor} !important;
+            border: 1px solid ${themeColors.inputBorder.split(' ')[1] === 'base-300' ? '#d1d5db' : '#4b5563'};
+          }
+
+          .chat-theme-${theme} .str-chat__message-simple--me .str-chat__message-simple__content {
+            background-color: hsl(var(--p)) !important;
+            color: hsl(var(--pc)) !important;
+            border-radius: 18px 18px 0 18px;
+            border: none;
+          }
+
+          .chat-theme-${theme} .str-chat__message-text-inner {
+             color: inherit !important;
+          }
+          
+          /* Input Area */
           .chat-theme-${theme} .str-chat__input-flat {
             background-color: ${theme === 'light' ? '#ffffff' : theme === 'dark' ? '#374151' : '#1f2937'} !important;
             border-top: 1px solid ${theme === 'light' ? '#e5e7eb' : theme === 'dark' ? '#4b5563' : '#374151'} !important;
+            padding: 1rem !important;
           }
           
-          .chat-theme-${theme} .str-chat__input-flat--textarea {
-            background-color: ${theme === 'light' ? '#f9fafb' : theme === 'dark' ? '#4b5563' : '#374151'} !important;
-            color: ${theme === 'light' ? '#1f2937' : '#f9fafb'} !important;
-            border: 1px solid ${theme === 'light' ? '#e5e7eb' : theme === 'dark' ? '#6b7280' : '#4b5563'} !important;
+          .chat-theme-${theme} .str-chat__input-flat-wrapper {
+             border: 1px solid ${theme === 'light' ? '#d1d5db' : '#4b5563'} !important;
+             border-radius: 24px !important;
+             overflow: hidden;
+             background-color: ${theme === 'light' ? '#f9fafb' : theme === 'dark' ? '#4b5563' : '#111827'} !important;
           }
-          
-          .chat-theme-${theme} .str-chat__input-flat--file-upload {
-            background-color: ${theme === 'light' ? '#f9fafb' : theme === 'dark' ? '#4b5563' : '#374151'} !important;
-            color: ${theme === 'light' ? '#1f2937' : '#f9fafb'} !important;
-            border: 1px solid ${theme === 'light' ? '#e5e7eb' : theme === 'dark' ? '#6b7280' : '#4b5563'} !important;
+
+          .chat-theme-${theme} .str-chat__send-button {
+             background-color: transparent !important;
           }
-          
-          .chat-theme-${theme} .str-chat__input-flat--actions button {
-            background-color: ${theme === 'light' ? '#f9fafb' : theme === 'dark' ? '#4b5563' : '#374151'} !important;
-            color: ${theme === 'light' ? '#1f2937' : '#f9fafb'} !important;
-            border: 1px solid ${theme === 'light' ? '#e5e7eb' : theme === 'dark' ? '#6b7280' : '#4b5563'} !important;
-          }
-          
-          .chat-theme-${theme} .str-chat__input-flat--textarea::placeholder {
-            color: ${theme === 'light' ? '#6b7280' : '#9ca3af'} !important;
+
+          /* Avatar */
+          .str-chat__avatar-image {
+             border-radius: 50% !important;
           }
         `}
       </style>
       <Chat client={chatClient}>
         <Channel channel={channel}>
-          <div className="w-full h-full min-w-0 flex flex-col overflow-hidden">
-            {/* Custom Header with Stream Chat Header + Call Button */}
-            <div className={`${themeColors.headerBg} ${themeColors.headerText} px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between shadow-lg flex-shrink-0 sticky top-0 z-10`}>
-              <ChannelHeader
-                className="!bg-transparent !border-none !p-0 !flex-1 !min-w-0"
-              />
-              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
+          <div className="w-full h-full min-w-0 flex flex-col overflow-hidden relative">
+
+            {/* Custom Modern Header */}
+            <div className={`${themeColors.headerBg} ${themeColors.headerText} px-4 py-3 flex items-center justify-between shadow-md z-10 sticky top-0`}>
+              <div className="flex items-center gap-3">
+                <div className="avatar">
+                  <div className="w-10 h-10 rounded-full ring ring-offset-2 ring-primary ring-offset-base-100">
+                    <img
+                      src={targetUser?.profilePic || "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"}
+                      alt="User Avatar"
+                      onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${targetUser?.fullName || 'User'}&background=random` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg leading-tight">{targetUser?.fullName || "Chat"}</h3>
+                  <p className="text-xs opacity-80 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-green-400"></span> Online
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
                 <CallButton handleVideoCall={handleVideoCall} />
               </div>
             </div>
 
             {/* Chat Window */}
-            <div className="flex-1 relative overflow-hidden">
-              <Window className={`h-full min-w-0 ${themeColors.chatBg} overflow-y-auto`} style={{ height: "100%" }}>
+            <div className="flex-1 relative overflow-hidden bg-center bg-cover" style={{ backgroundImage: theme === 'light' ? 'url("https://www.transparenttextures.com/patterns/subtle-white-feathers.png")' : 'none' }}>
+              <Window>
                 <MessageList
-                  className="!p-1 sm:!p-4 !bg-transparent"
+                  className="!p-4"
+                  messageActions={['react', 'reply', 'delete', 'edit', 'pin', 'flag']}
                 />
-                <MessageInput
-                  focus
-                  className={`!p-1 sm:!p-4 ${themeColors.inputBg} !border-t ${themeColors.inputBorder} input-theme-${theme}`}
-                  placeholder="Type a message..."
-                  sendButtonStyle={{
-                    backgroundColor: 'hsl(var(--p))', // Use CSS variable for primary color
-                    color: 'hsl(var(--pc))', // Use CSS variable for primary content color
-                    borderRadius: '50%',
-                    padding: '6px',
-                    width: '32px',
-                    height: '32px',
-                  }}
-                />
+                <MessageInput focus />
               </Window>
             </div>
           </div>
-          <Thread className={`!w-full sm:!w-80 ${themeColors.messageBg} !min-w-0`} />
+          <Thread />
         </Channel>
       </Chat>
     </div>
