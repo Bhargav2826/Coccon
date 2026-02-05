@@ -76,7 +76,7 @@ const AnalysisResultCard = ({ data, icon: Icon, title, dateLabel }) => {
       {isExpanded && (
         <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all duration-300 ${(alertType === 'danger' || alertType === 'warning')
           ? 'bg-error/5 border-error/10 text-error-content'
-          : 'bg-base-100/50 border-base-content/5 text-base-content/90'
+          : 'bg-success/5 border-success/10 text-base-content/90'
           }`}>
           <div className="relative">
             <span className="text-2xl opacity-20 absolute -top-2 -left-2 italic font-serif">"</span>
@@ -801,7 +801,7 @@ const ParentDashboard = () => {
                                         {expandedCallId === call._id && (
                                           <div className={`mt-4 p-4 sm:p-5 rounded-2xl border-2 animate-in slide-in-from-top-2 duration-300 ${((callAnalysis?.alert?.type || call.safetyAlert?.type) === 'danger' || (callAnalysis?.alert?.type || call.safetyAlert?.type) === 'warning')
                                             ? 'bg-error/5 border-error/10 text-error-content'
-                                            : 'bg-base-100 border-base-content/5 text-base-content/90'
+                                            : 'bg-success/5 border-success/10 text-base-content/90'
                                             }`}>
                                             {callAnalysis?.isAnalyzing ? (
                                               <div className="py-4 text-center">
