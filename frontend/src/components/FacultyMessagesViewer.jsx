@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStudentFacultyMessages, markMessageAsRead } from "../lib/api";
-import { 
-  MessageCircleIcon, 
-  FileTextIcon, 
-  ImageIcon, 
+import {
+  MessageCircleIcon,
+  FileTextIcon,
+  ImageIcon,
   VideoIcon,
   CalendarIcon,
   UserIcon,
@@ -15,7 +15,7 @@ import { toast } from "react-hot-toast";
 
 const FacultyMessagesViewer = () => {
   const queryClient = useQueryClient();
-  
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["studentFacultyMessages"],
     queryFn: getStudentFacultyMessages,
@@ -43,9 +43,9 @@ const FacultyMessagesViewer = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -88,10 +88,10 @@ const FacultyMessagesViewer = () => {
   const handleVideoCallClick = (messageContent) => {
     try {
       console.log("🎥 Video call message content:", messageContent);
-      
+
       // Extract the video call URL from the message content
       let videoCallUrl = null;
-      
+
       // Try different patterns to extract the URL
       if (messageContent.includes("Join the video call: ")) {
         videoCallUrl = messageContent.split("Join the video call: ")[1];
@@ -104,18 +104,24 @@ const FacultyMessagesViewer = () => {
           videoCallUrl = urlMatch[1];
         }
       }
-      
+
       console.log("🎥 Extracted video call URL:", videoCallUrl);
-      
+
       if (!videoCallUrl) {
         console.error("❌ Could not extract video call URL from message content");
         toast.error("Could not find video call URL in the message");
         return;
       }
-      
+
       // Clean up the URL (remove any trailing whitespace or newlines)
       videoCallUrl = videoCallUrl.trim();
-      
+
+      // Smart origin replacement
+      const currentOrigin = window.location.origin;
+      if (videoCallUrl.includes("localhost:5173") && !currentOrigin.includes("localhost")) {
+        videoCallUrl = videoCallUrl.replace("http://localhost:5173", currentOrigin);
+      }
+
       // Validate the URL
       try {
         new URL(videoCallUrl);
@@ -124,14 +130,14 @@ const FacultyMessagesViewer = () => {
         toast.error("Invalid video call URL");
         return;
       }
-      
+
       console.log("🎥 Opening video call URL:", videoCallUrl);
-      
+
       // Open the video call in a new tab
       window.open(videoCallUrl, '_blank');
-      
+
       toast.success("Opening video call...");
-      
+
     } catch (error) {
       console.error("❌ Error handling video call click:", error);
       toast.error("Failed to open video call");
@@ -196,11 +202,11 @@ const FacultyMessagesViewer = () => {
             Refresh
           </button>
         </div>
-        
+
         <div className="space-y-6">
           {messages.map((message, index) => (
-            <div 
-              key={message._id} 
+            <div
+              key={message._id}
               className="bg-base-100 rounded-2xl shadow-sm border border-base-300/50 hover:shadow-md transition-all duration-300 overflow-hidden"
             >
               {/* Message Header */}
@@ -234,7 +240,7 @@ const FacultyMessagesViewer = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Message Content */}
               <div className="p-6">
                 <div className="space-y-4">
@@ -281,11 +287,11 @@ const FacultyMessagesViewer = () => {
                   ) : message.content.includes("🎥") ? (
                     <div className="space-y-4">
                       <div className="bg-base-200/50 p-4 rounded-xl">
-                        <p className="text-base-content">
+                        <p className="text-base-content whitespace-pre-line leading-relaxed">
                           {message.content}
                         </p>
                       </div>
-                      
+
                       {/* Extract and display the video call URL */}
                       {(() => {
                         let videoCallUrl = null;
@@ -299,8 +305,19 @@ const FacultyMessagesViewer = () => {
                             videoCallUrl = urlMatch[1];
                           }
                         }
-                        
-                        return videoCallUrl ? (
+
+                        const ensureCorrectOrigin = (url) => {
+                          if (!url) return url;
+                          const currentOrigin = window.location.origin;
+                          if (url.includes("localhost:5173") && !currentOrigin.includes("localhost")) {
+                            return url.replace("http://localhost:5173", currentOrigin);
+                          }
+                          return url;
+                        };
+
+                        const smartVideoCallUrl = ensureCorrectOrigin(videoCallUrl);
+
+                        return smartVideoCallUrl ? (
                           <div className="bg-accent/10 p-3 rounded-lg border border-accent/20">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 text-accent">
@@ -308,16 +325,18 @@ const FacultyMessagesViewer = () => {
                                 <span className="text-sm font-medium">Video Call URL</span>
                               </div>
                               <button
-                                onClick={() => handleVideoCallClick(message.content)}
+                                onClick={() => {
+                                  console.log("🎥 Opening smart URL:", smartVideoCallUrl);
+                                  window.open(smartVideoCallUrl, '_blank');
+                                  toast.success("Opening video call...");
+                                }}
                                 className="btn btn-accent btn-sm"
                               >
                                 Join Call
                               </button>
                             </div>
-                            <div className="mt-2">
-                              <p className="text-xs text-accent/70 break-all">
-                                {videoCallUrl.trim()}
-                              </p>
+                            <div className="mt-2 text-xs text-accent/70 break-all bg-accent/5 p-2 rounded border border-accent/10 font-mono">
+                              {smartVideoCallUrl.trim()}
                             </div>
                           </div>
                         ) : (
@@ -343,7 +362,7 @@ const FacultyMessagesViewer = () => {
                       </p>
                     </div>
                   )}
-                  
+
                   {/* Read Status */}
                   <div className="flex items-center justify-between pt-4 border-t border-base-300/30">
                     <div className="flex items-center gap-2">
@@ -359,7 +378,7 @@ const FacultyMessagesViewer = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     {!message.isRead && (
                       <button
                         onClick={() => handleMarkAsRead(message._id)}
@@ -393,11 +412,11 @@ const FacultyMessagesViewer = () => {
               Your Classroom Rooms
             </h3>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {rooms.map((room, index) => (
-              <div 
-                key={room._id} 
+              <div
+                key={room._id}
                 className="bg-base-100 rounded-xl p-4 hover:shadow-md transition-all duration-300"
               >
                 <div className="flex items-center gap-3">
