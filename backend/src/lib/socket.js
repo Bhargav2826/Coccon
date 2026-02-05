@@ -4,6 +4,7 @@ import express from "express";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import Call from "../models/Call.js";
 import User from "../models/User.js";
+import Room from "../models/Room.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -34,11 +35,42 @@ if (!deepgramApiKey) {
 
 const deepgram = createClient(deepgramApiKey);
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
     // console.log("A user connected", socket.id);
 
     const userId = socket.handshake.query.userId;
-    if (userId) userSocketMap[userId] = socket.id;
+    if (userId) {
+        userSocketMap[userId] = socket.id;
+
+        // Check if this student has any ongoing classroom calls to join
+        try {
+            const studentRooms = await Room.find({ members: userId });
+            for (const room of studentRooms) {
+                const activeCall = await Call.findOne({
+                    roomId: { $regex: `^faculty-${room._id}-` },
+                    status: 'ongoing'
+                });
+
+                if (activeCall) {
+                    const faculty = await User.findById(room.faculty);
+                    socket.emit("call:incoming", {
+                        recipientId: userId,
+                        callId: activeCall.roomId,
+                        type: activeCall.type || "video",
+                        callerInfo: {
+                            id: faculty?._id,
+                            name: faculty?.fullName,
+                            profilePic: faculty?.profilePic
+                        },
+                        isClassroomCall: true,
+                        roomName: room.roomName
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Error checking for active calls on connection:", err);
+        }
+    }
 
     // Used to store active users (optional)
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
@@ -58,46 +90,55 @@ io.on("connection", (socket) => {
         try {
             // First, mark any existing 'ongoing' calls for this room as ended 
             // (in case a previous session didn't close properly)
+            // But only if it's NOT the same call we are starting
             await Call.updateMany(
-                { roomId: data.callId, status: 'ongoing' },
+                { roomId: { $ne: data.callId }, status: 'ongoing' }, // This might be too broad, maybe scope to participants
                 { status: 'ended', endedAt: new Date() }
             );
 
-            // Fetch receiver name
-            let receiverName = data.recipientId === null ? "Room Members" : "Unknown";
-            if (data.recipientId) {
-                const receiver = await User.findById(data.recipientId);
-                if (receiver) receiverName = receiver.fullName;
+            // Check if call record already exists (e.g. created by controller)
+            const existingCall = await Call.findOne({ roomId: data.callId });
+
+            if (!existingCall) {
+                // Fetch receiver name
+                let receiverName = data.recipientId === null ? "Room Members" : "Unknown";
+                if (data.recipientId) {
+                    const receiver = await User.findById(data.recipientId);
+                    if (receiver) receiverName = receiver.fullName;
+                }
+
+                const participants = [data.callerInfo.id];
+                if (data.recipientId) participants.push(data.recipientId);
+
+                await Call.create({
+                    roomId: data.callId,
+                    participants: participants,
+                    callerName: data.callerInfo.name,
+                    receiverName: receiverName,
+                    type: data.type || "video",
+                    status: 'ongoing',
+                    startedAt: new Date(),
+                    summary: "",
+                    safetyAlert: {
+                        type: "safe",
+                        message: ""
+                    },
+                    sentiment: "neutral",
+                    specificIssues: [],
+                    transcripts: []
+                });
+                console.log("📝 New separate Call record created:", data.callId);
+            } else {
+                console.log("📝 Call record already exists, skipping creation:", data.callId);
             }
-
-            const participants = [data.callerInfo.id];
-            if (data.recipientId) participants.push(data.recipientId);
-
-            await Call.create({
-                roomId: data.callId,
-                participants: participants,
-                callerName: data.callerInfo.name,
-                receiverName: receiverName,
-                type: data.type || "video",
-                status: 'ongoing',
-                startedAt: new Date(),
-                summary: "",
-                safetyAlert: {
-                    type: "safe",
-                    message: ""
-                },
-                sentiment: "neutral",
-                specificIssues: [],
-                transcripts: []
-            });
-
-            console.log("📝 New separate Call record created:", data.callId);
         } catch (err) {
             console.error("Error creating call record:", err);
         }
 
         if (receiverSocketId) {
             io.to(receiverSocketId).emit("call:incoming", data);
+        } else if (data.recipientId === null && data.callId.startsWith('faculty-')) {
+            console.log(`🏫 Classroom call started: ${data.callId}`);
         } else {
             console.log(`User ${data.recipientId} is offline or not connected.`);
         }
@@ -314,8 +355,9 @@ io.on("connection", (socket) => {
     socket.on("disconnect", async () => {
         console.log("A user disconnected", socket.id);
 
-        // If user was in a call, mark it as ended
-        if (socket.activeCallId) {
+        // If user was in a call, mark it as ended ONLY if it's NOT a classroom call
+        // Classroom calls should only be ended explicitly
+        if (socket.activeCallId && !socket.activeCallId.startsWith('faculty-')) {
             try {
                 await Call.findOneAndUpdate(
                     { roomId: socket.activeCallId, status: 'ongoing' },

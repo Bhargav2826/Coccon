@@ -239,75 +239,202 @@ const ChatPage = () => {
 
   return (
     <div
-      className={`w-full h-full min-w-0 ${themeColors.background} chat-theme-${theme} overflow-hidden`}
+      className={`w-full h-full min-w-0 bg-[#f8f9fa] chat-theme-${theme} overflow-hidden`}
       style={{ minHeight: "calc(100dvh - 64px)" }}
     >
       <style>
         {`
-          /* Chat Container */
+          /* Clean Chat Layout - Image-Inspired Fixes */
           .chat-theme-${theme} .str-chat {
             background-color: transparent !important;
             height: 100%;
           }
           
-          /* Message List */
-          .chat-theme-${theme} .str-chat__list {
-            background-color: transparent !important;
+          /* Light White Wallpaper */
+          .chat-theme-${theme} .whatsapp-bg {
+            background-image: url("https://www.transparenttextures.com/patterns/food.png");
+            background-repeat: repeat;
+            background-color: #ffffff;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
+            opacity: 0.6;
           }
-          
-          /* Message Bubbles */
+
+          /* Message Alignment & Avatars */
+          .chat-theme-${theme} .str-chat__li {
+            padding: 12px 15px !important;
+            max-width: 100% !important;
+          }
+
+          /* Avatar Positioning */
+          .chat-theme-${theme} .str-chat__message-simple-avatar {
+            display: flex !important;
+            align-self: flex-end !important;
+            margin: 0 10px !important;
+          }
+
+          .chat-theme-${theme} .str-chat__avatar {
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 50% !important;
+          }
+
+          /* Message Inner Structure Fix */
+          .str-chat__message-simple {
+            width: 100% !important;
+            display: flex !important;
+            margin-bottom: 4px !important;
+          }
+
+          /* Sent Messages (Me) - Put avatar on right */
+          .chat-theme-${theme} .str-chat__message-simple--me {
+            flex-direction: row-reverse !important;
+          }
+
+          /* The Content Wrapper */
           .chat-theme-${theme} .str-chat__message-simple__content {
-            background-color: ${theme === 'light' ? '#ffffff' : theme === 'dark' ? '#374151' : '#1f2937'} !important;
-            border-radius: 18px 18px 18px 0;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            color: ${textColor} !important;
-            border: 1px solid ${themeColors.inputBorder.split(' ')[1] === 'base-300' ? '#d1d5db' : '#4b5563'};
+            display: flex !important;
+            flex-direction: column !important;
+            max-width: 75% !important;
+            background: transparent !important;
+            padding: 0 !important;
+            align-items: flex-start !important;
           }
 
           .chat-theme-${theme} .str-chat__message-simple--me .str-chat__message-simple__content {
-            background-color: hsl(var(--p)) !important;
-            color: hsl(var(--pc)) !important;
-            border-radius: 18px 18px 0 18px;
-            border: none;
+            align-items: flex-end !important;
           }
 
+          /* The Bubble Itself - High specificity to override Stream's transparent/wrong colors */
+          .chat-theme-${theme} .str-chat__message-bubble,
+          .chat-theme-${theme} .str-chat__message-simple__content-inner {
+            border-radius: 12px !important;
+            padding: 12px 16px !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
+            border: none !important;
+            position: relative !important;
+            width: 100% !important;
+            min-width: 160px !important;
+          }
+
+          /* Received Bubble Styling (Opponent) */
+          .chat-theme-${theme} .str-chat__message-simple--received .str-chat__message-bubble,
+          .chat-theme-${theme} .str-chat__message-simple--received .str-chat__message-simple__content-inner {
+            background-color: #f1f1f1 !important;
+            color: #333333 !important;
+          }
+
+          /* Sent Bubble Styling (Me) */
+          .chat-theme-${theme} .str-chat__message-simple--me .str-chat__message-bubble,
+          .chat-theme-${theme} .str-chat__message-simple--me .str-chat__message-simple__content-inner {
+            background-color: #4a90e2 !important;
+            color: #ffffff !important;
+          }
+
+          /* Inner Header (Name & Time) - Stay INSIDE bubble */
+          .str-chat__message-simple__header,
+          .str-chat__message-data {
+            display: flex !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            margin-bottom: 6px !important;
+            font-size: 11px !important;
+            gap: 12px !important;
+            position: static !important;
+            float: none !important;
+          }
+
+          .str-chat__message-simple__name, .str-chat__message-data--name {
+            font-weight: 800 !important;
+            color: inherit !important;
+            max-width: 60% !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+          }
+
+          .str-chat__message-simple__timestamp, .str-chat__message-data--time {
+               margin: 0 !important;
+               opacity: 0.8 !important;
+               color: inherit !important;
+               font-weight: 400 !important;
+          }
+
+          /* Text Styling */
           .chat-theme-${theme} .str-chat__message-text-inner {
+             font-size: 14.5px !important;
+             line-height: 1.5 !important;
              color: inherit !important;
           }
-          
-          /* Input Area */
+
+          /* Link/Attachment Styling */
+          .str-chat__message-attachment {
+             background: transparent !important;
+             color: inherit !important;
+             margin-top: 8px !important;
+          }
+
+          /* Input Area - Clean Style */
           .chat-theme-${theme} .str-chat__input-flat {
-            background-color: ${theme === 'light' ? '#ffffff' : theme === 'dark' ? '#374151' : '#1f2937'} !important;
-            border-top: 1px solid ${theme === 'light' ? '#e5e7eb' : theme === 'dark' ? '#4b5563' : '#374151'} !important;
-            padding: 1rem !important;
+            background-color: #f1f3f4 !important;
+            border-top: 1px solid #e0e0e0 !important;
+            padding: 12px 24px !important;
+            z-index: 10;
           }
           
           .chat-theme-${theme} .str-chat__input-flat-wrapper {
-             border: 1px solid ${theme === 'light' ? '#d1d5db' : '#4b5563'} !important;
-             border-radius: 24px !important;
-             overflow: hidden;
-             background-color: ${theme === 'light' ? '#f9fafb' : theme === 'dark' ? '#4b5563' : '#111827'} !important;
+             border: 1px solid #d1d1d1 !important;
+             border-radius: 6px !important;
+             background-color: #ffffff !important;
+             padding: 0 12px !important;
           }
 
+          .chat-theme-${theme} .str-chat__input-flat--textarea {
+             min-height: 40px !important;
+             padding: 10px 0 !important;
+             color: #333333 !important;
+             background: transparent !important;
+          }
+
+          /* Green Send Button */
           .chat-theme-${theme} .str-chat__send-button {
-             background-color: transparent !important;
+             background-color: #2da44e !important;
+             color: white !important;
+             border-radius: 4px !important;
+             width: auto !important;
+             height: 40px !important;
+             padding: 0 18px !important;
+             margin-left: 12px !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             font-weight: 700 !important;
+          }
+          
+          .chat-theme-${theme} .str-chat__send-button:hover {
+            background-color: #2c974b !important;
           }
 
-          /* Avatar */
-          .str-chat__avatar-image {
-             border-radius: 50% !important;
+          /* Remove unwanted Stream decorations */
+          .str-chat__message-bubble::after, .str-chat__message-bubble::before,
+          .str-chat__message-simple__content::after, .str-chat__message-simple__content::before,
+          .str-chat__message-simple__content-inner::after, .str-chat__message-simple__content-inner::before {
+            display: none !important;
           }
         `}
       </style>
-      <Chat client={chatClient}>
+      <Chat client={chatClient} theme="messaging light">
         <Channel channel={channel}>
           <div className="w-full h-full min-w-0 flex flex-col overflow-hidden relative">
+            <div className="whatsapp-bg"></div>
 
-            {/* Custom Modern Header */}
-            <div className={`${themeColors.headerBg} ${themeColors.headerText} px-4 py-3 flex items-center justify-between shadow-md z-10 sticky top-0`}>
-              <div className="flex items-center gap-3">
-                <div className="avatar">
-                  <div className="w-10 h-10 rounded-full ring ring-offset-2 ring-primary ring-offset-base-100">
+            {/* Clean Header - Image Style */}
+            <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-10 sticky top-0">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <BackButton className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0" />
+                <div className="avatar flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full">
                     <img
                       src={targetUser?.profilePic || "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"}
                       alt="User Avatar"
@@ -315,24 +442,38 @@ const ChatPage = () => {
                     />
                   </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg leading-tight">{targetUser?.fullName || "Chat"}</h3>
-                  <p className="text-xs opacity-80 flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-400"></span> Online
-                  </p>
+                <div className="overflow-hidden min-w-0">
+                  <h3 className="font-bold text-gray-800 text-[16px] truncate">
+                    {targetUser?.fullName || "Chat"}
+                  </h3>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    <p className="text-[12px] text-gray-500 font-medium">Active Now</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <CallButton handleVideoCall={handleVideoCall} />
+                <div className="dropdown dropdown-end">
+                  <button tabIndex={0} className="p-2 hover:bg-gray-100 rounded-full text-gray-400">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 4.001A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 4.001A2 2 0 0 0 12 15z"></path></svg>
+                  </button>
+                  <ul tabIndex={0} className="dropdown-content z-[20] menu p-2 shadow-xl bg-base-100 rounded-box w-48 mt-2">
+                    <li><a>Contact info</a></li>
+                    <li><a>Clear chat</a></li>
+                    <li><a>Export chat</a></li>
+                  </ul>
+                </div>
               </div>
             </div>
 
             {/* Chat Window */}
-            <div className="flex-1 relative overflow-hidden bg-center bg-cover" style={{ backgroundImage: theme === 'light' ? 'url("https://www.transparenttextures.com/patterns/subtle-white-feathers.png")' : 'none' }}>
+            <div className="flex-1 relative overflow-hidden z-[1]">
               <Window>
                 <MessageList
-                  className="!p-4"
+                  className="!p-4 md:!p-8"
+                  hideDeletedMessages={true}
                   messageActions={['react', 'reply', 'delete', 'edit', 'pin', 'flag']}
                 />
                 <MessageInput focus />

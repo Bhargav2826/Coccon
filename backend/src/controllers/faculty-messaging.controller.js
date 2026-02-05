@@ -1,6 +1,7 @@
 import Room from "../models/Room.js";
 import User from "../models/User.js";
 import Message from "../models/Message.js";
+import Call from "../models/Call.js";
 import { streamServerClient } from "../lib/stream.js";
 import cloudinary from "cloudinary";
 import { getReceiverSocketId, io } from "../lib/socket.js";
@@ -585,6 +586,34 @@ export async function startFacultyVideoCall(req, res) {
     // Use a more descriptive format that includes room name and timestamp
     const timestamp = Date.now();
     const callId = `faculty-${room._id}-${timestamp}`;
+
+    // Create the video call record in the DB immediately
+    try {
+      // End any existing ongoing calls for this faculty room
+      await Call.updateMany(
+        { roomId: { $regex: `^faculty-${room._id}-` }, status: 'ongoing' },
+        { status: 'ended', endedAt: new Date() }
+      );
+
+      // Create new call record
+      await Call.create({
+        roomId: callId,
+        participants: [facultyId],
+        callerName: req.user.fullName,
+        receiverName: `${room.roomName} Members`,
+        type: "video",
+        status: 'ongoing',
+        startedAt: new Date(),
+        summary: "",
+        safetyAlert: { type: "safe", message: "" },
+        sentiment: "neutral",
+        specificIssues: [],
+        transcripts: []
+      });
+      console.log("📝 Initial Call record created for room:", room.roomName);
+    } catch (err) {
+      console.error("Error creating initial call record:", err);
+    }
 
     // Create the video call URL
     const callUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/call/${callId}`;

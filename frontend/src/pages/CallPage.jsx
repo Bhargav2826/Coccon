@@ -220,7 +220,10 @@ const CallPage = () => {
         style={{ height: "100dvh" }}
         onDisconnected={() => {
           console.log("󰵚 LiveKit: Disconnected.");
-          if (socket && callId) {
+          const queryParams = new URLSearchParams(window.location.search);
+          const isInitiating = location.state?.initiating || queryParams.get('initiating') === 'true';
+
+          if (socket && callId && isInitiating) {
             socket.emit("call:ended", { callId });
           }
           toast.success("Call ended");
