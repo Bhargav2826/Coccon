@@ -100,6 +100,14 @@ export async function getFacultyRooms(req, res) {
   try {
     const facultyId = req.user._id;
 
+    // WISE SHIELD: Auto-cleanup stale calls that have been 'ongoing' for too long (> 4 hours)
+    // This prevents ghost calls from appearing on the dashboard
+    const staleThreshold = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    await Call.updateMany(
+      { status: 'ongoing', startedAt: { $lt: staleThreshold } },
+      { status: 'ended', endedAt: new Date() }
+    );
+
     const rooms = await Room.find({ faculty: facultyId })
       .populate("faculty", "fullName email")
       .populate("members", "fullName email role")
@@ -134,6 +142,13 @@ export async function getFacultyRooms(req, res) {
 export async function getStudentRooms(req, res) {
   try {
     const userId = req.user._id;
+
+    // WISE SHIELD: Auto-cleanup stale calls for students as well
+    const staleThreshold = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    await Call.updateMany(
+      { status: 'ongoing', startedAt: { $lt: staleThreshold } },
+      { status: 'ended', endedAt: new Date() }
+    );
 
     const rooms = await Room.find({ members: userId })
       .populate("faculty", "fullName email")
