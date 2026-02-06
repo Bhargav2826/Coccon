@@ -134,7 +134,7 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
                                     <HelpCircle size={32} />
                                 </div>
                                 <div>
-                                    <h3 className="text-2xl font-black tracking-tight">Launch Live Quiz</h3>
+                                    <h3 className="text-2xl font-black tracking-tight">Create Quiz</h3>
                                     <p className="text-white/70 text-sm">Challenge your students in real-time</p>
                                 </div>
                             </div>
@@ -421,7 +421,7 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
                 <div className="absolute -inset-2 bg-gradient-to-r from-accent to-primary rounded-[2.5rem] blur opacity-40 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
                 <div className="relative bg-accent text-accent-content px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 font-black uppercase tracking-widest text-xs border border-white/20 transition-all hover:scale-105 active:scale-95">
                     <BarChart3 className="size-6 animate-bounce" />
-                    Launch Intelligence Quiz
+                    Create Quiz
                 </div>
             </button>
         );
