@@ -229,19 +229,19 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
             <div className="fixed bottom-24 right-6 w-full max-w-md z-[55] animate-in slide-in-from-right-8 duration-500">
                 <div className="bg-base-100 rounded-[2.5rem] shadow-2xl border-2 border-primary/20 overflow-hidden flex flex-col">
                     {/* Status Header */}
-                    <div className={`p-5 flex justify-between items-center ${timeLeft > 10 ? 'bg-primary/5' : 'bg-error/5 animate-pulse'}`}>
+                    <div className={`p-5 flex justify-between items-center ${timeLeft > 10 ? 'bg-primary/10' : 'bg-error/10 animate-pulse'}`}>
                         <div className="flex items-center gap-3">
-                            <div className={`size-10 rounded-full flex items-center justify-center ${timeLeft > 10 ? 'bg-primary text-white' : 'bg-error text-white'}`}>
+                            <div className={`size-10 rounded-full flex items-center justify-center ${timeLeft > 10 ? 'bg-primary text-white shadow-lg' : 'bg-error text-white shadow-lg'}`}>
                                 {timeLeft > 0 ? <p className="font-black text-xs">{timeLeft}</p> : <Trophy size={18} />}
                             </div>
                             <div>
-                                <p className="text-[10px] font-black uppercase opacity-50 tracking-tighter">
+                                <p className={`text-[10px] font-black uppercase tracking-widest ${timeLeft > 10 ? 'text-primary' : 'text-error'}`}>
                                     {timeLeft > 0 ? "Live Question" : "Quiz Finished"}
                                 </p>
-                                <h4 className="font-bold text-sm">Classroom IQ Check</h4>
+                                <h4 className="font-bold text-sm text-base-content">Classroom IQ Check</h4>
                             </div>
                         </div>
-                        <button onClick={closeQuiz} className="btn btn-ghost btn-sm btn-circle"><X size={18} /></button>
+                        <button onClick={closeQuiz} className="btn btn-ghost btn-sm btn-circle text-base-content/60 hover:text-base-content"><X size={18} /></button>
                     </div>
 
                     <div className="p-6 space-y-6 overflow-y-auto no-scrollbar max-h-[60vh]">
@@ -297,20 +297,20 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
 
                         {/* Results for Faculty */}
                         {isFaculty && (
-                            <div className="grid grid-cols-2 gap-3 mt-4">
-                                <div className="bg-primary/10 p-4 rounded-2xl border border-primary/10">
-                                    <div className="flex items-center gap-2 opacity-50 mb-1">
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                <div className="bg-primary/10 p-5 rounded-3xl border border-primary/20 shadow-sm">
+                                    <div className="flex items-center gap-2 text-primary mb-2">
                                         <Users size={14} />
-                                        <span className="text-[10px] font-black uppercase">Responses</span>
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Responses</span>
                                     </div>
-                                    <p className="text-2xl font-black text-primary">{totalAnswers}</p>
+                                    <p className="text-3xl font-black text-primary">{totalAnswers}</p>
                                 </div>
-                                <div className="bg-success/10 p-4 rounded-2xl border border-success/10">
-                                    <div className="flex items-center gap-2 opacity-50 mb-1">
+                                <div className="bg-success/10 p-5 rounded-3xl border border-success/20 shadow-sm">
+                                    <div className="flex items-center gap-2 text-success mb-2">
                                         <Award size={14} />
-                                        <span className="text-[10px] font-black uppercase">Accuracy</span>
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Accuracy</span>
                                     </div>
-                                    <p className="text-2xl font-black text-success">{accuracy}%</p>
+                                    <p className="text-3xl font-black text-success">{accuracy}%</p>
                                 </div>
                             </div>
                         )}
