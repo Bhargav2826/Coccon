@@ -15,6 +15,9 @@ import {
 import "@livekit/components-styles";
 import PageLoader from "../components/PageLoader";
 import BackButton from "../components/BackButton";
+import Whiteboard from "../components/Whiteboard";
+import QuizManager from "../components/QuizManager";
+import { PencilLine, BarChart3 } from "lucide-react";
 
 // Helper component to handle local audio streaming
 const AudioStreamer = ({ callId }) => {
@@ -111,6 +114,7 @@ const CallPage = () => {
   const [token, setToken] = useState("");
   const [liveKitUrl, setLiveKitUrl] = useState("");
   const [isError, setIsError] = useState(false);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
   const fetchingRef = useRef(false);
   const startEmittedRef = useRef(false);
 
@@ -181,10 +185,21 @@ const CallPage = () => {
     };
 
     socket.on("call:rejected", handleRejected);
+
+    // Auto-open whiteboard for students when faculty draws
+    const handleRemoteDraw = () => {
+      if (authUser?.role !== 'faculty') {
+        setShowWhiteboard(true);
+      }
+    };
+
+    socket.on("whiteboard:draw", handleRemoteDraw);
+
     return () => {
       socket.off("call:rejected", handleRejected);
+      socket.off("whiteboard:draw", handleRemoteDraw);
     };
-  }, [socket, location.state, navigate]);
+  }, [socket, location.state, navigate, authUser]);
 
   if ((authLoading && !authUser) || (!token && !isError)) {
     return (
@@ -233,6 +248,35 @@ const CallPage = () => {
         <VideoConference />
         <RoomAudioRenderer />
         <AudioStreamer callId={callId} />
+
+        {/* Interactive Tools */}
+        {showWhiteboard && (
+          <Whiteboard
+            socket={socket}
+            callId={callId}
+            isFaculty={authUser?.role === 'faculty'}
+          />
+        )}
+
+        <QuizManager
+          socket={socket}
+          callId={callId}
+          isFaculty={authUser?.role === 'faculty'}
+          authUser={authUser}
+        />
+
+        {/* Tool Toggles (Faculty Only) */}
+        {authUser?.role === 'faculty' && (
+          <div className="fixed top-20 left-4 z-40 flex flex-col gap-2">
+            <button
+              onClick={() => setShowWhiteboard(!showWhiteboard)}
+              className={`btn btn-circle ${showWhiteboard ? 'btn-primary' : 'bg-base-200'} shadow-lg border-2 border-white/20`}
+              title={showWhiteboard ? "Close Whiteboard" : "Open Whiteboard"}
+            >
+              <PencilLine size={20} />
+            </button>
+          </div>
+        )}
       </LiveKitRoom>
     </div>
   );

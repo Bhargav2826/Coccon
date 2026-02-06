@@ -151,6 +151,35 @@ io.on("connection", async (socket) => {
         }
     });
 
+    // --- Interactive Whiteboard Events ---
+    socket.on("whiteboard:draw", (data) => {
+        // data: { callId, x0, y0, x1, y1, color, lineWidth }
+        if (data.callId) {
+            socket.to(data.callId).emit("whiteboard:draw", data);
+        }
+    });
+
+    socket.on("whiteboard:clear", (data) => {
+        if (data.callId) {
+            socket.to(data.callId).emit("whiteboard:clear");
+        }
+    });
+
+    // --- In-Call Quiz Events ---
+    socket.on("quiz:start", (data) => {
+        // data: { callId, question, options, id }
+        if (data.callId) {
+            socket.to(data.callId).emit("quiz:start", data);
+        }
+    });
+
+    socket.on("quiz:answer", (data) => {
+        // data: { callId, quizId, answer, userId, userName }
+        if (data.callId) {
+            socket.to(data.callId).emit("quiz:answer", data);
+        }
+    });
+
     // --- Transcription Streaming ---
     socket.on("join-call-room", async (data) => {
         console.log("!!! SOCKET EVENT: join-call-room received !!!");
@@ -159,6 +188,7 @@ io.on("connection", async (socket) => {
         console.log("- Mimetype:", data.mimetype);
 
         socket.activeCallId = data.callId;
+        socket.join(data.callId); // Join the socket room for this call session
 
         // Add joiner to participants list if they aren't already there
         if (userId && data.callId) {
