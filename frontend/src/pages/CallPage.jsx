@@ -17,6 +17,7 @@ import PageLoader from "../components/PageLoader";
 import BackButton from "../components/BackButton";
 import Whiteboard from "../components/Whiteboard";
 import QuizManager from "../components/QuizManager";
+import Subtitles from "../components/Subtitles";
 import { PencilLine, BarChart3 } from "lucide-react";
 
 // Helper component to handle local audio streaming
@@ -264,6 +265,8 @@ const CallPage = () => {
           isFaculty={authUser?.role === 'faculty'}
           authUser={authUser}
         />
+
+        <Subtitles socket={socket} authUser={authUser} />
 
         {/* Tool Toggles (Faculty Only) */}
         {authUser?.role === 'faculty' && (

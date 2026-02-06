@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 import http from "http";
 import express from "express";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
+import axios from "axios";
 import Call from "../models/Call.js";
 import User from "../models/User.js";
 import Room from "../models/Room.js";
@@ -230,9 +231,63 @@ io.on("connection", async (socket) => {
 
                     if (transcript && transcript.trim().length > 0) {
                         console.log(`🔍 Received from Deepgram (final:${dgData.is_final}): "${transcript}"`);
+
+                        // Emit real-time transcript for basic subtitles even before translation
+                        if (socket.activeCallId) {
+                            io.to(socket.activeCallId).emit("call:subtitle", {
+                                userId,
+                                text: transcript,
+                                isFinal: dgData.is_final
+                            });
+                        }
                     }
 
                     if (transcript && dgData.is_final && transcript.trim().length > 0) {
+                        // Translation Logic for Classroom Calls
+                        if (socket.activeCallId && socket.activeCallId.startsWith('faculty-') && process.env.SARVAM_API_KEY) {
+                            try {
+                                const translationPrompt = {
+                                    model: "sarvam-m",
+                                    messages: [
+                                        {
+                                            role: "system",
+                                            content: "Translate the following classroom transcript from English to Gujarati. Provide ONLY the translated text in one line. If it's already in Gujarati, translate to English."
+                                        },
+                                        {
+                                            role: "user",
+                                            content: transcript
+                                        }
+                                    ],
+                                    temperature: 0.1
+                                };
+
+                                const sarvamRes = await axios.post(
+                                    "https://api.sarvam.ai/v1/chat/completions",
+                                    translationPrompt,
+                                    {
+                                        headers: {
+                                            "api-subscription-key": process.env.SARVAM_API_KEY,
+                                            "Content-Type": "application/json"
+                                        },
+                                        timeout: 5000
+                                    }
+                                );
+
+                                const translatedText = sarvamRes.data?.choices[0]?.message?.content;
+                                if (translatedText) {
+                                    console.log(`🌐 Translated: "${translatedText}"`);
+                                    io.to(socket.activeCallId).emit("call:subtitle", {
+                                        userId,
+                                        text: transcript,
+                                        translatedText: translatedText,
+                                        isFinal: true
+                                    });
+                                }
+                            } catch (transErr) {
+                                console.error("❌ Translation Failed:", transErr.message);
+                            }
+                        }
+
                         if (!userId) {
                             console.error(`❌ CRITICAL: Missing userId for socket ${socket.id}. Cannot attribute transcript.`);
                             return;
