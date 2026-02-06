@@ -189,7 +189,7 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setOptions([...options, ""])}
-                                    className="btn btn-ghost btn-sm flex-1 border-dashed border-2 border-base-content/10"
+                                    className="btn btn-outline btn-primary btn-sm flex-1 font-bold border-2"
                                 >
                                     + Add More Options
                                 </button>
