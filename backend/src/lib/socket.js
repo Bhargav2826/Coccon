@@ -187,6 +187,14 @@ io.on("connection", async (socket) => {
         }
     });
 
+    socket.on("subtitle:language-change", (data) => {
+        // data: { language: 'Marathi' }
+        if (data.language) {
+            console.log(`🌐 User ${userId} changed preferred subtitle language to: ${data.language}`);
+            socket.preferredLanguage = data.language;
+        }
+    });
+
     // --- Transcription Streaming ---
     socket.on("join-call-room", async (data) => {
         console.log("!!! SOCKET EVENT: join-call-room received !!!");
@@ -249,48 +257,65 @@ io.on("connection", async (socket) => {
                     }
 
                     if (transcript && dgData.is_final && transcript.trim().length > 0) {
-                        // Translation Logic for Classroom Calls
+                        // Translation Logic for Classroom Calls (Multi-Language Support)
                         if (socket.activeCallId && socket.activeCallId.startsWith('faculty-') && process.env.SARVAM_API_KEY) {
                             try {
-                                const translationPrompt = {
-                                    model: "sarvam-m",
-                                    messages: [
+                                // Get all unique languages currently requested in this call
+                                const currentRoomSockets = await io.in(socket.activeCallId).fetchSockets();
+                                const uniqueLanguages = [...new Set(currentRoomSockets.map(s => s.preferredLanguage).filter(Boolean))];
+
+                                console.log(`🌍 Translating to unique languages: ${uniqueLanguages.join(', ')}`);
+
+                                for (const lang of uniqueLanguages) {
+                                    // If English is selected as a preference, we already broadcasted the raw transcript
+                                    if (lang === 'English') continue;
+
+                                    const translationPrompt = {
+                                        model: "sarvam-m",
+                                        messages: [
+                                            {
+                                                role: "system",
+                                                content: `Translate the following classroom transcript from English to ${lang}. Provide ONLY the translated text in one line. If it's already in ${lang}, just return the original text.`
+                                            },
+                                            {
+                                                role: "user",
+                                                content: transcript
+                                            }
+                                        ],
+                                        temperature: 0.1
+                                    };
+
+                                    const sarvamRes = await axios.post(
+                                        "https://api.sarvam.ai/v1/chat/completions",
+                                        translationPrompt,
                                         {
-                                            role: "system",
-                                            content: "Translate the following classroom transcript from English to Gujarati. Provide ONLY the translated text in one line. If it's already in Gujarati, translate to English."
-                                        },
-                                        {
-                                            role: "user",
-                                            content: transcript
+                                            headers: {
+                                                "api-subscription-key": process.env.SARVAM_API_KEY,
+                                                "Content-Type": "application/json"
+                                            },
+                                            timeout: 5000
                                         }
-                                    ],
-                                    temperature: 0.1
-                                };
+                                    );
 
-                                const sarvamRes = await axios.post(
-                                    "https://api.sarvam.ai/v1/chat/completions",
-                                    translationPrompt,
-                                    {
-                                        headers: {
-                                            "api-subscription-key": process.env.SARVAM_API_KEY,
-                                            "Content-Type": "application/json"
-                                        },
-                                        timeout: 5000
+                                    const translatedText = sarvamRes.data?.choices[0]?.message?.content;
+                                    if (translatedText) {
+                                        console.log(`🌐 Translated (${lang}): "${translatedText}"`);
+
+                                        // Emit only to those users who want THIS specific language
+                                        const usersTargetingThisLang = currentRoomSockets.filter(s => s.preferredLanguage === lang);
+                                        usersTargetingThisLang.forEach(targetSocket => {
+                                            io.to(targetSocket.id).emit("call:subtitle", {
+                                                userId,
+                                                text: transcript,
+                                                translatedText: translatedText,
+                                                isFinal: true,
+                                                targetLanguage: lang
+                                            });
+                                        });
                                     }
-                                );
-
-                                const translatedText = sarvamRes.data?.choices[0]?.message?.content;
-                                if (translatedText) {
-                                    console.log(`🌐 Translated: "${translatedText}"`);
-                                    io.to(socket.activeCallId).emit("call:subtitle", {
-                                        userId,
-                                        text: transcript,
-                                        translatedText: translatedText,
-                                        isFinal: true
-                                    });
                                 }
                             } catch (transErr) {
-                                console.error("❌ Translation Failed:", transErr.message);
+                                console.error("❌ Multi-Language Translation Failed:", transErr.message);
                             }
                         }
 

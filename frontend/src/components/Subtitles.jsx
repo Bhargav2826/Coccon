@@ -1,17 +1,44 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Languages, Settings2 } from "lucide-react";
+import { Languages, Globe } from "lucide-react";
+
+const LANGUAGES = [
+    { label: "Hindi", value: "Hindi" },
+    { label: "Marathi", value: "Marathi" },
+    { label: "Gujarati", value: "Gujarati" },
+    { label: "Tamil", value: "Tamil" },
+    { label: "Telugu", value: "Telugu" },
+    { label: "Kannada", value: "Kannada" },
+    { label: "Bengali", value: "Bengali" },
+    { label: "Malayalam", value: "Malayalam" },
+    { label: "Punjabi", value: "Punjabi" },
+];
 
 const Subtitles = ({ socket, authUser }) => {
     const [subtitles, setSubtitles] = useState([]); // { text, translatedText, userId, id }
     const [showSubtitles, setShowSubtitles] = useState(true);
     const [useTranslation, setUseTranslation] = useState(true);
+    const [targetLanguage, setTargetLanguage] = useState(() => localStorage.getItem("subtitleLanguage") || "Hindi");
     const scrollRef = useRef(null);
+
+    const handleLanguageChange = (lang) => {
+        setTargetLanguage(lang);
+        localStorage.setItem("subtitleLanguage", lang);
+        if (socket) {
+            socket.emit("subtitle:language-change", { language: lang });
+        }
+    };
 
     useEffect(() => {
         if (!socket) return;
 
+        // Emit initial language preference
+        socket.emit("subtitle:language-change", { language: targetLanguage });
+
         socket.on("call:subtitle", (data) => {
-            // data: { userId, text, translatedText, isFinal }
+            // data: { userId, text, translatedText, isFinal, targetLanguage }
+            // Only update if no targetLanguage specified (broadcast) OR it matches our target
+            if (data.targetLanguage && data.targetLanguage !== targetLanguage) return;
+
             setSubtitles((prev) => {
                 // Find if we're updating an existing non-final subtitle from same user
                 const existingIdx = prev.findIndex(s => s.userId === data.userId && !s.isFinal);
@@ -43,7 +70,7 @@ const Subtitles = ({ socket, authUser }) => {
         return () => {
             socket.off("call:subtitle");
         };
-    }, [socket]);
+    }, [socket, targetLanguage]);
 
     // Clean up old subtitles
     useEffect(() => {
@@ -78,22 +105,36 @@ const Subtitles = ({ socket, authUser }) => {
                     <button tabIndex={0} className="btn btn-xs rounded-full bg-black/60 border-white/10 text-white/70 gap-2 hover:bg-black/80">
                         <Languages size={12} />
                         <span className="text-[10px] font-bold uppercase tracking-widest">
-                            {useTranslation ? "Translation ON" : "Subtitles Only"}
+                            {useTranslation ? `${targetLanguage} Mode` : "Subtitles Only"}
                         </span>
                     </button>
-                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-2xl bg-base-100 rounded-xl w-48 mb-2 border border-base-content/10">
+                    <ul tabIndex={0} className="dropdown-content z-[20] menu p-2 shadow-2xl bg-base-100 rounded-xl w-56 mb-2 border border-base-content/10">
+                        <li className="menu-title text-[10px] uppercase font-black opacity-50">Subtitle Settings</li>
                         <li>
                             <label className="label cursor-pointer justify-between py-1">
-                                <span className="text-xs font-bold">Show Subtitles</span>
+                                <span className="text-xs font-bold">Display</span>
                                 <input type="checkbox" className="toggle toggle-primary toggle-xs" checked={showSubtitles} onChange={(e) => setShowSubtitles(e.target.checked)} />
                             </label>
                         </li>
                         <li>
                             <label className="label cursor-pointer justify-between py-1">
-                                <span className="text-xs font-bold">Real-time Translation</span>
+                                <span className="text-xs font-bold">Translate</span>
                                 <input type="checkbox" className="toggle toggle-secondary toggle-xs" checked={useTranslation} onChange={(e) => setUseTranslation(e.target.checked)} />
                             </label>
                         </li>
+                        <div className="divider my-1 opacity-10"></div>
+                        <li className="menu-title text-[10px] uppercase font-black opacity-50">Target Language</li>
+                        <div className="grid grid-cols-2 gap-1 p-1">
+                            {LANGUAGES.map(lang => (
+                                <button
+                                    key={lang.value}
+                                    onClick={() => handleLanguageChange(lang.value)}
+                                    className={`btn btn-xs normal-case font-medium ${targetLanguage === lang.value ? 'btn-primary' : 'btn-ghost'}`}
+                                >
+                                    {lang.label}
+                                </button>
+                            ))}
+                        </div>
                     </ul>
                 </div>
             </div>
