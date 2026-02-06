@@ -262,7 +262,7 @@ const Whiteboard = ({ socket, callId, isFaculty, onClose }) => {
         if (emit && socket) socket.emit("whiteboard:clear", { callId });
     };
 
-    const download = () => {
+    const handleSaveBoard = () => {
         const canvas = canvasRef.current;
         const link = document.createElement("a");
         link.download = `whiteboard-${Date.now()}.png`;
@@ -376,7 +376,7 @@ const Whiteboard = ({ socket, callId, isFaculty, onClose }) => {
                         <div className="mt-auto flex flex-col gap-3 pb-2">
                             <button onClick={undo} disabled={undoStack.length === 0} className="btn btn-ghost btn-sm btn-square disabled:opacity-20" title="Undo"><Undo2 size={18} /></button>
                             <button onClick={() => clearCanvas(true)} className="btn btn-ghost btn-sm btn-square text-error" title="Clear All"><Trash2 size={18} /></button>
-                            <button onClick={download} className="btn btn-primary btn-sm btn-square shadow-lg shadow-primary/20" title="Save Image"><Download size={18} /></button>
+                            <button onClick={handleSaveBoard} className="btn btn-primary btn-sm btn-square shadow-lg shadow-primary/20" title="Save Image"><Download size={18} /></button>
                         </div>
                     </div>
                 )}
