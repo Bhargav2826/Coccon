@@ -142,9 +142,9 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
 
                     <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto no-scrollbar">
                         <div className="form-control">
-                            <label className="label uppercase tracking-widest text-[10px] font-black opacity-40">Question Content</label>
+                            <label className="label uppercase tracking-widest text-[10px] font-black opacity-60 text-base-content/60">Question Content</label>
                             <textarea
-                                className="textarea textarea-bordered h-28 text-lg font-bold bg-base-200 focus:primary leading-tight"
+                                className="textarea textarea-bordered h-28 text-lg font-bold bg-base-200 focus:primary leading-tight text-base-content"
                                 placeholder="Type your question here..."
                                 value={question}
                                 onChange={(e) => setQuestion(e.target.value)}
@@ -167,7 +167,7 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
                                     />
                                     <input
                                         type="text"
-                                        className={`input input-bordered flex-1 font-semibold ${correctOption === idx ? 'border-success ring-1 ring-success' : ''}`}
+                                        className={`input input-bordered flex-1 font-semibold text-base-content ${correctOption === idx ? 'border-success ring-1 ring-success' : ''}`}
                                         placeholder={`Option ${idx + 1}`}
                                         value={opt}
                                         onChange={(e) => {
@@ -246,8 +246,8 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
 
                     <div className="p-6 space-y-6 overflow-y-auto no-scrollbar max-h-[60vh]">
                         <div className="relative">
-                            <span className="text-5xl opacity-10 absolute -top-4 -left-2 font-serif">"</span>
-                            <h3 className="text-xl font-black leading-tight relative z-10">{activeQuiz.question}</h3>
+                            <span className="text-5xl opacity-10 absolute -top-4 -left-2 font-serif text-base-content">"</span>
+                            <h3 className="text-xl font-black leading-tight relative z-10 text-base-content">{activeQuiz.question}</h3>
                         </div>
 
                         <div className="space-y-3">
@@ -281,14 +281,14 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
                                             />
                                         )}
 
-                                        <div className="relative flex justify-between items-center gap-3">
+                                        <div className="relative flex justify-between items-center gap-3 z-10">
                                             <div className="flex items-center gap-3">
-                                                <span className={`size-6 rounded-lg flex items-center justify-center font-black text-[10px] ${isSelected ? 'bg-primary text-white' : 'bg-white/10'}`}>
+                                                <span className={`size-6 rounded-lg flex items-center justify-center font-black text-[10px] ${isSelected ? 'bg-primary text-white' : 'bg-base-300 text-base-content'}`}>
                                                     {String.fromCharCode(65 + idx)}
                                                 </span>
-                                                <span className="font-bold">{opt}</span>
+                                                <span className={`font-bold text-base-content ${isSelected ? 'text-primary' : ''}`}>{opt}</span>
                                             </div>
-                                            {showStats && <span className="text-xs font-black opacity-40">{Math.round(optPerc)}%</span>}
+                                            {showStats && <span className="text-xs font-black text-base-content/80">{Math.round(optPerc)}%</span>}
                                         </div>
                                     </button>
                                 );
