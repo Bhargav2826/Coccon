@@ -256,6 +256,7 @@ const CallPage = () => {
             socket={socket}
             callId={callId}
             isFaculty={authUser?.role === 'faculty'}
+            onClose={() => setShowWhiteboard(false)}
           />
         )}
 
