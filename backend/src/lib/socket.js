@@ -54,6 +54,11 @@ io.on("connection", async (socket) => {
                 });
 
                 if (activeCall) {
+                    // SHIELD: Do not send "Incoming Call" notification to the faculty who started it
+                    if (room.faculty.toString() === userId.toString()) {
+                        continue;
+                    }
+
                     const faculty = await User.findById(room.faculty);
                     socket.emit("call:incoming", {
                         recipientId: userId,

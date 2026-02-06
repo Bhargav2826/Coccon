@@ -21,10 +21,22 @@ const IncomingCall = () => {
 
         const handleIncomingCall = (data) => {
             console.log("📞 Incoming Call:", data);
+
+            // WISE SHIELD: If user is already on the specific call page, don't show the notification
+            if (window.location.pathname === `/call/${data.callId}`) {
+                console.log(`🛡️ Already on call page for ${data.callId}, suppressing notification.`);
+                return;
+            }
+
             setIncomingCall(data);
             try {
+                // Audio might be blocked if user hasn't interacted with DOM yet
                 CALL_SOUND.currentTime = 0;
-                CALL_SOUND.play().catch(e => console.log("Audio play failed:", e));
+                CALL_SOUND.play().catch(e => {
+                    if (e.name !== "NotAllowedError") {
+                        console.log("Audio play failed:", e);
+                    }
+                });
             } catch (err) {
                 console.log("Error playing ringtone", err);
             }
