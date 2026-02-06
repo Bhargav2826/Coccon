@@ -262,6 +262,15 @@ const Whiteboard = ({ socket, callId, isFaculty, onClose }) => {
         if (emit && socket) socket.emit("whiteboard:clear", { callId });
     };
 
+    const download = () => {
+        const canvas = canvasRef.current;
+        const link = document.createElement("a");
+        link.download = `whiteboard-${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        toast.success("Board saved to downloads!");
+    };
+
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
