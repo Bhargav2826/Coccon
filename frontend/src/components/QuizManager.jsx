@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { HelpCircle, Send, CheckCircle2, User, Trophy, X, BarChart3, Timer, Users, AlertCircle, ChevronRight, Award } from "lucide-react";
+import { HelpCircle, Send, CheckCircle2, User, Trophy, X, BarChart3, Timer, Users, AlertCircle, ChevronRight, Award, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
@@ -267,10 +267,10 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
                                         disabled={(hasAnswered || timeLeft === 0) && !isFaculty}
                                         onClick={() => handleSubmitAnswer(idx)}
                                         className={`w-full relative group p-4 rounded-2xl border-2 transition-all duration-300 text-left ${isSelected && showCorrectness
-                                                ? isCorrectChoice ? 'border-success bg-success/10' : 'border-error bg-error/10'
-                                                : showCorrectness && isCorrectChoice
-                                                    ? 'border-success/40 bg-success/5'
-                                                    : 'border-base-content/5 bg-base-200/50'
+                                            ? isCorrectChoice ? 'border-success bg-success/10' : 'border-error bg-error/10'
+                                            : showCorrectness && isCorrectChoice
+                                                ? 'border-success/40 bg-success/5'
+                                                : 'border-base-content/5 bg-base-200/50'
                                             } ${!hasAnswered && timeLeft > 0 ? 'hover:scale-[1.02] hover:border-primary active:scale-95' : ''}`}
                                     >
                                         {/* Progress Bar Background */}
