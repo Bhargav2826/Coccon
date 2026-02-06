@@ -9,6 +9,7 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
     const [userSelectedAnswer, setUserSelectedAnswer] = useState(null);
     const [hasAnswered, setHasAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState(30);
+    const [showDetails, setShowDetails] = useState(false);
     const timerRef = useRef(null);
 
     // Quiz Creator State
@@ -115,6 +116,7 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
     const closeQuiz = () => {
         setActiveQuiz(null);
         setAnswers([]);
+        setShowDetails(false);
         if (timerRef.current) clearInterval(timerRef.current);
     };
 
@@ -298,19 +300,79 @@ const QuizManager = ({ socket, callId, isFaculty, authUser }) => {
                         {/* Results for Faculty */}
                         {isFaculty && (
                             <div className="grid grid-cols-2 gap-4 mt-4">
-                                <div className="bg-primary/10 p-5 rounded-3xl border border-primary/20 shadow-sm">
+                                <button
+                                    onClick={() => setShowDetails(true)}
+                                    className="bg-primary/10 p-5 rounded-3xl border border-primary/20 shadow-sm text-left hover:scale-[1.02] active:scale-95 transition-all group"
+                                >
                                     <div className="flex items-center gap-2 text-primary mb-2">
                                         <Users size={14} />
                                         <span className="text-[10px] font-black uppercase tracking-wider">Responses</span>
+                                        <ChevronRight size={12} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
                                     <p className="text-3xl font-black text-primary">{totalAnswers}</p>
-                                </div>
+                                    <p className="text-[10px] font-bold text-primary/50 mt-1">Click to view list</p>
+                                </button>
                                 <div className="bg-success/10 p-5 rounded-3xl border border-success/20 shadow-sm">
                                     <div className="flex items-center gap-2 text-success mb-2">
                                         <Award size={14} />
                                         <span className="text-[10px] font-black uppercase tracking-wider">Accuracy</span>
                                     </div>
                                     <p className="text-3xl font-black text-success">{accuracy}%</p>
+                                    <p className="text-[10px] font-bold text-success/50 mt-1">Correct answers</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Detailed Responses Modal (For Faculty) */}
+                        {isFaculty && showDetails && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                                <div className="bg-base-100 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-white/10">
+                                    <div className="bg-primary p-6 text-primary-content flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <Users size={24} />
+                                            <div>
+                                                <h3 className="font-black text-lg">Student Responses</h3>
+                                                <p className="text-xs opacity-70">Live list of active participants</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setShowDetails(false)} className="btn btn-ghost btn-sm btn-circle hover:bg-white/20"><X /></button>
+                                    </div>
+
+                                    <div className="p-4 max-h-[60vh] overflow-y-auto no-scrollbar space-y-2">
+                                        {answers.length === 0 ? (
+                                            <div className="text-center py-12 opacity-50 flex flex-col items-center gap-3">
+                                                <div className="size-16 rounded-full bg-base-200 flex items-center justify-center">
+                                                    <Users size={32} />
+                                                </div>
+                                                <p className="font-bold">No responses yet...</p>
+                                            </div>
+                                        ) : (
+                                            answers.map((ans, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-4 bg-base-200 rounded-2xl border border-base-content/5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`size-10 rounded-full flex items-center justify-center font-black text-white ${ans.isCorrect ? 'bg-success shadow-lg shadow-success/20' : 'bg-error shadow-lg shadow-error/20'}`}>
+                                                            {ans.userName.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-base-content leading-none">{ans.userName}</p>
+                                                            <p className="text-[10px] uppercase font-black opacity-40 mt-1 tracking-widest">
+                                                                Selected: {String.fromCharCode(65 + ans.answer)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${ans.isCorrect ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
+                                                        {ans.isCorrect ? 'Correct' : 'Incorrect'}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    <div className="p-4 bg-base-200 border-t border-base-content/5">
+                                        <button onClick={() => setShowDetails(false)} className="btn btn-primary w-full rounded-2xl font-black uppercase">
+                                            Return to Stats
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
