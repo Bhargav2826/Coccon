@@ -57,12 +57,22 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
+    const status = error.response?.status;
+    const url = error.config?.url;
+    const message = error.response?.data?.message || error.message;
+
     console.error('❌ Axios Response Error:', {
-      status: error.response?.status,
+      status,
       statusText: error.response?.statusText,
-      url: error.config?.url,
+      url,
+      message,
       data: error.response?.data
     });
+
+    if (status === 403) {
+      console.warn(`🔒 Access Denied (403): You don't have permission for ${url}. Message: ${message}`);
+    }
+
     return Promise.reject(error);
   }
 );

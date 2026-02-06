@@ -12,11 +12,12 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: [
-            "http://localhost:5173",
-            "https://cocoon-t68f.onrender.com"
-        ],
-        methods: ["GET", "POST"]
+        origin: (origin, callback) => {
+            // Allow all origins in development or matching specific patterns
+            callback(null, true);
+        },
+        methods: ["GET", "POST"],
+        credentials: true
     },
 });
 
