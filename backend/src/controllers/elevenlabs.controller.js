@@ -12,7 +12,7 @@ const elevenlabs = new ElevenLabsClient({
     apiKey: ELEVENLABS_API_KEY,
 });
 
-// Voice mapping for popular Indian languages
+// Voice mapping for popular Indian languages (for ElevenLabs)
 const VOICE_MAPPING = {
     "Hindi": "pNInz6obpgDQGcFmaJgB",
     "Marathi": "pNInz6obpgDQGcFmaJgB",
@@ -23,7 +23,20 @@ const VOICE_MAPPING = {
     "Bengali": "pNInz6obpgDQGcFmaJgB",
     "Malayalam": "pNInz6obpgDQGcFmaJgB",
     "Punjabi": "pNInz6obpgDQGcFmaJgB",
-    "English": "pNInz6obpgDQGcFmaJgB"
+};
+
+// ISO codes for Sarvam AI
+const SARVAM_LANG_MAPPING = {
+    "Hindi": "hi-IN",
+    "Marathi": "mr-IN",
+    "Gujarati": "gu-IN",
+    "Tamil": "ta-IN",
+    "Telugu": "te-IN",
+    "Kannada": "kn-IN",
+    "Bengali": "bn-IN",
+    "Malayalam": "ml-IN",
+    "Punjabi": "pa-IN",
+    "English": "en-IN"
 };
 
 export const generateTTS = async (req, res) => {
@@ -34,9 +47,9 @@ export const generateTTS = async (req, res) => {
             return res.status(400).json({ error: "Text is required" });
         }
 
-        console.log(`🚀 TTS Pipeline Started: "${text.substring(0, 30)}..." in ${targetLanguage}`);
+        console.log(`🚀 TTS Pipeline: "${text.substring(0, 30)}..." -> [${targetLanguage}]`);
 
-        // 1. TRANSLATION (Sarvam AI)
+        // 1. TRANSLATION (Skip if English/Source)
         let translatedText = text;
         if (targetLanguage !== "English") {
             try {
@@ -45,34 +58,26 @@ export const generateTTS = async (req, res) => {
                     {
                         model: "sarvam-m",
                         messages: [
-                            {
-                                role: "system",
-                                content: `Translate text to ${targetLanguage}. ONLY return translated text.`
-                            },
+                            { role: "system", content: `Translate ONLY to ${targetLanguage}.` },
                             { role: "user", content: text }
                         ],
                         temperature: 0.1
                     },
                     {
-                        headers: {
-                            "api-subscription-key": SARVAM_API_KEY,
-                            "Content-Type": "application/json"
-                        }
+                        headers: { "api-subscription-key": SARVAM_API_KEY, "Content-Type": "application/json" }
                     }
                 );
                 translatedText = translationResponse.data.choices[0].message.content;
-                console.log(`🌐 Translation Success: "${translatedText}"`);
+                console.log(`🌐 Translated: ${translatedText}`);
             } catch (transErr) {
-                console.warn("⚠️ Translation failed, using original text:", transErr.message);
+                console.warn("⚠️ Translation fallback to raw text:", transErr.message);
             }
         }
 
-        // 2. SPEECH GENERATION (ElevenLabs with Sarvam fallback)
-        const voiceId = VOICE_MAPPING[targetLanguage] || "pNInz6obpgDQGcFmaJgB";
-
+        // 2. VOICE GENERATION
         try {
-            console.log(`🎙️ Attempting ElevenLabs TTS...`);
-            const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
+            console.log(`🎙️ Attempting ElevenLabs...`);
+            const audioStream = await elevenlabs.textToSpeech.convert(VOICE_MAPPING[targetLanguage] || "pNInz6obpgDQGcFmaJgB", {
                 text: translatedText,
                 model_id: "eleven_turbo_v2_5",
                 output_format: "mp3_44100_128",
@@ -82,45 +87,48 @@ export const generateTTS = async (req, res) => {
             return Readable.from(audioStream).pipe(res);
 
         } catch (elevenErr) {
-            console.error("❌ ElevenLabs Failed:", elevenErr.message);
+            console.error("❌ ElevenLabs Failed (likely 401):", elevenErr.message);
 
-            // AUTOMATIC RESILIENT FALLBACK: Use Sarvam TTS if ElevenLabs fails (e.g. 401 permissions)
-            if (SARVAM_API_KEY) {
-                console.log("♻️ Falling back to Sarvam TTS for continuity...");
-                try {
-                    const sarvamTTSRes = await axios.post(
-                        "https://api.sarvam.ai/v1/text-to-speech",
-                        {
-                            inputs: [translatedText],
-                            target_language_code: "hi-IN", // Default to Hindi if language mapping is complex
-                            speaker: "meera",
-                            speech_sample_rate: 16000,
-                            enable_preprocessing: true,
-                            model: "bulbul:v1"
-                        },
-                        {
-                            headers: {
-                                "api-subscription-key": SARVAM_API_KEY,
-                                "Content-Type": "application/json"
-                            }
-                        }
-                    );
+            // AUTOMATIC FAILOVER TO SARVAM AI
+            const sarvamLangCode = SARVAM_LANG_MAPPING[targetLanguage] || "hi-IN";
+            console.log(`♻️ Switching to Sarvam AI TTS [code: ${sarvamLangCode}]...`);
 
-                    if (sarvamTTSRes.data.audios && sarvamTTSRes.data.audios[0]) {
-                        const audioBuffer = Buffer.from(sarvamTTSRes.data.audios[0], 'base64');
-                        res.setHeader("Content-Type", "audio/wav");
-                        return res.send(audioBuffer);
+            try {
+                const sarvamTTSRes = await axios.post(
+                    "https://api.sarvam.ai/v1/text-to-speech",
+                    {
+                        inputs: [translatedText],
+                        target_language_code: sarvamLangCode,
+                        speaker: "meera", // meera (f), arvind (m)
+                        speech_sample_rate: 16000,
+                        enable_preprocessing: true,
+                        model: "bulbul:v1"
+                    },
+                    {
+                        headers: { "api-subscription-key": SARVAM_API_KEY, "Content-Type": "application/json" }
                     }
-                } catch (sarvamTTSErr) {
-                    console.error("❌ Sarvam TTS Fallback also failed:", sarvamTTSErr.message);
-                }
-            }
+                );
 
-            return res.status(500).json({ error: "Speech generation failed", detail: elevenErr.message });
+                if (sarvamTTSRes.data && sarvamTTSRes.data.audios && sarvamTTSRes.data.audios[0]) {
+                    const audioBuffer = Buffer.from(sarvamTTSRes.data.audios[0], 'base64');
+                    res.setHeader("Content-Type", "audio/wav");
+                    console.log("✅ Sarvam Fallback SUCCESS");
+                    return res.send(audioBuffer);
+                } else {
+                    throw new Error("No audio returned from Sarvam");
+                }
+            } catch (sarvamTTSErr) {
+                console.error("❌ Sarvam Fallback FAILED:", sarvamTTSErr.response?.data || sarvamTTSErr.message);
+                return res.status(500).json({
+                    error: "All TTS providers failed",
+                    detail: elevenErr.message,
+                    sarvam_error: sarvamTTSErr.message
+                });
+            }
         }
 
     } catch (error) {
-        console.error("❌ Final TTS Failure:", error);
+        console.error("❌ Fatal TTS Error:", error);
         res.status(500).json({ error: "Internal Server Error", detail: error.message });
     }
 };
