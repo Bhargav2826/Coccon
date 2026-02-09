@@ -1,6 +1,7 @@
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import OpenAI from "openai";
 import dotenv from "dotenv";
+import { Readable } from "stream";
 
 dotenv.config();
 
@@ -36,9 +37,9 @@ export const generateTTS = async (req, res) => {
             return res.status(400).json({ error: "Text is required" });
         }
 
-        console.log(`🚀 Starting TTS Process for: "${text.substring(0, 30)}..." in ${targetLanguage}`);
+        console.log(`🚀 TTS REQUEST: "${text.substring(0, 30)}..." lang=${targetLanguage}`);
 
-        // 1. TRANSLATE (If target is not English)
+        // 1. TRANSLATE
         let translatedText = text;
         if (targetLanguage !== "English") {
             try {
@@ -54,9 +55,9 @@ export const generateTTS = async (req, res) => {
                     temperature: 0.1,
                 });
                 translatedText = translationResponse.choices[0].message.content;
-                console.log(`🌐 Translated: "${text}" -> "${translatedText}"`);
+                console.log(`🌐 Translation Success: "${translatedText}"`);
             } catch (openAiErr) {
-                console.error("❌ OpenAI Translation Error:", openAiErr);
+                console.error("❌ OpenAI Error:", openAiErr.message);
                 return res.status(500).json({ error: "Translation failed", detail: openAiErr.message });
             }
         }
@@ -64,37 +65,34 @@ export const generateTTS = async (req, res) => {
         const voiceId = VOICE_MAPPING[targetLanguage] || "pNInz6obpgDQGcFmaJgB";
 
         try {
-            console.log(`🎙️ Generating TTS for [${targetLanguage}] via Voice: ${voiceId}`);
-            console.log(`📄 Text to Speak: "${translatedText.substring(0, 50)}..."`);
+            console.log(`🎙️ ElevenLabs: Using Voice ${voiceId}`);
 
-            // 2. GENERATE AUDIO
-            const audio = await elevenlabs.textToSpeech.convert(voiceId, {
+            const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
                 text: translatedText,
-                model_id: "eleven_turbo_v2_5",
+                model_id: "eleven_multilingual_v2", // More stable for multilingual
                 output_format: "mp3_44100_128",
             });
 
             res.setHeader("Content-Type", "audio/mpeg");
+            res.setHeader("Transfer-Encoding", "chunked");
 
-            // Check if it's a pipeable stream (Node.js) or a Web Stream
-            if (audio.pipe) {
-                audio.pipe(res);
+            // Convert Web Stream or Async Iterable to Node Stream and pipe
+            Readable.from(audioStream).pipe(res);
+
+            console.log("✅ TTS Audio Stream Sent Successfully");
+
+        } catch (elevenLabsErr) {
+            console.error("❌ ElevenLabs SDK Error:", elevenLabsErr.message);
+            // Return JSON even on stream error
+            if (!res.headersSent) {
+                return res.status(500).json({ error: "Speech generation failed", detail: elevenLabsErr.message });
             } else {
-                // If it's a Web Stream or Buffer, we need to handle it accordingly
-                // For the latest SDK it should be pipeable, but let's be safe
-                const chunks = [];
-                for await (const chunk of audio) {
-                    res.write(chunk);
-                }
                 res.end();
             }
-        } catch (elevenLabsErr) {
-            console.error("❌ ElevenLabs Generation Error:", elevenLabsErr);
-            return res.status(500).json({ error: "Speech generation failed", detail: elevenLabsErr.message });
         }
 
     } catch (error) {
-        console.error("❌ General TTS Controller Error:", error);
-        res.status(500).json({ error: "Failed to process speech Request", detail: error.message });
+        console.error("❌ Fatal Controller Error:", error);
+        res.status(500).json({ error: "Internal Server Error", detail: error.message });
     }
 };
