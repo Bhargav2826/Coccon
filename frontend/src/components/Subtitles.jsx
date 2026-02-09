@@ -48,7 +48,20 @@ const Subtitles = ({ socket, authUser }) => {
             audioQueue.current.push(audio);
             processQueue();
         } catch (error) {
-            console.error("Failed to play voice translation:", error);
+            if (error.response?.data instanceof Blob) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const errorData = JSON.parse(reader.result);
+                        console.error("❌ ElevenLabs Backend Error Details:", errorData);
+                    } catch (e) {
+                        console.error("❌ Raw Error Message:", reader.result);
+                    }
+                };
+                reader.readAsText(error.response.data);
+            } else {
+                console.error("Failed to play voice translation:", error);
+            }
         }
     };
 
