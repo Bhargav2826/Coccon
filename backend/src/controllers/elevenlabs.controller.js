@@ -94,28 +94,40 @@ export const generateTTS = async (req, res) => {
                 const langCode = SARVAM_LANG_MAPPING[targetLanguage] || "hi-IN";
                 console.log(`♻️ Resilient Fallback: Using Sarvam AI TTS [${langCode}]`);
                 try {
+                    // CORRECTED ENDPOINT: removed /v1
                     const sarvamRes = await axios.post(
-                        "https://api.sarvam.ai/v1/text-to-speech",
+                        "https://api.sarvam.ai/text-to-speech",
                         {
                             inputs: [translatedText],
                             target_language_code: langCode,
                             speaker: "meera",
                             speech_sample_rate: 16000,
                             enable_preprocessing: true,
-                            model: "bulbul:v1"
+                            model: "bulbul:v2" // Using Bulbul v2 as it's more standard now
                         },
                         {
-                            headers: { "api-subscription-key": SARVAM_API_KEY, "Content-Type": "application/json" }
+                            headers: {
+                                "api-subscription-key": SARVAM_API_KEY,
+                                "Content-Type": "application/json"
+                            }
                         }
                     );
 
                     if (sarvamRes.data.audios && sarvamRes.data.audios[0]) {
                         const audioBuffer = Buffer.from(sarvamRes.data.audios[0], 'base64');
                         res.setHeader("Content-Type", "audio/wav");
+                        console.log("✅ Sarvam Fallback SUCCESS");
                         return res.send(audioBuffer);
+                    } else {
+                        throw new Error("No audio returned from Sarvam");
                     }
                 } catch (sarErr) {
-                    console.error("❌ All TTS Providers Failed.");
+                    console.error("❌ Sarvam Fallback Failed:", sarErr.message);
+                    return res.status(500).json({
+                        error: "All TTS providers failed",
+                        detail: elevenErr.message,
+                        sarvam_error: sarErr.message
+                    });
                 }
             }
 
