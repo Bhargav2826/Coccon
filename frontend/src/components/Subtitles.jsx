@@ -80,12 +80,21 @@ const Subtitles = ({ socket, authUser }) => {
 
         socket.on("call:subtitle", (data) => {
             // data: { userId, text, translatedText, isFinal, targetLanguage }
+            console.log("📝 Received Subtitle Event:", {
+                fromUser: data.userId,
+                text: data.text?.substring(0, 20),
+                isFinal: data.isFinal,
+                useVoice: useVoice
+            });
 
             // If it's our own subtitle, we don't need voice/filtering
             const isOwn = data.userId === authUser?._id;
 
             // Only update if no targetLanguage specified (broadcast) OR it matches our target
-            if (!isOwn && data.targetLanguage && data.targetLanguage !== targetLanguage) return;
+            if (!isOwn && data.targetLanguage && data.targetLanguage !== targetLanguage) {
+                console.log("⏭️ Skipping subtitle (language mismatch)");
+                return;
+            }
 
             setSubtitles((prev) => {
                 // Find if we're updating an existing non-final subtitle from same user
@@ -111,9 +120,12 @@ const Subtitles = ({ socket, authUser }) => {
             if (data.isFinal && !isOwn && useVoice) {
                 // Use translatedText if server already provided it, else use raw text (backend will translate)
                 const textToSpeak = data.translatedText || data.text;
+                console.log("🎙️ Attempting to play voice for:", textToSpeak?.substring(0, 30));
                 if (textToSpeak) {
                     playVoice(textToSpeak, targetLanguage);
                 }
+            } else if (data.isFinal) {
+                console.log("⏭️ Skipping voice play:", { isFinal: data.isFinal, isOwn, useVoice });
             }
 
             // Clear non-final subtitles after a timeout if they don't finalize
