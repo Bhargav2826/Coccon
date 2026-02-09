@@ -5,7 +5,7 @@ import { Readable } from "stream";
 
 dotenv.config();
 
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "sk_d8abc633369001d7818136b66ac74a56ea8296ee7f4a3c96";
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const SARVAM_API_KEY = process.env.SARVAM_API_KEY;
 
 const elevenlabs = new ElevenLabsClient({

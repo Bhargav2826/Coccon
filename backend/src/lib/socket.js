@@ -95,16 +95,16 @@ io.on("connection", async (socket) => {
 
         // Create Call record in DB
         try {
-            // First, mark any existing 'ongoing' calls for this room as ended 
-            // (in case a previous session didn't close properly)
-            // But only if it's NOT the same call we are starting
+            // FIX 1: Only end previous 'ongoing' calls for THIS SPECIFIC room/participants
+            // Do not use a broad updateMany that affects other users!
             await Call.updateMany(
-                { roomId: { $ne: data.callId }, status: 'ongoing' }, // This might be too broad, maybe scope to participants
+                { roomId: data.callId, status: 'ongoing' },
                 { status: 'ended', endedAt: new Date() }
             );
 
-            // Check if call record already exists (e.g. created by controller)
-            const existingCall = await Call.findOne({ roomId: data.callId });
+            // FIX 2: Check if an ONGOING call record exists. If not, create a new one.
+            // This ensures every new call starts as 'ongoing' and can accept transcripts.
+            let existingCall = await Call.findOne({ roomId: data.callId, status: 'ongoing' });
 
             if (!existingCall) {
                 // Fetch receiver name
@@ -134,12 +134,12 @@ io.on("connection", async (socket) => {
                     specificIssues: [],
                     transcripts: []
                 });
-                console.log("📝 New separate Call record created:", data.callId);
+                console.log("📝 New separate Call record created and set as ONGOING:", data.callId);
             } else {
-                console.log("📝 Call record already exists, skipping creation:", data.callId);
+                console.log("📝 Using existing ongoing call record:", data.callId);
             }
         } catch (err) {
-            console.error("Error creating call record:", err);
+            console.error("Error managing call session records:", err);
         }
 
         if (receiverSocketId) {
@@ -442,6 +442,7 @@ io.on("connection", async (socket) => {
             service.send(data);
         } else {
             if (!socket.warnedDeepgram) {
+                console.warn(`⚠️ Socket ${socket.id}: Deepgram not ready for audio stream (state: ${service ? service.getReadyState() : 'no service'})`);
                 socket.warnedDeepgram = true;
             }
         }
