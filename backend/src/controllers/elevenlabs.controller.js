@@ -5,13 +5,14 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const ELEVENLABS_API_KEY = "sk_d8abc633369001d7818136b66ac74a56ea8296ee7f4a3c96";
+const OPENAI_API_KEY = "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";
 
 const elevenlabs = new ElevenLabsClient({
     apiKey: ELEVENLABS_API_KEY,
 });
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: OPENAI_API_KEY,
 });
 
 // Voice mapping for popular Indian languages
