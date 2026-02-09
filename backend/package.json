@@ -27,11 +27,15 @@
   },
   "dependencies": {
     "@deepgram/sdk": "^4.11.3",
+    "@elevenlabs/elevenlabs-js": "^2.34.0",
+    "axios": "^1.13.5",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^1.41.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
+    "elevenlabs": "^1.59.0",
+    "elevenlabs-node": "^2.0.3",
     "express": "^4.21.0",
     "express-rate-limit": "^8.0.1",
     "express-validator": "^7.2.1",
@@ -44,6 +48,7 @@
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
     "node-fetch": "^3.3.2",
+    "openai": "^6.18.0",
     "socket.io": "^4.8.3",
     "stream-chat": "^8.60.0"
   },

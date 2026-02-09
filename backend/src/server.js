@@ -16,6 +16,7 @@ import roomRoutes from "./routes/room.route.js";
 import aiRoutes from "./routes/ai.route.js";
 import facultyMessagingRoutes from "./routes/faculty-messaging.route.js";
 import livekitRoutes from "./routes/livekit.route.js";
+import elevenlabsRoutes from "./routes/elevenlabs.route.js";
 
 import { server, app } from "./lib/socket.js";
 import { connectDB } from "./lib/db.js";
@@ -83,6 +84,7 @@ app.use("/api/rooms", generalLimiter, roomRoutes);
 app.use("/api/ai", generalLimiter, aiRoutes);
 app.use("/api/faculty-messaging", generalLimiter, facultyMessagingRoutes);
 app.use("/api/livekit", generalLimiter, livekitRoutes);
+app.use("/api/elevenlabs", generalLimiter, elevenlabsRoutes);
 
 // Apply stricter rate limiting to link code endpoints
 app.use("/api/users/generate-link-code", linkCodeLimiter);
