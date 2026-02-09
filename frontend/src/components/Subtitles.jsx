@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Languages, Globe, Volume2, VolumeX } from "lucide-react";
-import axios from "axios";
+import { axiosInstance } from "../lib/axios";
 
 const LANGUAGES = [
     { label: "Hindi", value: "Hindi" },
@@ -36,7 +36,7 @@ const Subtitles = ({ socket, authUser }) => {
         if (!text || !useVoice) return;
 
         try {
-            const response = await axios.post("/api/elevenlabs/tts",
+            const response = await axiosInstance.post("/elevenlabs/tts",
                 { text, targetLanguage: lang },
                 { responseType: 'blob' }
             );
