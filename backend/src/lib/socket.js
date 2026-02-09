@@ -299,8 +299,8 @@ io.on("connection", async (socket) => {
                     }
 
                     if (transcript && dgData.is_final && transcript.trim().length > 0) {
-                        // Translation Logic for Classroom Calls (Multi-Language Support)
-                        if (socket.activeCallId && socket.activeCallId.startsWith('faculty-') && process.env.SARVAM_API_KEY) {
+                        // Translation Logic for ALL Calls (Multi-Language Support)
+                        if (socket.activeCallId && process.env.SARVAM_API_KEY) {
                             try {
                                 // Get all unique languages currently requested in this call
                                 const currentRoomSockets = await io.in(socket.activeCallId).fetchSockets();
