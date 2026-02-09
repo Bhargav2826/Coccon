@@ -64,7 +64,9 @@ export const generateTTS = async (req, res) => {
         const voiceId = VOICE_MAPPING[targetLanguage] || "pNInz6obpgDQGcFmaJgB";
 
         try {
-            console.log(`🎙️ Generating TTS using Voice: ${voiceId}`);
+            console.log(`🎙️ Generating TTS for [${targetLanguage}] via Voice: ${voiceId}`);
+            console.log(`📄 Text to Speak: "${translatedText.substring(0, 50)}..."`);
+
             // 2. GENERATE AUDIO
             const audio = await elevenlabs.textToSpeech.convert(voiceId, {
                 text: translatedText,
