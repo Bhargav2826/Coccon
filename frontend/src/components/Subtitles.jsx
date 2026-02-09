@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Languages, Globe } from "lucide-react";
+import { Languages, Globe, Volume2, VolumeX } from "lucide-react";
+import axios from "axios";
 
 const LANGUAGES = [
     { label: "Hindi", value: "Hindi" },
@@ -17,14 +18,57 @@ const Subtitles = ({ socket, authUser }) => {
     const [subtitles, setSubtitles] = useState([]); // { text, translatedText, userId, id }
     const [showSubtitles, setShowSubtitles] = useState(true);
     const [useTranslation, setUseTranslation] = useState(true);
+    const [useVoice, setUseVoice] = useState(false);
     const [targetLanguage, setTargetLanguage] = useState(() => localStorage.getItem("subtitleLanguage") || "Hindi");
     const scrollRef = useRef(null);
+    const audioQueue = useRef([]);
+    const isPlaying = useRef(false);
 
     const handleLanguageChange = (lang) => {
         setTargetLanguage(lang);
         localStorage.setItem("subtitleLanguage", lang);
         if (socket) {
             socket.emit("subtitle:language-change", { language: lang });
+        }
+    };
+
+    const playVoice = async (text, lang) => {
+        if (!text || !useVoice) return;
+
+        try {
+            const response = await axios.post("/api/elevenlabs/tts",
+                { text, targetLanguage: lang },
+                { responseType: 'blob' }
+            );
+
+            const audioUrl = URL.createObjectURL(response.data);
+            const audio = new Audio(audioUrl);
+
+            // Add to queue to avoid overlapping
+            audioQueue.current.push(audio);
+            processQueue();
+        } catch (error) {
+            console.error("Failed to play voice translation:", error);
+        }
+    };
+
+    const processQueue = async () => {
+        if (isPlaying.current || audioQueue.current.length === 0) return;
+
+        isPlaying.current = true;
+        const audio = audioQueue.current.shift();
+
+        audio.onended = () => {
+            isPlaying.current = false;
+            processQueue();
+        };
+
+        try {
+            await audio.play();
+        } catch (e) {
+            console.error("Playback error:", e);
+            isPlaying.current = false;
+            processQueue();
         }
     };
 
@@ -36,8 +80,12 @@ const Subtitles = ({ socket, authUser }) => {
 
         socket.on("call:subtitle", (data) => {
             // data: { userId, text, translatedText, isFinal, targetLanguage }
+
+            // If it's our own subtitle, we don't need voice/filtering
+            const isOwn = data.userId === authUser?._id;
+
             // Only update if no targetLanguage specified (broadcast) OR it matches our target
-            if (data.targetLanguage && data.targetLanguage !== targetLanguage) return;
+            if (!isOwn && data.targetLanguage && data.targetLanguage !== targetLanguage) return;
 
             setSubtitles((prev) => {
                 // Find if we're updating an existing non-final subtitle from same user
@@ -59,6 +107,15 @@ const Subtitles = ({ socket, authUser }) => {
                 return next;
             });
 
+            // If final and NOT our own, play voice if enabled
+            if (data.isFinal && !isOwn && useVoice) {
+                // Use translatedText if server already provided it, else use raw text (backend will translate)
+                const textToSpeak = data.translatedText || data.text;
+                if (textToSpeak) {
+                    playVoice(textToSpeak, targetLanguage);
+                }
+            }
+
             // Clear non-final subtitles after a timeout if they don't finalize
             if (!data.isFinal) {
                 setTimeout(() => {
@@ -70,7 +127,7 @@ const Subtitles = ({ socket, authUser }) => {
         return () => {
             socket.off("call:subtitle");
         };
-    }, [socket, targetLanguage]);
+    }, [socket, targetLanguage, useVoice, authUser?._id]);
 
     // Clean up old subtitles
     useEffect(() => {
@@ -116,10 +173,19 @@ const Subtitles = ({ socket, authUser }) => {
                                 <input type="checkbox" className="toggle toggle-primary toggle-sm" checked={showSubtitles} onChange={(e) => setShowSubtitles(e.target.checked)} />
                             </label>
                         </li>
-                        <li className="bg-base-200/50 rounded-xl mb-3">
+                        <li className="bg-base-200/50 rounded-xl mb-1">
                             <label className="label cursor-pointer justify-between py-2 px-3 hover:bg-base-200 rounded-xl transition-colors">
                                 <span className="text-xs font-bold text-base-content">Auto-Translation</span>
                                 <input type="checkbox" className="toggle toggle-secondary toggle-sm" checked={useTranslation} onChange={(e) => setUseTranslation(e.target.checked)} />
+                            </label>
+                        </li>
+                        <li className={`${useVoice ? 'bg-blue-600/10 border-blue-600/20' : 'bg-base-200/50 border-transparent'} border rounded-xl mb-3 transition-all`}>
+                            <label className="label cursor-pointer justify-between py-2 px-3 hover:bg-base-200 rounded-xl transition-colors">
+                                <div className="flex items-center gap-2">
+                                    {useVoice ? <Volume2 size={14} className="text-blue-600" /> : <VolumeX size={14} className="opacity-40" />}
+                                    <span className={`text-xs font-bold ${useVoice ? 'text-blue-600' : 'text-base-content'}`}>Live Voice (11Labs)</span>
+                                </div>
+                                <input type="checkbox" className="toggle toggle-info toggle-sm" checked={useVoice} onChange={(e) => setUseVoice(e.target.checked)} />
                             </label>
                         </li>
 
@@ -140,7 +206,7 @@ const Subtitles = ({ socket, authUser }) => {
 
                         <div className="mt-4 p-2 bg-blue-600/5 rounded-xl border border-blue-600/10">
                             <p className="text-[10px] leading-tight opacity-70 italic text-base-content/80">
-                                💡 Tip: Select the language you are most comfortable reading!
+                                💡 Tip: "Live Voice" converts the opponent's speech into your language in real-time!
                             </p>
                         </div>
                     </ul>
