@@ -205,15 +205,57 @@ io.on("connection", async (socket) => {
         socket.activeCallId = data.callId;
         socket.join(data.callId); // Join the socket room for this call session
 
-        // Add joiner to participants list if they aren't already there
         if (userId && data.callId) {
             try {
-                await Call.findOneAndUpdate(
-                    { roomId: data.callId, status: 'ongoing' },
-                    { $addToSet: { participants: userId } }
-                );
+                // ENSURE TRANSACTION: Make sure a valid ONGOING call record exists
+                let ongoingCall = await Call.findOne({ roomId: data.callId, status: 'ongoing' });
+
+                if (!ongoingCall) {
+                    console.log(`🔍 No ongoing call found for ${data.callId}. Checking for recent session to resume...`);
+                    // Check if there's a recently ended call (last 10 mins) we can resume
+                    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+                    const recentCall = await Call.findOne({
+                        roomId: data.callId,
+                        status: 'ended',
+                        endedAt: { $gte: tenMinsAgo }
+                    }).sort({ endedAt: -1 });
+
+                    if (recentCall) {
+                        console.log(`♻️ Resuming recently ended call: ${recentCall._id}`);
+                        ongoingCall = await Call.findByIdAndUpdate(recentCall._id, {
+                            status: 'ongoing',
+                            $unset: { endedAt: "" }
+                        }, { new: true });
+                    } else {
+                        console.log(`🆕 Creating new session record for room: ${data.callId}`);
+                        // Create a new one if none active or resumable
+                        const participants = [userId];
+                        // If it's a 1:1 call, try to find the other participant from the roomId
+                        if (!data.callId.startsWith('faculty-')) {
+                            const ids = data.callId.split('-');
+                            const otherId = ids.find(id => id !== userId);
+                            if (otherId && otherId.length === 24) participants.push(otherId);
+                        }
+
+                        ongoingCall = await Call.create({
+                            roomId: data.callId,
+                            participants: participants,
+                            status: 'ongoing',
+                            startedAt: new Date(),
+                            transcripts: [],
+                            summary: "",
+                            safetyAlert: { type: "safe", message: "" }
+                        });
+                    }
+                }
+
+                if (ongoingCall) {
+                    await Call.findByIdAndUpdate(ongoingCall._id, {
+                        $addToSet: { participants: userId }
+                    });
+                }
             } catch (err) {
-                console.error("Error adding participant on join:", err);
+                console.error("Error ensuring call record in join-call-room:", err);
             }
         }
 
@@ -470,21 +512,11 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("disconnect", async () => {
-        console.log("A user disconnected", socket.id);
+        console.log("🔌 User disconnected socket:", socket.id);
 
-        // If user was in a call, mark it as ended ONLY if it's NOT a classroom call
-        // Classroom calls should only be ended explicitly
-        if (socket.activeCallId && !socket.activeCallId.startsWith('faculty-')) {
-            try {
-                await Call.findOneAndUpdate(
-                    { roomId: socket.activeCallId, status: 'ongoing' },
-                    { status: 'ended', endedAt: new Date() }
-                );
-                console.log("🏁 Call auto-ended on disconnect:", socket.activeCallId);
-            } catch (err) {
-                console.error("Error auto-ending call:", err);
-            }
-        }
+        // SHIELD: We NO LONGER auto-end calls on socket disconnect. 
+        // This prevents data loss during transient network blips.
+        // Calls will stay 'ongoing' until explicitly ended via "call:ended" or a reaper task.
 
         if (userId) delete userSocketMap[userId];
 
