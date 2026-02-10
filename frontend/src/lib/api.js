@@ -69,10 +69,6 @@ export async function removeFriend(friendId) {
   return response.data;
 }
 
-export async function getStreamToken() {
-  const response = await axiosInstance.get("/chat/token");
-  return response.data;
-}
 
 export async function getFriendRequestsCount() {
   const response = await axiosInstance.get("/users/friend-requests/count");
@@ -134,19 +130,29 @@ export async function getChildConversations(childId) {
   return response.data;
 }
 
-// AI Analysis API function
-export async function analyzeChat(analysisData) {
-  const response = await axiosInstance.post("/ai/analyze-chat", analysisData);
-  return response.data;
-}
 
 export async function analyzeCall(analysisData) {
   const response = await axiosInstance.post("/ai/analyze-call", analysisData);
   return response.data;
 }
 
+export async function analyzeChat(analysisData) {
+  const response = await axiosInstance.post("/ai/analyze-chat", analysisData);
+  return response.data;
+}
+
 export const getCallHistory = async (childUid, targetUid, callType, limit = 20, sort = 'desc', startDate = '', endDate = '') => {
   const response = await axiosInstance.get(`/ai/calls/${childUid}/${targetUid}?type=${callType}&limit=${limit}&sort=${sort}&startDate=${startDate}&endDate=${endDate}`);
+  return response.data;
+};
+
+export const getChatHistory = async (childUid, targetUid, limit = 50, sort = 'desc', startDate = '', endDate = '') => {
+  const response = await axiosInstance.get(`/ai/chats/${childUid}/${targetUid}?limit=${limit}&sort=${sort}&startDate=${startDate}&endDate=${endDate}`);
+  return response.data;
+};
+
+export const getChatSessions = async (childUid, targetUid) => {
+  const response = await axiosInstance.get(`/ai/chats/sessions/${childUid}/${targetUid}`);
   return response.data;
 };
 
@@ -171,66 +177,7 @@ export async function getLinkedAccounts() {
   return response.data;
 }
 
-// Faculty Messaging API functions
-export async function sendRoomMessage(messageData) {
-  const response = await axiosInstance.post("/faculty-messaging/send-message", messageData, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  return response.data;
-}
 
-export async function sendRoomFile(fileData) {
-  console.log('🔍 sendRoomFile called with:', {
-    hasFile: !!fileData.get('file'),
-    roomId: fileData.get('roomId'),
-    targetUserId: fileData.get('targetUserId')
-  });
-
-  try {
-    const response = await axiosInstance.post("/faculty-messaging/send-file", fileData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      timeout: 60000, // 60 second timeout for file uploads
-    });
-
-    console.log('✅ sendRoomFile success:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ sendRoomFile error:', {
-      status: error.response?.status,
-      message: error.response?.data?.message,
-      error: error.message,
-      code: error.code
-    });
-
-    // Provide better error messages
-    if (error.code === 'ECONNABORTED') {
-      throw new Error('File upload timed out. Please try again with a smaller file or check your connection.');
-    } else if (error.response?.status === 408) {
-      throw new Error('File upload timed out on the server. Please try again.');
-    } else if (error.response?.status === 401) {
-      throw new Error('Authentication failed. Please log in again.');
-    } else if (error.response?.status === 403) {
-      throw new Error('You do not have permission to send files to this room.');
-    } else if (error.response?.status === 413) {
-      throw new Error('File is too large. Maximum size is 10MB.');
-    }
-
-    throw error;
-  }
-}
-
-export async function sendVideoCallLink(callData) {
-  const response = await axiosInstance.post("/faculty-messaging/send-video-call", callData, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  return response.data;
-}
 
 export async function startFacultyVideoCall(callData) {
   const response = await axiosInstance.post("/faculty-messaging/start-video-call", callData, {
@@ -241,23 +188,6 @@ export async function startFacultyVideoCall(callData) {
   return response.data;
 }
 
-// Get faculty messages for students
-export async function getStudentFacultyMessages() {
-  const response = await axiosInstance.get("/faculty-messaging/student-messages");
-  return response.data;
-}
-
-// Get messages for a specific room
-export async function getRoomMessages(roomId) {
-  const response = await axiosInstance.get(`/faculty-messaging/room/${roomId}/messages`);
-  return response.data;
-}
-
-// Mark message as read
-export async function markMessageAsRead(messageId) {
-  const response = await axiosInstance.put(`/faculty-messaging/messages/${messageId}/read`);
-  return response.data;
-}
 
 // Theme management API functions
 export async function getTheme() {
@@ -278,5 +208,21 @@ export async function getLiveKitToken(roomName, username) {
 
 export async function checkServerHealth() {
   const response = await axiosInstance.get("/health");
+  return response.data;
+}
+
+// Chat API functions
+export async function getUsersForSidebar() {
+  const response = await axiosInstance.get("/messages/users");
+  return response.data;
+}
+
+export async function getMessages(userId) {
+  const response = await axiosInstance.get(`/messages/${userId}`);
+  return response.data;
+}
+
+export async function sendMessage(userId, messageData) {
+  const response = await axiosInstance.post(`/messages/send/${userId}`, messageData);
   return response.data;
 }

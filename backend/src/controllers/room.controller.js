@@ -1,6 +1,5 @@
 import Room from "../models/Room.js";
 import User from "../models/User.js";
-import Message from "../models/Message.js";
 import Call from "../models/Call.js";
 
 // Generate a unique invite code
@@ -247,15 +246,13 @@ export async function deleteRoom(req, res) {
       return res.status(403).json({ message: "You can only delete rooms that you created" });
     }
 
-    // Delete all messages associated with this room
-    await Message.deleteMany({ roomId: roomId });
 
     // Delete the room
     await Room.findByIdAndDelete(roomId);
 
     res.status(200).json({
       success: true,
-      message: "Room and all associated messages deleted successfully"
+      message: "Room deleted successfully"
     });
   } catch (error) {
     console.log("Error in deleteRoom controller", error);
@@ -310,12 +307,10 @@ export async function deleteRooms(req, res) {
       faculty: facultyId
     });
 
-    // Delete all messages associated with these rooms
-    await Message.deleteMany({ roomId: { $in: roomIds } });
 
     res.status(200).json({
       success: true,
-      message: `${rooms.length} room${rooms.length > 1 ? 's' : ''} and all associated messages deleted successfully`,
+      message: `${rooms.length} room${rooms.length > 1 ? 's' : ''} deleted successfully`,
       deletedCount: rooms.length
     });
   } catch (error) {

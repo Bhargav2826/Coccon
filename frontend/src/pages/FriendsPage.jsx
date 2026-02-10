@@ -29,7 +29,7 @@ const FriendsPage = () => {
           <div className="space-y-2">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Your Friends</h2>
             <p className="text-sm sm:text-base opacity-70 mt-1 max-w-2xl mx-auto">
-              Connect with your accepted friends for chat and video calls
+              Connect with your accepted friends for video and voice calls
             </p>
           </div>
           <Link to="/notifications" className="btn btn-outline btn-sm shadow-sm hover:shadow-md transition-all">

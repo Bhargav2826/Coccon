@@ -1,74 +1,92 @@
-import { generateStreamToken } from "../lib/stream.js";
-import Message from "../models/Message.js";
-import crypto from "crypto";
+import User from "../models/User.js";
+import ChatMessage from "../models/ChatMessage.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
+import cloudinary from "../lib/cloudinary.js";
 
-export async function getStreamToken(req, res) {
-  try {
-    const token = generateStreamToken(req.user.id);
+export const getUsersForSidebar = async (req, res) => {
+    try {
+        const loggedInUserId = req.user._id;
+        const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
 
-    res.status(200).json({ token });
-  } catch (error) {
-    console.log("Error in getStreamToken controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-}
-
-// Webhook endpoint to receive messages from Stream Chat
-export async function streamWebhook(req, res) {
-  try {
-    // Verify webhook signature (optional but recommended for security)
-    const signature = req.headers['x-signature'];
-    const body = JSON.stringify(req.body);
-    
-    // You can add signature verification here if needed
-    // const expectedSignature = crypto
-    //   .createHmac('sha256', process.env.STREAM_WEBHOOK_SECRET)
-    //   .update(body)
-    //   .digest('hex');
-    
-    // if (signature !== expectedSignature) {
-    //   return res.status(401).json({ message: 'Invalid signature' });
-    // }
-
-    const { type, channel, message, user } = req.body;
-
-    // Only process new messages
-    if (type === 'message.new' && message && channel) {
-      console.log('📨 Received new message from Stream:', {
-        messageId: message.id,
-        sender: message.user?.id,
-        channelId: channel.id,
-        content: message.text
-      });
-
-      // Extract user IDs from channel ID (format: "user1-user2")
-      const userIds = channel.id.split('-');
-      if (userIds.length !== 2) {
-        console.log('❌ Invalid channel ID format:', channel.id);
-        return res.status(400).json({ message: 'Invalid channel ID format' });
-      }
-
-      const [user1Id, user2Id] = userIds;
-      const senderId = message.user?.id;
-      const recipientId = senderId === user1Id ? user2Id : user1Id;
-
-      // Save message to our local database
-      const newMessage = new Message({
-        sender: senderId,
-        recipient: recipientId,
-        content: message.text || '',
-        messageType: 'text',
-        streamMessageId: message.id,
-        roomId: channel.data?.roomId || null, // If it's a room chat
-      });
-
-      await newMessage.save();
-      console.log('✅ Message saved to local database:', newMessage._id);
+        res.status(200).json(filteredUsers);
+    } catch (error) {
+        console.error("Error in getUsersForSidebar: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
     }
+};
 
-    res.status(200).json({ message: 'Webhook processed successfully' });
-  } catch (error) {
-    console.error('❌ Error processing Stream webhook:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
-  }
-}
+export const getMessages = async (req, res) => {
+    try {
+        const { id: userToChatId } = req.params;
+        const myId = req.user._id;
+
+        const messages = await ChatMessage.find({
+            $or: [
+                { sender: myId, receiver: userToChatId },
+                { sender: userToChatId, receiver: myId },
+            ],
+        }).sort({ createdAt: 1 });
+
+        res.status(200).json(messages);
+    } catch (error) {
+        console.log("Error in getMessages controller: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const sendMessage = async (req, res) => {
+    try {
+        const { text, image, file, fileName, fileType } = req.body;
+        const { id: receiverId } = req.params;
+        const senderId = req.user._id;
+
+        if (!receiverId) {
+            return res.status(400).json({ error: "Receiver ID is required" });
+        }
+
+        let fileUrl = "";
+        let finalFileType = "text";
+
+        // Handle Image or File Upload
+        const fileToUpload = file || image;
+        if (fileToUpload) {
+            try {
+                const uploadResponse = await cloudinary.uploader.upload(fileToUpload, {
+                    resource_type: "auto",
+                });
+                fileUrl = uploadResponse.secure_url;
+                finalFileType = uploadResponse.resource_type; // 'image', 'video', or 'raw'
+            } catch (uploadError) {
+                console.error("Cloudinary upload error:", uploadError);
+                return res.status(500).json({ error: `Failed to upload file to Cloudinary: ${uploadError.message}` });
+            }
+        }
+
+        const newMessage = new ChatMessage({
+            sender: senderId,
+            receiver: receiverId,
+            text: text || "",
+            image: finalFileType === "image" ? fileUrl : undefined,
+            fileUrl: fileUrl || undefined,
+            fileType: finalFileType,
+            fileName: fileName || undefined,
+        });
+
+        await newMessage.save();
+
+        // Broadcast via socket
+        try {
+            const receiverSocketId = getReceiverSocketId(receiverId);
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit("newMessage", newMessage.toObject());
+            }
+        } catch (socketError) {
+            console.error("Socket emission error:", socketError);
+        }
+
+        res.status(201).json(newMessage);
+    } catch (error) {
+        console.error("Error in sendMessage controller detail:", error);
+        res.status(500).json({ error: `Server Error: ${error.message}` });
+    }
+};

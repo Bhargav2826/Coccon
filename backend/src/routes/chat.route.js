@@ -1,12 +1,12 @@
 import express from "express";
 import { protectRoute } from "../middleware/auth.middleware.js";
-import { getStreamToken, streamWebhook } from "../controllers/chat.controller.js";
+import { getMessages, getUsersForSidebar, sendMessage } from "../controllers/chat.controller.js";
 
 const router = express.Router();
 
-router.get("/token", protectRoute, getStreamToken);
+router.get("/users", protectRoute, getUsersForSidebar);
+router.get("/:id", protectRoute, getMessages);
 
-// Webhook endpoint for Stream Chat (no authentication required)
-router.post("/webhook", streamWebhook);
+router.post("/send/:id", protectRoute, sendMessage);
 
 export default router;

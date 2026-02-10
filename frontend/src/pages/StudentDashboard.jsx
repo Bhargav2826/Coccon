@@ -8,10 +8,10 @@ import {
   KeyIcon,
   ShieldIcon,
   CheckCircleIcon,
-  AlertTriangleIcon,
-  UserIcon,
   GraduationCapIcon,
-  VideoIcon
+  VideoIcon,
+  UserMinusIcon,
+  PhoneIcon
 } from "lucide-react";
 import { DashboardCardSkeleton } from "../components/SkeletonLoaders";
 
@@ -98,7 +98,7 @@ const StudentDashboard = () => {
           className="btn btn-outline shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
         >
           <UsersIcon className="size-4 mr-1" />
-          Friends & Messages
+          Friends
         </Link>
       </div>
 

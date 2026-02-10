@@ -7,14 +7,13 @@ import SignUpPage from "./pages/SignUpPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CallPage from "./pages/CallPage.jsx";
-import ChatPage from "./pages/ChatPage.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
 import FriendsPage from "./pages/FriendsPage.jsx";
 import FacultyDashboard from "./pages/FacultyDashboard.jsx";
 import ParentDashboard from "./pages/ParentDashboard.jsx";
 import StudentDashboard from "./pages/StudentDashboard.jsx";
-import FacultyMessagesPage from "./pages/FacultyMessagesPage.jsx";
-import StreamVideoTest from "./components/StreamVideoTest.jsx";
+import ChatPage from "./pages/ChatPage.jsx";
+// import StreamVideoTest from "./components/StreamVideoTest.jsx";
 
 import { Toaster } from "react-hot-toast";
 import IncomingCall from "./components/IncomingCall.jsx";
@@ -87,6 +86,16 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <Layout showSidebar={true}>
+                <ChatPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/faculty-dashboard"
@@ -121,16 +130,6 @@ const App = () => {
           }
         />
 
-        <Route
-          path="/faculty-messages"
-          element={
-            <ProtectedRoute requiredRole="student">
-              <Layout showSidebar={true}>
-                <FacultyMessagesPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/notifications"
@@ -152,18 +151,8 @@ const App = () => {
           }
         />
 
-        <Route
-          path="/chat/:id"
-          element={
-            <ProtectedRoute>
-              <Layout showSidebar={false} fullWidth={true}>
-                <ChatPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
 
-        <Route
+        {/* <Route
           path="/stream-video-test"
           element={
             <ProtectedRoute>
@@ -172,7 +161,7 @@ const App = () => {
               </Layout>
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         {/* Catch all route - redirect to login */}
         <Route path="*" element={<LoginPage />} />

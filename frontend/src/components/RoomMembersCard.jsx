@@ -3,9 +3,11 @@ import { VideoIcon, MessageCircleIcon, GraduationCapIcon, UserPlusIcon, CheckCir
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { sendFriendRequest } from "../lib/api";
 import { toast } from "react-hot-toast";
+import { useChatStore } from "../store/useChatStore";
 
 const RoomMembersCard = ({ member, roomName, outgoingRequestsIds, isCurrentUser, existingFriendsIds, isLoadingFriends }) => {
   const queryClient = useQueryClient();
+  const { setSelectedUser } = useChatStore();
   const isFaculty = member.role === "faculty";
   const hasRequestBeenSent = outgoingRequestsIds.has(member._id);
   const isAlreadyFriend = existingFriendsIds.has(member._id);
@@ -45,7 +47,7 @@ const RoomMembersCard = ({ member, roomName, outgoingRequestsIds, isCurrentUser,
             <div className="flex items-center gap-1 text-xs opacity-70">
               {isFaculty ? (
                 <>
-                  <GraduationCapIcon className="size-3" />
+                  < GraduationCapIcon className="size-3" />
                   <span>Faculty</span>
                 </>
               ) : (
@@ -64,13 +66,16 @@ const RoomMembersCard = ({ member, roomName, outgoingRequestsIds, isCurrentUser,
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          <Link
-            to={`/chat/${member._id}`}
-            className="btn btn-outline btn-sm flex-1"
-          >
-            <MessageCircleIcon className="size-4 mr-1" />
-            Chat
-          </Link>
+          {!isCurrentUser && (
+            <Link
+              to="/chat"
+              onClick={() => setSelectedUser(member)}
+              className="btn btn-outline btn-sm flex-1"
+              title="Chat"
+            >
+              <MessageCircleIcon className="size-4" />
+            </Link>
+          )}
 
           <Link
             to={`/call/${member._id}`}

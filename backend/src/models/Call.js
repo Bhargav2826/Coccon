@@ -12,7 +12,7 @@ const callSchema = new mongoose.Schema(
         ],
         roomId: {
             type: String,
-            required: true,
+            required: false, // Optional for chat sessions
             // unique: true, // Removed to allow separate call records for same room
         },
         callerName: {
@@ -62,7 +62,7 @@ const callSchema = new mongoose.Schema(
         ],
         type: {
             type: String,
-            enum: ["audio", "video"],
+            enum: ["audio", "video", "chat"], // Added 'chat' for chat sessions
             default: "video",
         },
         status: {

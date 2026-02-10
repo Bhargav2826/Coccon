@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { BellIcon, HomeIcon, UsersIcon, GraduationCapIcon, ShieldIcon, UserIcon, MessageCircleIcon } from "lucide-react";
-import { useUnreadFacultyMessages } from "../hooks/useUnreadFacultyMessages";
+import { BellIcon, HomeIcon, UsersIcon, GraduationCapIcon, ShieldIcon, UserIcon, MessageSquare } from "lucide-react";
 import Logo from "./Logo";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
@@ -8,9 +7,6 @@ const Sidebar = ({ onMobileClose }) => {
   const { authUser } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
-
-  // Track unread faculty messages for students
-  const { unreadCount, hasUnread } = useUnreadFacultyMessages();
 
   const handleLinkClick = () => {
     // Close mobile sidebar when a link is clicked
@@ -91,27 +87,15 @@ const Sidebar = ({ onMobileClose }) => {
               <span>Friends</span>
             </Link>
 
-            {/* 4. Faculty Messages */}
+            {/* 4. Chat */}
             <Link
-              to="/faculty-messages"
+              to="/chat"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/faculty-messages" ? "btn-active" : ""
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/chat" ? "btn-active" : ""
                 }`}
             >
-              <div className="relative">
-                <MessageCircleIcon className="size-4 sm:size-5 text-base-content opacity-70" />
-                {hasUnread && (
-                  <div className="absolute -top-1 -right-1 bg-error text-error-content text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </div>
-                )}
-              </div>
-              <span>Faculty Messages</span>
-              {hasUnread && (
-                <span className="badge badge-error badge-sm ml-auto">
-                  {unreadCount}
-                </span>
-              )}
+              <MessageSquare className="size-4 sm:size-5 text-base-content opacity-70" />
+              <span>Chat</span>
             </Link>
           </>
         )}
@@ -150,4 +134,5 @@ const Sidebar = ({ onMobileClose }) => {
     </aside>
   );
 };
+
 export default Sidebar;

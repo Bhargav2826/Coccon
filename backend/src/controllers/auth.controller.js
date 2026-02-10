@@ -1,4 +1,3 @@
-import { upsertStreamUser } from "../lib/stream.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
@@ -22,16 +21,6 @@ export async function signup(req, res) {
       role: userRole,
     });
 
-    try {
-      await upsertStreamUser({
-        id: newUser._id.toString(),
-        name: newUser.fullName,
-        image: newUser.profilePic || "",
-      });
-      console.log(`Stream user created for ${newUser.fullName}`);
-    } catch (error) {
-      console.log("Error creating Stream user:", error);
-    }
 
     const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET_KEY, {
       expiresIn: "7d",
@@ -224,17 +213,6 @@ export async function onboard(req, res) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Update Stream Chat user with new information
-    try {
-      await upsertStreamUser({
-        id: updatedUser._id.toString(),
-        name: updatedUser.fullName,
-        image: updatedUser.profilePic || "",
-      });
-      console.log(`✅ Stream user updated after COCOON onboarding for ${updatedUser.fullName}`);
-    } catch (streamError) {
-      console.log("⚠️ Error updating Stream user during onboarding:", streamError.message);
-    }
 
     // Log onboarding completion with role-specific information
     if (updatedUser.role === 'student') {

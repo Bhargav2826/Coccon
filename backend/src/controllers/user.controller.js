@@ -332,129 +332,10 @@ export async function getChildConversations(req, res) {
       });
     });
 
-    // 4. Get all users the child has actually chatted with (from message history)
-    const Message = (await import("../models/Message.js")).default;
-
-    // First, let's check if there are any messages at all in the database
-    const totalMessages = await Message.countDocuments();
-    console.log('📊 Total messages in database:', totalMessages);
-
-    // Check messages specifically for this child
-    const childMessages = await Message.find({
-      $or: [
-        { sender: childId },
-        { recipient: childId }
-      ]
-    });
-    console.log('📨 Messages involving this child:', childMessages.length);
-
-    if (childMessages.length > 0) {
-      console.log('📋 Sample child messages:');
-      childMessages.slice(0, 3).forEach(msg => {
-        console.log(`   - ${msg.sender} → ${msg.recipient}: "${msg.content?.substring(0, 50)}..."`);
-      });
-    }
-
-    const chatPartners = await Message.aggregate([
-      {
-        $match: {
-          $or: [
-            { sender: childId },
-            { recipient: childId }
-          ]
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $cond: [
-              { $eq: ["$sender", childId] },
-              "$recipient",
-              "$sender"
-            ]
-          }
-        }
-      }
-    ]);
-
-    const chatPartnerIds = chatPartners.map(partner => partner._id.toString());
-    console.log('💬 Chat partners from message history:', chatPartnerIds.length);
-    console.log('💬 Chat partner IDs:', chatPartnerIds);
-
-    // 5. NEW: Check Stream Chat for actual conversations
-    const { streamServerClient } = await import("../lib/stream.js");
-    const streamChatPartners = new Set();
-
-    if (streamServerClient) {
-      try {
-        console.log('🔍 Checking Stream Chat for conversations...');
-
-        // More efficient approach: Query all channels for this user
-        try {
-          // Get all channels where the child is a member
-          const channelsResponse = await streamServerClient.queryChannels({
-            members: { $in: [childId] },
-            type: "messaging"
-          });
-
-          console.log(`📊 Found ${channelsResponse.length} Stream Chat channels for child`);
-
-          // Extract conversation partners from channel IDs
-          channelsResponse.forEach(channel => {
-            const channelId = channel.id;
-            const userIds = channelId.split('-');
-
-            if (userIds.length === 2) {
-              const partnerId = userIds.find(id => id !== childId);
-              if (partnerId) {
-                streamChatPartners.add(partnerId);
-                console.log(`✅ Found Stream Chat conversation with user: ${partnerId}`);
-              }
-            }
-          });
-
-        } catch (error) {
-          console.log('⚠️ Could not query channels directly, falling back to individual checks...');
-
-          // Fallback: Check individual users
-          const allUsers = await User.find({ _id: { $ne: childId } }).select("_id");
-
-          for (const user of allUsers) {
-            const userId = user._id.toString();
-            const channelId = [childId, userId].sort().join("-");
-
-            try {
-              const channel = streamServerClient.channel("messaging", channelId);
-              const queryRes = await channel.query({
-                messages: { limit: 1 }
-              });
-
-              // If there are messages in this channel, it's a conversation
-              if (queryRes.messages && queryRes.messages.length > 0) {
-                streamChatPartners.add(userId);
-                console.log(`✅ Found Stream Chat conversation with user: ${userId}`);
-              }
-            } catch (error) {
-              // Channel might not exist or no messages, which is fine
-              console.log(`ℹ️ No Stream Chat conversation with user: ${userId}`);
-            }
-          }
-        }
-
-        console.log('💬 Stream Chat conversation partners found:', streamChatPartners.size);
-      } catch (error) {
-        console.error('❌ Error checking Stream Chat conversations:', error);
-      }
-    } else {
-      console.log('⚠️ Stream Chat client not available, skipping Stream Chat check');
-    }
-
-    // 6. Combine all conversation partners (including Stream Chat)
+    // 4. Combined conversation partners (friends and room members)
     const allPartnerIds = new Set([
       ...friends.map(friend => friend._id.toString()),
-      ...roomMembers,
-      ...chatPartnerIds,
-      ...streamChatPartners // Add Stream Chat partners
+      ...roomMembers
     ]);
 
     console.log('📊 Total unique conversation partners:', allPartnerIds.size);
@@ -469,25 +350,16 @@ export async function getChildConversations(req, res) {
       const partnerId = partner._id.toString();
       const isFriend = friends.some(friend => friend._id.toString() === partnerId);
       const isRoomMember = roomMembers.has(partnerId);
-      const hasDirectChat = chatPartnerIds.includes(partnerId) || streamChatPartners.has(partnerId); // Check both MongoDB and Stream Chat
-
-      // Debug logging for each partner
-      console.log(`🔍 Categorizing ${partner.fullName} (${partnerId}):`);
-      console.log(`   - isFriend: ${isFriend}`);
-      console.log(`   - isRoomMember: ${isRoomMember}`);
-      console.log(`   - hasDirectChat: ${hasDirectChat} (MongoDB: ${chatPartnerIds.includes(partnerId)}, Stream: ${streamChatPartners.has(partnerId)})`);
-
       let conversationType = [];
       if (isFriend) conversationType.push("friend");
       if (isRoomMember) conversationType.push("classroom");
-      if (hasDirectChat) conversationType.push("direct-chat");
 
       return {
         ...partner.toObject(),
         conversationType,
         isFriend,
         isRoomMember,
-        hasDirectChat
+        hasDirectChat: false
       };
     });
 

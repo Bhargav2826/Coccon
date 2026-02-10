@@ -3,9 +3,11 @@ import { useState, useEffect } from "react";
 import {
   getMyChildren,
   getChildConversations,
-  analyzeChat,
   analyzeCall,
+  analyzeChat,
   getCallHistory,
+  getChatHistory,
+  getChatSessions,
   getChildCalls,
   linkChildToParent,
   generateLinkCode
@@ -199,46 +201,6 @@ const ParentDashboard = () => {
     linkChildMutation(childEmail.trim());
   };
 
-  // AI analysis mutation
-  const { mutate: analyzeChatMutation, isPending: chatAnalyzing } = useMutation({
-    mutationFn: analyzeChat,
-    onSuccess: (data, variables) => {
-      const { childUid, targetUid } = variables;
-      const key = `${childUid}-${targetUid}`;
-      setAnalysisResults(prev => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          chat: data,
-          isAnalyzingChat: false
-        }
-      }));
-      toast.success("Analysis completed!");
-    },
-    onMutate: (variables) => {
-      const { childUid, targetUid } = variables;
-      const key = `${childUid}-${targetUid}`;
-      setAnalysisResults(prev => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          isAnalyzingChat: true
-        }
-      }));
-    },
-    onError: (error, variables) => {
-      const { childUid, targetUid } = variables;
-      const key = `${childUid}-${targetUid}`;
-      setAnalysisResults(prev => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          isAnalyzingChat: false
-        }
-      }));
-      toast.error(error.response?.data?.message || "Failed to analyze conversation");
-    },
-  });
 
   const { mutate: analyzeCallMutation } = useMutation({
     mutationFn: analyzeCall,
@@ -298,6 +260,61 @@ const ParentDashboard = () => {
     },
   });
 
+  const { mutate: analyzeChatMutation } = useMutation({
+    mutationFn: analyzeChat,
+    onSuccess: (data, variables) => {
+      const { childUid, targetUid, callId } = variables;
+      if (callId) {
+        const key = `${childUid}-${callId}`;
+        setAnalysisResults(prev => ({ ...prev, [key]: { ...data, isAnalyzing: false } }));
+      } else {
+        const key = `${childUid}-${targetUid}`;
+        setAnalysisResults(prev => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            chat: data,
+            isAnalyzingChat: false
+          }
+        }));
+      }
+      toast.success(`Chat analysis completed!`);
+    },
+    onMutate: (variables) => {
+      const { childUid, targetUid, callId } = variables;
+      if (callId) {
+        const key = `${childUid}-${callId}`;
+        setAnalysisResults(prev => ({ ...prev, [key]: { ...prev[key], isAnalyzing: true } }));
+      } else {
+        const key = `${childUid}-${targetUid}`;
+        setAnalysisResults(prev => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            isAnalyzingChat: true
+          }
+        }));
+      }
+    },
+    onError: (error, variables) => {
+      const { childUid, targetUid, callId } = variables;
+      if (callId) {
+        const key = `${childUid}-${callId}`;
+        setAnalysisResults(prev => ({ ...prev, [key]: { ...prev[key], isAnalyzing: false } }));
+      } else {
+        const key = `${childUid}-${targetUid}`;
+        setAnalysisResults(prev => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            isAnalyzingChat: false
+          }
+        }));
+      }
+      toast.error(error.response?.data?.message || "Failed to analyze chat");
+    },
+  });
+
   // Helper for date presets
   const getDateRangeForPreset = (preset) => {
     if (!preset || preset === 'all') return { startDate: '', endDate: '' };
@@ -328,28 +345,6 @@ const ParentDashboard = () => {
     return { startDate: toYMD(start), endDate: toYMD(now) };
   };
 
-  const handleAnalyzeChat = (childUid, targetUid, options = {}) => {
-    const key = `${childUid}-${targetUid}-chat`;
-    const pref = historyPreferences[key] || { preset: 'all', startDate: '', endDate: '' };
-
-    const preset = options.preset !== undefined ? options.preset : pref.preset;
-    let startDate = options.startDate !== undefined ? options.startDate : pref.startDate;
-    let endDate = options.endDate !== undefined ? options.endDate : pref.endDate;
-
-    if (options.preset && options.preset !== 'custom') {
-      const range = getDateRangeForPreset(options.preset);
-      startDate = range.startDate;
-      endDate = range.endDate;
-    }
-
-    setActiveCallView(prev => ({ ...prev, [`${childUid}-${targetUid}`]: 'chat' }));
-    setHistoryPreferences(prev => ({
-      ...prev,
-      [key]: { ...pref, preset, startDate, endDate }
-    }));
-
-    analyzeChatMutation({ childUid, targetUid, startDate, endDate });
-  };
 
   const fetchCallHistory = async (childUid, targetUid, callType, options = {}) => {
     const key = `${childUid}-${targetUid}-${callType}`;
@@ -380,6 +375,20 @@ const ParentDashboard = () => {
       }));
     } catch (err) {
       toast.error("Failed to fetch call history");
+    } finally {
+      setLoadingHistories(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const fetchChatHistory = async (childUid, targetUid) => {
+    const key = `${childUid}-${targetUid}-chat`;
+
+    setLoadingHistories(prev => ({ ...prev, [key]: true }));
+    try {
+      const data = await getChatSessions(childUid, targetUid);
+      setCallHistories(prev => ({ ...prev, [key]: data }));
+    } catch (err) {
+      toast.error("Failed to fetch chat sessions");
     } finally {
       setLoadingHistories(prev => ({ ...prev, [key]: false }));
     }
@@ -601,7 +610,6 @@ const ParentDashboard = () => {
               {filteredConversations.map((conversation) => {
                 const convKey = `${selectedChild._id}-${conversation._id}`;
                 const conversationAnalysis = analysisResults[convKey] || {};
-                const isAnalyzingChat = chatAnalyzing && conversationAnalysis.isAnalyzingChat;
 
                 return (
                   <div key={conversation._id} className="card bg-base-200 shadow-sm hover:shadow-xl transition-all duration-300 border border-base-content/5">
@@ -625,12 +633,14 @@ const ParentDashboard = () => {
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full xl:w-auto">
                           <button
-                            onClick={() => handleAnalyzeChat(selectedChild._id, conversation._id)}
-                            disabled={isAnalyzingChat}
-                            className={`btn btn-sm ${activeCallView[convKey] === 'chat' ? 'btn-neutral shadow-lg translate-y-[-1px]' : 'btn-ghost bg-base-300/50 hover:bg-base-300'}`}
+                            onClick={() => {
+                              setActiveCallView(prev => ({ ...prev, [convKey]: 'chat' }));
+                              fetchChatHistory(selectedChild._id, conversation._id);
+                            }}
+                            disabled={loadingHistories[`${convKey}-chat`]}
+                            className={`btn btn-sm ${activeCallView[convKey] === 'chat' ? 'btn-primary shadow-lg translate-y-[-1px]' : 'btn-ghost bg-base-300/50 hover:bg-base-300'}`}
                           >
-                            {isAnalyzingChat ? <span className="loading loading-spinner loading-xs" /> : <ShieldIcon className="size-4 mr-1.5" />}
-                            Chat AI
+                            <MessageSquareIcon className="size-4 mr-1.5" /> Chat
                           </button>
                           <button
                             onClick={() => {
@@ -640,7 +650,7 @@ const ParentDashboard = () => {
                             disabled={loadingHistories[`${convKey}-video`]}
                             className={`btn btn-sm ${activeCallView[convKey] === 'video' ? 'btn-secondary shadow-lg translate-y-[-1px]' : 'btn-ghost bg-base-300/50 hover:bg-base-300'}`}
                           >
-                            <VideoIcon className="size-4 mr-1.5" /> Video Call
+                            <VideoIcon className="size-4 mr-1.5" /> Video
                           </button>
                           <button
                             onClick={() => {
@@ -650,55 +660,34 @@ const ParentDashboard = () => {
                             disabled={loadingHistories[`${convKey}-audio`]}
                             className={`btn btn-sm ${activeCallView[convKey] === 'audio' ? 'btn-accent shadow-lg translate-y-[-1px]' : 'btn-ghost bg-base-300/50 hover:bg-base-300'}`}
                           >
-                            <PhoneIcon className="size-4 mr-1.5" /> Voice Call
+                            <PhoneIcon className="size-4 mr-1.5" /> Voice
                           </button>
                         </div>
                       </div>
 
                       <div className="relative min-h-[50px] transition-all">
-                        {['video', 'audio'].some(t => loadingHistories[`${convKey}-${t}`]) && (
+                        {['chat', 'video', 'audio'].some(t => loadingHistories[`${convKey}-${t}`]) && (
                           <div className="absolute inset-0 bg-base-200/60 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-xl">
                             <span className="loading loading-spinner loading-md text-primary" />
                           </div>
                         )}
 
-                        {activeCallView[convKey] === 'chat' && (
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                            <div className="divider text-xs opacity-50">Chat Analysis Intelligence</div>
-                            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
-                              {['all', 'today', '7d', '30d', '90d', '180d', '365d'].map(p => (
-                                <button
-                                  key={p}
-                                  onClick={() => handleAnalyzeChat(selectedChild._id, conversation._id, { preset: p })}
-                                  className={`btn btn-xs whitespace-nowrap ${historyPreferences[convKey + '-chat']?.preset === p ? 'btn-neutral' : 'btn-ghost opacity-60'}`}
-                                >
-                                  {p === 'all' ? 'All' : p.toUpperCase()}
-                                </button>
-                              ))}
-                            </div>
-                            {conversationAnalysis.chat ? (
-                              <AnalysisResultCard type="chat" data={conversationAnalysis.chat} icon={ShieldIcon} title="Interaction Analysis" />
-                            ) : isAnalyzingChat ? (
-                              <AnalysisSkeleton />
-                            ) : (
-                              <div className="text-center py-8 opacity-50 text-sm">No recent chat analysis. Click Chat AI to generate.</div>
-                            )}
-                          </div>
-                        )}
 
-                        {['video', 'audio'].map(type => {
+                        {['chat', 'video', 'audio'].map(type => {
                           const historyKey = `${convKey}-${type}`;
                           const calls = callHistories[historyKey];
                           if (!calls || activeCallView[convKey] !== type) return null;
 
                           return (
                             <div key={type} className="animate-in fade-in slide-in-from-top-2 duration-300">
-                              <div className="divider text-xs opacity-50">Recent Calls Matrix</div>
+                              <div className="divider text-xs opacity-50">{type === 'chat' ? 'Message Feed' : 'Recent Calls Matrix'}</div>
                               <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                                 {['all', 'today', '7d', '30d'].map(p => (
                                   <button
                                     key={p}
-                                    onClick={() => fetchCallHistory(selectedChild._id, conversation._id, type, { preset: p })}
+                                    onClick={() => type === 'chat'
+                                      ? fetchChatHistory(selectedChild._id, conversation._id, { preset: p })
+                                      : fetchCallHistory(selectedChild._id, conversation._id, type, { preset: p })}
                                     className={`btn btn-xs ${historyPreferences[historyKey]?.preset === p ? 'btn-neutral' : 'btn-ghost opacity-60'}`}
                                   >
                                     {p.toUpperCase()}
@@ -706,26 +695,31 @@ const ParentDashboard = () => {
                                 ))}
                                 <div className="divider divider-horizontal mx-1"></div>
                                 <button
-                                  onClick={() => analyzeCallMutation({
-                                    childUid: selectedChild._id,
-                                    targetUid: conversation._id,
-                                    callType: type
-                                  })}
-                                  disabled={conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio']}
+                                  onClick={() => type === 'chat'
+                                    ? analyzeChatMutation({ childUid: selectedChild._id, targetUid: conversation._id })
+                                    : analyzeCallMutation({ childUid: selectedChild._id, targetUid: conversation._id, callType: type })}
+                                  disabled={type === 'chat'
+                                    ? conversationAnalysis.isAnalyzingChat
+                                    : conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio']}
                                   className="btn btn-xs btn-neutral gap-1"
                                 >
-                                  {conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio'] ? (
+                                  {(type === 'chat' ? conversationAnalysis.isAnalyzingChat : conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio']) ? (
                                     <span className="loading loading-spinner loading-xs" />
                                   ) : (
                                     <ShieldIcon className="size-3" />
                                   )}
-                                  Generate {type.charAt(0).toUpperCase() + type.slice(1)} Report
+                                  Generate {type === 'chat' ? 'Chat' : (type.charAt(0).toUpperCase() + type.slice(1))} Report
                                 </button>
                                 <div className="divider divider-horizontal mx-1"></div>
                                 <button
                                   onClick={() => {
                                     const currentSort = historyPreferences[historyKey]?.sort || 'desc';
-                                    fetchCallHistory(selectedChild._id, conversation._id, type, { sort: currentSort === 'desc' ? 'asc' : 'desc' });
+                                    const nextSort = currentSort === 'desc' ? 'asc' : 'desc';
+                                    if (type === 'chat') {
+                                      fetchChatHistory(selectedChild._id, conversation._id, { sort: nextSort });
+                                    } else {
+                                      fetchCallHistory(selectedChild._id, conversation._id, type, { sort: nextSort });
+                                    }
                                   }}
                                   className="btn btn-xs btn-ghost gap-1"
                                 >
@@ -737,11 +731,11 @@ const ParentDashboard = () => {
                                 <div className="mb-6">
                                   <AnalysisResultCard
                                     data={conversationAnalysis[type]}
-                                    icon={type === 'video' ? VideoIcon : PhoneIcon}
+                                    icon={type === 'chat' ? MessageSquareIcon : (type === 'video' ? VideoIcon : PhoneIcon)}
                                     title={`${type.charAt(0).toUpperCase() + type.slice(1)} Recent`}
                                   />
                                 </div>
-                              ) : conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio'] ? (
+                              ) : (type === 'chat' ? conversationAnalysis.isAnalyzingChat : conversationAnalysis[type === 'video' ? 'isAnalyzingVideo' : 'isAnalyzingAudio']) ? (
                                 <div className="mb-6">
                                   <AnalysisSkeleton />
                                 </div>
@@ -749,10 +743,10 @@ const ParentDashboard = () => {
 
                               <div className="grid grid-cols-1 gap-2">
                                 {calls.length === 0 ? (
-                                  <div className="text-center py-8 opacity-50 text-sm italic">No recorded calls in this period.</div>
+                                  <div className="text-center py-8 opacity-50 text-sm italic">{type === 'chat' ? 'No chat activity in this period.' : 'No recorded calls in this period.'}</div>
                                 ) : (
                                   calls.map(call => {
-                                    const callAnalysis = analysisResults[`${selectedChild._id}-${call._id}`];
+                                    const callAnalysis = analysisResults[`${selectedChild._id}-${call._id}`] || analysisResults[`${selectedChild._id}-${conversation._id}`];
                                     const hasAnalysis = !!(callAnalysis?.summary || call.summary);
 
                                     return (
@@ -760,14 +754,16 @@ const ParentDashboard = () => {
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                           <div className="flex items-center gap-3">
                                             <div className="p-2 bg-base-100 rounded-lg">
-                                              {type === 'video' ? <VideoIcon className="size-4 text-secondary" /> : <PhoneIcon className="size-4 text-accent" />}
+                                              {type === 'video' ? <VideoIcon className="size-4 text-secondary" /> :
+                                                type === 'chat' ? <MessageSquareIcon className="size-4 text-primary" /> :
+                                                  <PhoneIcon className="size-4 text-accent" />}
                                             </div>
                                             <div className="flex flex-col gap-1">
                                               <div className="text-sm font-bold">
                                                 {new Date(call.startedAt || call.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                               </div>
                                               <div className="text-[10px] font-mono opacity-50 uppercase tracking-wider">
-                                                {new Date(call.startedAt || call.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                                {type === 'chat' ? 'Daily Chat Log' : new Date(call.startedAt || call.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                               </div>
                                               {call.callLabel && (
                                                 <div className={`text-[10px] font-bold uppercase tracking-tight mt-1 ${call.category === 'Classroom Call' ? 'text-primary' : 'text-accent'}`}>
@@ -784,10 +780,31 @@ const ParentDashboard = () => {
 
                                           <div className="flex items-center gap-2 w-full sm:w-auto">
                                             <button
-                                              onClick={() => setShowTranscripts(prev => ({ ...prev, [call._id]: !prev[call._id] }))}
+                                              onClick={async () => {
+                                                if (!showTranscripts[call._id] && type === 'chat') {
+                                                  // Fetch chat messages for this specific day
+                                                  try {
+                                                    const msgs = await getChatHistory(selectedChild._id, conversation._id, 100, 'asc', call.dateId, call.dateId);
+                                                    // Mutate the call object in state to include these messages as 'transcripts' for display
+                                                    setCallHistories(prev => {
+                                                      const key = `${selectedChild._id}-${conversation._id}-chat`;
+                                                      const updatedCalls = prev[key].map(c => {
+                                                        if (c._id === call._id) {
+                                                          return { ...c, messages: msgs };
+                                                        }
+                                                        return c;
+                                                      });
+                                                      return { ...prev, [key]: updatedCalls };
+                                                    });
+                                                  } catch (e) {
+                                                    toast.error("Failed to load messages");
+                                                  }
+                                                }
+                                                setShowTranscripts(prev => ({ ...prev, [call._id]: !prev[call._id] }))
+                                              }}
                                               className="btn btn-xs sm:btn-sm btn-ghost flex-1 sm:flex-none text-primary/70 hover:bg-primary/5"
                                             >
-                                              {showTranscripts[call._id] ? "Hide Transcript" : "View Transcript"}
+                                              {showTranscripts[call._id] ? (type === 'chat' ? "Hide Messages" : "Hide Transcript") : (type === 'chat' ? "View Messages" : "View Transcript")}
                                             </button>
                                             <button
                                               onClick={() => setExpandedCallId(expandedCallId === call._id ? null : call._id)}
@@ -803,7 +820,7 @@ const ParentDashboard = () => {
                                             ? 'bg-error/5 border-error/10 text-error-content'
                                             : 'bg-success/5 border-success/10 text-base-content/90'
                                             }`}>
-                                            {callAnalysis?.isAnalyzing ? (
+                                            {callAnalysis?.isAnalyzing || (callAnalysis?.isAnalyzingChat && type === 'chat') ? (
                                               <div className="py-4 text-center">
                                                 <div className="inline-flex items-center gap-3 px-4 py-2 bg-base-200 rounded-full">
                                                   <span className="loading loading-spinner loading-xs text-primary" />
@@ -815,14 +832,16 @@ const ParentDashboard = () => {
                                                 {!hasAnalysis ? (
                                                   <div className="text-center py-6 bg-base-200/50 rounded-2xl border border-dashed border-base-content/10">
                                                     <BrainIcon className="size-8 mx-auto mb-3 opacity-20" />
-                                                    <p className="text-xs opacity-60 italic mb-4">No AI summary available for this call.</p>
+                                                    <p className="text-xs opacity-60 italic mb-4">No AI summary available for this session.</p>
                                                     <button
-                                                      onClick={() => analyzeCallMutation({
-                                                        childUid: selectedChild._id,
-                                                        targetUid: conversation._id,
-                                                        callType: type,
-                                                        callId: call._id
-                                                      })}
+                                                      onClick={() => type === 'chat'
+                                                        ? analyzeChatMutation({ childUid: selectedChild._id, targetUid: conversation._id, date: call.dateId, callId: call._id })
+                                                        : analyzeCallMutation({
+                                                          childUid: selectedChild._id,
+                                                          targetUid: conversation._id,
+                                                          callType: type,
+                                                          callId: call._id
+                                                        })}
                                                       className="btn btn-sm btn-neutral gap-2 px-6"
                                                     >
                                                       <BrainIcon className="size-4" /> Generate Analysis
@@ -868,26 +887,50 @@ const ParentDashboard = () => {
                                         {showTranscripts[call._id] && (
                                           <div className="mt-4 p-4 rounded-2xl border border-base-content/5 bg-base-100 text-xs sm:text-sm font-mono space-y-3 max-h-72 overflow-y-auto shadow-inner animate-in slide-in-from-top-2 duration-300">
                                             <div className="flex items-center justify-between border-b border-base-content/5 pb-2 mb-2 sticky top-0 bg-base-100 z-10">
-                                              <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">Call Transcript</span>
-                                              <span className="badge badge-outline badge-xs opacity-40">{call.type === 'video' ? 'Video' : 'Audio'}</span>
+                                              <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">{type === 'chat' ? 'Message Log' : 'Call Transcript'}</span>
+                                              <span className="badge badge-outline badge-xs opacity-40 capitalize">{type}</span>
                                             </div>
-                                            {(!call.transcripts || call.transcripts.length === 0) ? (
-                                              <div className="text-center py-4 opacity-40 italic">No transcript data recorded for this call session.</div>
-                                            ) : (
-                                              call.transcripts.map((t, tid) => (
-                                                <div key={tid} className="flex flex-col gap-1 border-b border-base-content/5 pb-2 last:border-0">
-                                                  <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                      <span className="font-bold text-primary opacity-80">{t.sender?.fullName || "Participant"}</span>
-                                                      {t.sender?.role && (
-                                                        <span className="badge badge-outline badge-xs opacity-50 capitalize">{t.sender.role}</span>
-                                                      )}
+                                            {type === 'chat' ? (
+                                              !call.messages ? (
+                                                <div className="flex justify-center p-4"><span className="loading loading-spinner loading-xs" /></div>
+                                              ) : call.messages.length === 0 ? (
+                                                <div className="text-center py-4 opacity-40 italic">No messages found.</div>
+                                              ) : (
+                                                call.messages.map((msg) => (
+                                                  <div key={msg._id} className="flex flex-col gap-1 border-b border-base-content/5 pb-2 last:border-0">
+                                                    <div className="flex items-center justify-between">
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-primary opacity-80">{msg.sender?.fullName || "User"}</span>
+                                                        {msg.sender?.role && <span className="badge badge-outline badge-xs opacity-50 capitalize">{msg.sender.role}</span>}
+                                                      </div>
+                                                      <span className="text-[9px] opacity-40">{new Date(msg.createdAt).toLocaleTimeString()}</span>
                                                     </div>
-                                                    <span className="text-[9px] opacity-40">{new Date(t.timestamp).toLocaleTimeString()}</span>
+                                                    {msg.fileUrl ? (
+                                                      <div className="text-xs opacity-70 italic">[Attachment: {msg.fileName || 'File'}]</div>
+                                                    ) : null}
+                                                    {msg.text && <p className="text-base-content/80 leading-relaxed font-sans">{msg.text}</p>}
                                                   </div>
-                                                  <p className="text-base-content/80 leading-relaxed font-sans">{t.text}</p>
-                                                </div>
-                                              ))
+                                                ))
+                                              )
+                                            ) : (
+                                              (!call.transcripts || call.transcripts.length === 0) ? (
+                                                <div className="text-center py-4 opacity-40 italic">No transcript data recorded for this call session.</div>
+                                              ) : (
+                                                call.transcripts.map((t, tid) => (
+                                                  <div key={tid} className="flex flex-col gap-1 border-b border-base-content/5 pb-2 last:border-0">
+                                                    <div className="flex items-center justify-between">
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-primary opacity-80">{t.sender?.fullName || "Participant"}</span>
+                                                        {t.sender?.role && (
+                                                          <span className="badge badge-outline badge-xs opacity-50 capitalize">{t.sender.role}</span>
+                                                        )}
+                                                      </div>
+                                                      <span className="text-[9px] opacity-40">{new Date(t.timestamp).toLocaleTimeString()}</span>
+                                                    </div>
+                                                    <p className="text-base-content/80 leading-relaxed font-sans">{t.text}</p>
+                                                  </div>
+                                                ))
+                                              )
                                             )}
                                           </div>
                                         )}
@@ -910,14 +953,16 @@ const ParentDashboard = () => {
       )}
 
       {/* Persistence Indicator */}
-      {Object.values(loadingHistories).some(v => v === true) && (
-        <div className="fixed bottom-8 right-8 z-[9999] animate-in slide-in-from-bottom-8 duration-500">
-          <div className="bg-neutral text-neutral-content px-4 py-2 rounded-xl shadow-2xl flex items-center gap-3 border border-white/10 backdrop-blur-xl">
-            <span className="loading loading-spinner loading-xs text-primary" />
-            <span className="text-xs font-bold uppercase tracking-widest opacity-80">Syncing Intelligence...</span>
+      {
+        Object.values(loadingHistories).some(v => v === true) && (
+          <div className="fixed bottom-8 right-8 z-[9999] animate-in slide-in-from-bottom-8 duration-500">
+            <div className="bg-neutral text-neutral-content px-4 py-2 rounded-xl shadow-2xl flex items-center gap-3 border border-white/10 backdrop-blur-xl">
+              <span className="loading loading-spinner loading-xs text-primary" />
+              <span className="text-xs font-bold uppercase tracking-widest opacity-80">Syncing Intelligence...</span>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Link Child Modal */}
       {isLinkModalOpen && (

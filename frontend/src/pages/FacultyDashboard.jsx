@@ -9,13 +9,10 @@ import {
   CopyIcon,
   CalendarIcon,
   CheckCircleIcon,
-  MessageCircleIcon,
   VideoIcon,
   TrashIcon,
-  CheckIcon,
   XIcon
 } from "lucide-react";
-import FacultyMessaging from "../components/FacultyMessaging";
 import VideoCallLoader from "../components/VideoCallLoader";
 import useVideoCallStore from "../store/useVideoCallStore";
 import { CardSkeleton } from "../components/SkeletonLoaders";
@@ -279,9 +276,6 @@ const FacultyDashboard = () => {
                   </div>
                   {!isDeleteMode && (
                     <div className="card-actions justify-end mt-4">
-                      <button className="btn btn-primary btn-sm" onClick={() => setSelectedRoomForMessaging(room)}>
-                        <MessageCircleIcon className="size-4 mr-1" /> Send Message
-                      </button>
                       {room.activeCall ? (
                         <button
                           className="btn btn-success btn-sm animate-pulse"
@@ -310,59 +304,62 @@ const FacultyDashboard = () => {
       </div>
 
       {/* Modals */}
-      {isModalOpen && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg mb-4">Create New Room</h3>
-            <form onSubmit={handleCreateRoom} className="space-y-4">
-              <input type="text" placeholder="Room Name" className="input input-bordered w-full" value={roomName} onChange={(e) => setRoomName(e.target.value)} disabled={creatingRoom} />
-              <div className="modal-action">
-                <button type="button" className="btn btn-ghost" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={creatingRoom || !roomName.trim()}>
-                  {creatingRoom ? <span className="loading loading-spinner loading-sm" /> : <PlusIcon className="size-4" />} Create Room
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {newRoomInviteCode && (
-        <div className="modal modal-open">
-          <div className="modal-box text-center">
-            <CheckCircleIcon className="size-16 text-success mx-auto mb-4" />
-            <h3 className="font-bold text-lg mb-4">Room Created!</h3>
-            <div className="bg-base-200 p-4 rounded-lg mb-4">
-              <code className="text-lg font-mono font-bold">{newRoomInviteCode}</code>
-              <button onClick={() => copyInviteCode(newRoomInviteCode)} className="btn btn-ghost btn-sm ml-2"><CopyIcon className="size-4" /></button>
+      {
+        isModalOpen && (
+          <div className="modal modal-open">
+            <div className="modal-box">
+              <h3 className="font-bold text-lg mb-4">Create New Room</h3>
+              <form onSubmit={handleCreateRoom} className="space-y-4">
+                <input type="text" placeholder="Room Name" className="input input-bordered w-full" value={roomName} onChange={(e) => setRoomName(e.target.value)} disabled={creatingRoom} />
+                <div className="modal-action">
+                  <button type="button" className="btn btn-ghost" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={creatingRoom || !roomName.trim()}>
+                    {creatingRoom ? <span className="loading loading-spinner loading-sm" /> : <PlusIcon className="size-4" />} Create Room
+                  </button>
+                </div>
+              </form>
             </div>
-            <button className="btn btn-primary" onClick={() => setNewRoomInviteCode("")}>Got it!</button>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {selectedRoomForMessaging && (
-        <FacultyMessaging room={selectedRoomForMessaging} onClose={() => setSelectedRoomForMessaging(null)} />
-      )}
+      {
+        newRoomInviteCode && (
+          <div className="modal modal-open">
+            <div className="modal-box text-center">
+              <CheckCircleIcon className="size-16 text-success mx-auto mb-4" />
+              <h3 className="font-bold text-lg mb-4">Room Created!</h3>
+              <div className="bg-base-200 p-4 rounded-lg mb-4">
+                <code className="text-lg font-mono font-bold">{newRoomInviteCode}</code>
+                <button onClick={() => copyInviteCode(newRoomInviteCode)} className="btn btn-ghost btn-sm ml-2"><CopyIcon className="size-4" /></button>
+              </div>
+              <button className="btn btn-primary" onClick={() => setNewRoomInviteCode("")}>Got it!</button>
+            </div>
+          </div>
+        )
+      }
+
 
       <VideoCallLoader isVisible={showVideoCallLoader} onComplete={handleVideoCallComplete} />
 
-      {showDeleteConfirm && roomToDelete && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-md text-center">
-            <TrashIcon className="size-12 text-error mx-auto mb-4" />
-            <h3 className="font-bold text-2xl mb-4 text-error">Delete Room</h3>
-            <p className="mb-6">Are you sure you want to delete <strong>"{roomToDelete.roomName}"</strong>? This action cannot be undone.</p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => setShowDeleteConfirm(false)} className="btn btn-outline">Cancel</button>
-              <button onClick={confirmDeleteRoom} className="btn btn-error" disabled={deletingRoom}>
-                {deletingRoom ? <span className="loading loading-spinner loading-sm" /> : "Delete Room"}
-              </button>
+      {
+        showDeleteConfirm && roomToDelete && (
+          <div className="modal modal-open">
+            <div className="modal-box max-w-md text-center">
+              <TrashIcon className="size-12 text-error mx-auto mb-4" />
+              <h3 className="font-bold text-2xl mb-4 text-error">Delete Room</h3>
+              <p className="mb-6">Are you sure you want to delete <strong>"{roomToDelete.roomName}"</strong>? This action cannot be undone.</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={() => setShowDeleteConfirm(false)} className="btn btn-outline">Cancel</button>
+                <button onClick={confirmDeleteRoom} className="btn btn-error" disabled={deletingRoom}>
+                  {deletingRoom ? <span className="loading loading-spinner loading-sm" /> : "Delete Room"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

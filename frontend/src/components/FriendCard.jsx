@@ -1,13 +1,16 @@
 import { Link } from "react-router";
-import { VideoIcon, MessageCircleIcon, UserMinusIcon, PhoneIcon } from "lucide-react";
+import { VideoIcon, UserMinusIcon, PhoneIcon, MessageCircleIcon } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { removeFriend } from "../lib/api";
 import { toast } from "react-hot-toast";
 import { LANGUAGE_TO_FLAG } from "../constants";
 import useAuthUser from "../hooks/useAuthUser";
+import { useChatStore } from "../store/useChatStore";
+
 const FriendCard = ({ friend }) => {
   const queryClient = useQueryClient();
   const { authUser } = useAuthUser();
+  const { setSelectedUser } = useChatStore();
   const { mutate: removeFriendMutation, isPending: removingFriend } = useMutation({
     mutationFn: removeFriend,
     onSuccess: () => {
@@ -60,7 +63,8 @@ const FriendCard = ({ friend }) => {
         {/* Action Buttons */}
         <div className="flex gap-2">
           <Link
-            to={`/chat/${friend._id}`}
+            to="/chat"
+            onClick={() => setSelectedUser(friend)}
             className="btn btn-outline btn-sm flex-1"
             title="Chat"
           >

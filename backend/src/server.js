@@ -11,12 +11,12 @@ import rateLimit from "express-rate-limit";
 
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
-import chatRoutes from "./routes/chat.route.js";
 import roomRoutes from "./routes/room.route.js";
 import aiRoutes from "./routes/ai.route.js";
 import facultyMessagingRoutes from "./routes/faculty-messaging.route.js";
 import livekitRoutes from "./routes/livekit.route.js";
 import elevenlabsRoutes from "./routes/elevenlabs.route.js";
+import chatRoutes from "./routes/chat.route.js";
 
 import { server, app } from "./lib/socket.js";
 import { connectDB } from "./lib/db.js";
@@ -79,12 +79,12 @@ app.use(cookieParser());
 // Apply rate limiters to specific routes
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/users", generalLimiter, userRoutes);
-app.use("/api/chat", generalLimiter, chatRoutes);
 app.use("/api/rooms", generalLimiter, roomRoutes);
 app.use("/api/ai", generalLimiter, aiRoutes);
 app.use("/api/faculty-messaging", generalLimiter, facultyMessagingRoutes);
 app.use("/api/livekit", generalLimiter, livekitRoutes);
 app.use("/api/elevenlabs", generalLimiter, elevenlabsRoutes);
+app.use("/api/messages", generalLimiter, chatRoutes);
 
 // Apply stricter rate limiting to link code endpoints
 app.use("/api/users/generate-link-code", linkCodeLimiter);

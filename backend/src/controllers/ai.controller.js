@@ -1,279 +1,8 @@
-import Message from "../models/Message.js";
 import User from "../models/User.js";
-import { streamServerClient } from "../lib/stream.js";
 import { createClient } from "@deepgram/sdk";
 import axios from "axios";
 import Call from "../models/Call.js";
-
-export async function analyzeChat(req, res) {
-  try {
-    const { childUid, targetUid, startDate, endDate } = req.body;
-    const parentId = req.user._id;
-
-    console.log('🔍 AI Analysis Request:', {
-      childUid,
-      targetUid,
-      parentId: parentId.toString(),
-      startDate,
-      endDate
-    });
-
-    // 1. Verify parent-child relationship
-    const parent = await User.findById(parentId).select("children");
-    if (!parent || !parent.children.includes(childUid)) {
-      return res.status(403).json({
-        message: "You can only analyze conversations of your linked children"
-      });
-    }
-
-    const child = await User.findById(childUid);
-    const targetUser = await User.findById(targetUid);
-    if (!child || !targetUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // 2. Fetch messages from Stream Chat
-    const channelId = [childUid.toString(), targetUid.toString()].sort().join("-");
-    const channel = streamServerClient.channel("messaging", channelId);
-
-    let messages = [];
-    try {
-      const queryRes = await channel.query({ state: true, messages: { limit: 300 } });
-      let streamMessages = queryRes?.messages || [];
-
-      // Filter by date if provided
-      if (startDate || endDate) {
-        const start = startDate ? new Date(startDate) : new Date(0);
-        const end = endDate ? new Date(endDate) : new Date();
-        end.setHours(23, 59, 59, 999);
-
-        streamMessages = streamMessages.filter(m => {
-          const createdAt = new Date(m.created_at || m.createdAt);
-          return createdAt >= start && createdAt <= end;
-        });
-      }
-      messages = streamMessages;
-    } catch (err) {
-      console.log("⚠️ Stream query failed, falling back to Mongo:", err.message);
-      const query = {
-        $or: [
-          { sender: childUid, recipient: targetUid },
-          { sender: targetUid, recipient: childUid }
-        ]
-      };
-
-      if (startDate || endDate) {
-        query.createdAt = {};
-        if (startDate) query.createdAt.$gte = new Date(startDate);
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          query.createdAt.$lte = end;
-        }
-      }
-
-      messages = await Message.find(query)
-        .populate("sender", "fullName role")
-        .populate("recipient", "fullName role")
-        .sort({ createdAt: 1 }).limit(300);
-    }
-
-    if (!messages || messages.length === 0) {
-      return res.status(200).json({
-        success: true,
-        summary: "No recent messages found.",
-        alert: { type: "safe", message: "No communication recorded." }
-      });
-    }
-
-    // 3. Format Transcript
-    const transcript = messages
-      .filter(m => m.text?.trim() || m.content?.trim())
-      .map(m => {
-        const senderId = m.user?.id || m.sender?._id || m.sender;
-        const senderName = senderId?.toString() === childUid.toString() ? child.fullName : targetUser.fullName;
-        return `${senderName}: ${m.text || m.content}`;
-      }).join("\n");
-
-    console.log('📝 TRANSCRIPT:', transcript);
-
-    // 4. DEEPGRAM PRIMARY ANALYSIS (Summary, Sentiment, Intents)
-    const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
-    let deepgramSummary = "";
-    let sentiment = "neutral";
-    let intentDetected = [];
-
-    try {
-      const dgResult = await deepgram.read.analyzeText(
-        { text: transcript },
-        { summarize: "v2", sentiment: true, intent: true, topics: true }
-      );
-      const data = dgResult.result || dgResult;
-      deepgramSummary = data.results?.summary?.short || data.results?.summary?.text || "";
-      sentiment = data.results?.sentiment?.average?.sentiment || "neutral";
-      intentDetected = data.results?.intents?.segments?.flatMap(s => s.intents.map(i => i.intent)) || [];
-      console.log('✅ Deepgram Analysis Finished');
-    } catch (dgErr) {
-      console.error("❌ Deepgram Error:", dgErr.message);
-    }
-
-    // 5. SARVAM AI ANALYSIS (Summary + Safety Alert)
-    let safetyAlert = { type: "safe", message: "No immediate concerns detected based on current communication patterns." };
-    let finalSummary = deepgramSummary;
-    let specificIssues = [];
-
-    try {
-      const sarvamResponse = await axios.post(
-        "https://api.sarvam.ai/v1/chat/completions",
-        {
-          model: "sarvam-m",  // Correct model name from Sarvam docs
-          messages: [
-            {
-              role: "system",
-              content: `You are a child safety expert analyzing conversations for parents. 
-              Analyze the transcript and provide a DETAILED assessment:
-              
-              1. **Summary**: Describe what happened in the conversation
-              2. **Specific Issues**: List EXACT inappropriate words/phrases used (quote them directly)
-              3. **Safety Level**: Classify as safe/warning/danger
-              4. **Language Detection**: Identify if profanity is in English, Hindi, or other languages
-              
-              Output ONLY valid JSON in this exact format:
-              {
-                "summary": "Detailed description including WHO said WHAT",
-                "specific_issues": ["exact quote 1", "exact quote 2"],
-                "safety": {
-                  "type": "safe"|"warning"|"danger",
-                  "message": "Detailed explanation mentioning specific words and their severity"
-                }
-              }
-              
-              Be explicit about profanity - parents need to know exactly what was said.
-              Focus on: profanity (English/Hindi/regional), cyberbullying, grooming, sharing personal info.`
-            },
-            {
-              role: "user",
-              content: `Child Name: ${child.fullName}\nTarget: ${targetUser.fullName} (${targetUser.role})\n\nExisting Summary: ${deepgramSummary}\n\nFull Transcript:\n${transcript}`
-            }
-          ],
-          temperature: 0.3
-        },
-        {
-          headers: {
-            "api-subscription-key": process.env.SARVAM_API_KEY,
-            "Content-Type": "application/json",
-          },
-          timeout: 15000
-        }
-      );
-
-      console.log('📊 Sarvam AI Response:', JSON.stringify(sarvamResponse.data, null, 2));
-
-      const responseContent = sarvamResponse.data.choices[0].message.content;
-      const aiData = JSON.parse(responseContent);
-      finalSummary = aiData.summary || finalSummary;
-      safetyAlert = aiData.safety || safetyAlert;
-      specificIssues = aiData.specific_issues || [];
-      console.log('✅ Sarvam AI Analysis Finished');
-
-    } catch (sarvamErr) {
-      console.warn("⚠️ Sarvam AI Unavailable - Running Advanced Heuristic Fallback");
-      console.error("Sarvam Error:", sarvamErr.message);
-      if (sarvamErr.response) {
-        console.error("Sarvam Response Data:", JSON.stringify(sarvamErr.response.data, null, 2));
-        console.error("Sarvam Response Status:", sarvamErr.response.status);
-      }
-
-      // FALLBACK HEURISTIC MONITORING
-      const lowerTranscript = transcript.toLowerCase();
-
-      // Simplified profanity detection - catches root words and common variations
-      const profanityRoots = [
-        'fuc', 'fuk', 'fck', 'funk', 'funck',  // catches fuck, fucker, funcker, fucking, etc.
-        'bitch', 'btch', 'b1tch',
-        'shit', 'sh1t', 'sht',
-        'dick', 'd1ck', 'dik',
-        'pussy', 'puss', 'pus1',
-        'cock', 'cok', 'c0ck',
-        'asshole', 'assh', 'a$$',
-        'porn', 'p0rn', 'pr0n',
-        'whore', 'slut', 'cunt',
-        'damn', 'hell', 'bastard'
-      ];
-
-      // Level 1: Extreme Danger (Grooming, Violence, Sex, Profanity)
-      const dangerKeywords = [
-        "sex", "naked", "nude", "kill", "die", "suicide", "drug", "smoke",
-        "vagina", "penis", "address", "meet me", "home alone", "don't tell anyone", "our secret",
-        "private call", "show me", "send photo", "send pic", "send nudes"
-      ];
-
-      // Level 2: Warning (Bullying, Rudeness, Contact Info)
-      const warningKeywords = [
-        "stupid", "idiot", "dumb", "ugly", "hate you", "shut up", "loser", "jerk", "phone number",
-        "snapchat", "instagram", "discord", "where are you", "what are you wearing", "boring",
-        "retard", "moron", "pathetic"
-      ];
-
-      // Check profanity roots (catches variations)
-      const foundProfanity = profanityRoots.filter(root => lowerTranscript.includes(root));
-
-      // Check exact danger keywords
-      const foundDangerKeywords = dangerKeywords.filter(word => lowerTranscript.includes(word));
-
-      // Check warning keywords
-      const foundWarning = warningKeywords.filter(word => lowerTranscript.includes(word));
-
-      // Combine profanity and danger keywords
-      const foundDanger = [...foundProfanity, ...foundDangerKeywords];
-
-      console.log('🚨 DANGER KEYWORDS FOUND:', foundDanger);
-      console.log('⚠️ WARNING KEYWORDS FOUND:', foundWarning);
-      console.log('📄 Current finalSummary before override:', finalSummary);
-
-      // CRITICAL: Override summary when danger/warning detected (don't rely on Deepgram's generic summary)
-      if (foundDanger.length > 0) {
-        safetyAlert = {
-          type: "danger",
-          message: `HIGH RISK: Inappropriate content or predatory patterns detected. Keywords flagged: ${foundDanger.slice(0, 3).join(", ")}.`
-        };
-        finalSummary = `ALERT: ${child.fullName} used inappropriate language including profanity ("${foundDanger.slice(0, 2).join('", "')}")${targetUser.role === 'faculty' ? ' when communicating with their teacher' : ' in this conversation'}. The conversation also included: "${transcript.split('\n').find(line => foundDanger.some(word => line.toLowerCase().includes(word)))?.substring(0, 100)}..." Immediate parent review is strongly recommended.`;
-        console.log('🔴 DANGER SUMMARY GENERATED:', finalSummary);
-      } else if (foundWarning.length > 0) {
-        safetyAlert = {
-          type: "warning",
-          message: `CAUTION: Potential cyberbullying or sharing of personal social media detected. Flags: ${foundWarning.slice(0, 3).join(", ")}.`
-        };
-        finalSummary = `This chat contains concerning language or behavior patterns. Detected flags: ${foundWarning.slice(0, 3).join(", ")}. While not immediately dangerous, parent attention is recommended.`;
-      } else if (!finalSummary) {
-        // Only use generic fallbacks if no summary exists AND no flags detected
-        if (transcript.includes("http") || transcript.includes("call")) {
-          finalSummary = `${child.fullName} and ${targetUser.fullName} discussed sharing links or joining a video session.`;
-        } else {
-          finalSummary = `${child.fullName} and ${targetUser.fullName} exchanged a brief text-based conversation.`;
-        }
-      }
-    }
-
-    res.status(200).json({
-      success: true,
-      summary: finalSummary || "Summary unavailable.",
-      alert: safetyAlert,
-      specific_issues: specificIssues,  // List of exact inappropriate phrases
-      meta: {
-        sentiment,
-        intents: [...new Set(intentDetected)],
-        messageCount: messages.length,
-        childName: child.fullName,
-        targetName: targetUser.fullName
-      }
-    });
-
-  } catch (error) {
-    console.error("Critical error in analyzeChat:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-}
+import ChatMessage from "../models/ChatMessage.js";
 
 export async function getChildCalls(req, res) {
   try {
@@ -502,7 +231,17 @@ export async function analyzeCall(req, res) {
         }
       );
 
-      const aiData = JSON.parse(sarvamResponse.data.choices[0].message.content);
+      const rawContent = sarvamResponse.data.choices[0].message.content;
+      console.log("Sarvam Call Raw Response:", rawContent);
+
+      let cleanContent = rawContent.replace(/```json\n?|\n?```/g, '').trim();
+      const firstBrace = cleanContent.indexOf('{');
+      const lastBrace = cleanContent.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+      }
+
+      const aiData = JSON.parse(cleanContent);
       finalSummary = aiData.summary;
       safetyAlert = aiData.safety;
       specificIssues = aiData.specific_issues;
@@ -538,6 +277,340 @@ export async function analyzeCall(req, res) {
 
   } catch (error) {
     console.error("Error in analyzeCall:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function getChatHistory(req, res) {
+  try {
+    const { childUid, targetUid } = req.params;
+    const parentId = req.user._id;
+
+    // Verify parent-child relationship
+    const parent = await User.findById(parentId).select("children");
+    if (!parent || !parent.children.includes(childUid)) {
+      return res.status(403).json({ message: "Unauthorized access to child data" });
+    }
+
+    const { limit, sort, startDate, endDate } = req.query;
+    const query = {
+      $or: [
+        { sender: childUid, receiver: targetUid },
+        { sender: targetUid, receiver: childUid },
+      ],
+    };
+
+    // Date range filtering
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
+    const limitVal = parseInt(limit) || 50;
+    const sortVal = sort === 'asc' ? 1 : -1;
+
+    const messages = await ChatMessage.find(query)
+      .sort({ createdAt: sortVal })
+      .limit(limitVal)
+      .populate("sender", "fullName role profilePic");
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Error in getChatHistory:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function analyzeChat(req, res) {
+  try {
+    const { childUid, targetUid, date, callId } = req.body;
+    const parentId = req.user._id;
+
+    console.log("\n🔍 ===== ANALYZE CHAT REQUEST =====");
+    console.log("Parent ID:", parentId);
+    console.log("Child UID:", childUid);
+    console.log("Target UID:", targetUid);
+    console.log("Date:", date);
+    console.log("Call ID:", callId);
+    console.log("=====================================\n");
+
+    // 1. Verify parent-child relationship
+    const parent = await User.findById(parentId).select("children");
+    if (!parent || !parent.children.includes(childUid)) {
+      return res.status(403).json({ message: "Unauthorized access to child data" });
+    }
+
+    const child = await User.findById(childUid);
+    const targetUser = await User.findById(targetUid);
+    if (!child || !targetUser) return res.status(404).json({ message: "User not found" });
+
+    // Date range filtering for analysis if provided
+    let query = {
+      $or: [
+        { sender: childUid, receiver: targetUid },
+        { sender: targetUid, receiver: childUid },
+      ],
+    };
+
+    if (date) {
+      // Ensure UTC boundaries for consistency with aggregation
+      const startDate = new Date(date);
+      startDate.setUTCHours(0, 0, 0, 0);
+      const endDate = new Date(date);
+      endDate.setUTCHours(23, 59, 59, 999);
+
+      console.log("📅 Date filter applied:");
+      console.log("  Start:", startDate.toISOString());
+      console.log("  End:", endDate.toISOString());
+
+      query.createdAt = { $gte: startDate, $lte: endDate };
+    }
+
+    console.log("🔎 MongoDB Query:", JSON.stringify(query, null, 2));
+
+    // Fetch messages
+    let messagesQuery = ChatMessage.find(query).sort({ createdAt: -1 });
+
+    // Only apply limit if no specific date (limit(0) in Mongoose returns no results)
+    if (!date) {
+      messagesQuery = messagesQuery.limit(100);
+    }
+
+    const messages = await messagesQuery.populate("sender", "fullName role");
+
+    console.log(`📊 Found ${messages.length} messages for analysis (date: ${date || 'all'})`);
+
+    if (!messages || messages.length === 0) {
+      return res.status(200).json({
+        success: true,
+        summary: "No chat history found to analyze.",
+        alert: { type: "safe", message: "No conversation content available." }
+      });
+    }
+
+    // Combine messages for analysis
+    let chatTranscript = "";
+    messages.slice().reverse().forEach(m => {
+      const time = new Date(m.createdAt).toLocaleString();
+      chatTranscript += `[${time}] ${m.sender?.fullName || "Unknown"}: ${m.text || "[File Attachment]"}\n`;
+    });
+
+    console.log(`📝 Prepared transcript: ${chatTranscript.length} characters`);
+    console.log(`🤖 Calling Sarvam AI for chat analysis...`);
+
+    // AI Analysis
+    let response;
+    try {
+      response = await axios.post(
+        "https://api.sarvam.ai/v1/chat/completions",
+        {
+          model: "sarvam-m",
+          messages: [
+            {
+              role: "system",
+              content: `Detailed child safety analysis for TEXT CHAT.
+                  The transcript may contain multiple languages. Provide the FINAL REPORT IN ENGLISH.
+                  Analyze the chat between ${child.fullName} and ${targetUser.fullName}.
+                  
+                  Create a JSON object with the following fields:
+                  - summary: A brief summary of the conversation.
+                  - specific_issues: An array of strings listing any red flags.
+                  - safety: An object with "type" (safe/warning/danger) and "message".
+                  - sentiment: One of "positive", "neutral", "negative".
+
+                  Output ONLY the JSON object. Do not include markdown formatting or backticks.`
+            },
+            {
+              role: "user",
+              content: chatTranscript.substring(Math.max(0, chatTranscript.length - 4000))
+            }
+          ],
+          temperature: 0.3
+        },
+        {
+          headers: { "api-subscription-key": process.env.SARVAM_API_KEY, "Content-Type": "application/json" }
+        }
+      ).catch(e => {
+        if (e.response) {
+          console.error("SARVAM API ERROR:", e.response.status, e.response.data);
+        } else {
+          console.error("SARVAM API ERROR:", e.message);
+        }
+        throw e;
+      });
+
+      const rawContent = response.data.choices[0].message.content;
+      console.log("Sarvam Chat Raw Response:", rawContent); // Log raw response for debugging
+
+      let cleanContent = rawContent.replace(/```json\n?|\n?```/g, '').trim();
+      // Sometimes models add extra text before/after JSON
+      const firstBrace = cleanContent.indexOf('{');
+      const lastBrace = cleanContent.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+      }
+
+      const aiData = JSON.parse(cleanContent);
+
+      // Save summary if date is provided
+      if (date) {
+        const startDate = new Date(date);
+        startDate.setUTCHours(0, 0, 0, 0);
+        const endDate = new Date(date);
+        endDate.setUTCHours(23, 59, 59, 999);
+
+        // Find existing text session or create new
+        const existingSession = await Call.findOne({
+          participants: { $all: [childUid, targetUid] },
+          type: "chat",
+          startedAt: { $gte: startDate, $lte: endDate }
+        });
+
+        if (existingSession) {
+          existingSession.summary = aiData.summary;
+          existingSession.safetyAlert = aiData.safety;
+          existingSession.sentiment = aiData.sentiment;
+          existingSession.specificIssues = aiData.specific_issues;
+          await existingSession.save();
+        } else {
+          // Create new session record
+          await Call.create({
+            participants: [childUid, targetUid],
+            type: "chat",
+            startedAt: startDate, // Mark it as start of that day (UTC)
+            endedAt: endDate,
+            summary: aiData.summary,
+            safetyAlert: aiData.safety,
+            sentiment: aiData.sentiment,
+            specificIssues: aiData.specific_issues,
+            callerName: child.fullName, // Arbitrary assignment for chat
+            receiverName: targetUser.fullName
+          });
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        ...aiData,
+        meta: {
+          messageCount: messages.length,
+          childName: child.fullName,
+          targetName: targetUser.fullName
+        }
+      });
+    } catch (err) {
+      console.error("❌ Sarvam Chat Analysis failed!");
+      console.error("Status:", err.response?.status);
+      console.error("Response Data:", JSON.stringify(err.response?.data || {}, null, 2));
+      console.error("Error Message:", err.message);
+      console.error("Stack Trace:", err.stack);
+
+      // Fallback response if AI fails but we have messages
+      if (messages.length > 0) {
+        return res.status(200).json({
+          success: false,
+          summary: "AI Service temporarily unavailable. Please try again later.",
+          alert: { type: "warning", message: "AI Analysis could not be completed." },
+          specific_issues: [],
+          meta: {
+            messageCount: messages.length,
+            errorDetails: err.response?.data || err.message
+          }
+        });
+      }
+
+      res.status(500).json({ message: "AI Analysis failed.", details: err.response?.data || err.message });
+    }
+
+  } catch (error) {
+    console.error("Error in analyzeChat:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+}
+
+export async function getChatSessions(req, res) {
+  try {
+    const { childUid, targetUid } = req.params;
+    const parentId = req.user._id;
+
+    // Verify parent-child relationship
+    const parent = await User.findById(parentId).select("children");
+    if (!parent || !parent.children.includes(childUid)) {
+      return res.status(403).json({ message: "Unauthorized access to child data" });
+    }
+
+    const mongoose = (await import("mongoose")).default;
+    const childObjectId = new mongoose.Types.ObjectId(childUid);
+    const targetObjectId = new mongoose.Types.ObjectId(targetUid);
+
+    // 1. Find all distinct dates with messages
+    const activityPipeline = [
+      {
+        $match: {
+          $or: [
+            { sender: childObjectId, receiver: targetObjectId },
+            { sender: targetObjectId, receiver: childObjectId }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+          },
+          lastMessageAt: { $max: "$createdAt" },
+          messageCount: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: -1 } }
+    ];
+
+    const activeDates = await ChatMessage.aggregate(activityPipeline);
+
+    // 2. Find existing Calls with type='chat'
+    const existingSessions = await Call.find({
+      participants: { $all: [childUid, targetUid] },
+      type: "chat"
+    });
+
+    // 3. Merge
+    const sessions = activeDates.map(dateGroup => {
+      const dateStr = dateGroup._id;
+      // Check if session exists for this date
+      const sessionRecord = existingSessions.find(s => {
+        const sDate = new Date(s.startedAt).toISOString().split('T')[0];
+        return sDate === dateStr;
+      });
+
+      if (sessionRecord) {
+        const sObj = sessionRecord.toObject();
+        sObj.dateId = dateStr;
+        return sObj;
+      } else {
+        // Create virtual session object
+        return {
+          _id: `chat-${dateStr}`, // Virtual ID
+          virtual: true,
+          dateId: dateStr, // Helper for frontend
+          startedAt: dateGroup.lastMessageAt, // Use last message time for ordering
+          type: "chat",
+          status: "ended",
+          callLabel: "Daily Chat Log",
+          summary: null, // No analysis yet
+          messageCount: dateGroup.messageCount
+        };
+      }
+    });
+
+    res.status(200).json(sessions);
+
+  } catch (error) {
+    console.error("Error in getChatSessions:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
