@@ -98,13 +98,16 @@ export const generateTTS = async (req, res) => {
                 const sarvamTTSRes = await axios.post(
                     "https://api.sarvam.ai/text-to-speech",
                     {
-                        text: translatedText,
+                        inputs: [translatedText],
                         target_language_code: sarvamLangCode,
-                        speaker: "Shubh",
-                        model: "bulbul:v3"
+                        speaker: "meera",
+                        model: "bulbul:v1"
                     },
                     {
-                        headers: { "api-subscription-key": SARVAM_API_KEY, "Content-Type": "application/json" }
+                        headers: {
+                            "api-subscription-key": SARVAM_API_KEY,
+                            "Content-Type": "application/json"
+                        }
                     }
                 );
 
@@ -117,11 +120,11 @@ export const generateTTS = async (req, res) => {
                     throw new Error("Invalid response format from Sarvam");
                 }
             } catch (sarvamTTSErr) {
-                console.error("❌ Sarvam Fallback FAILED:", sarvamTTSErr.message);
+                console.error("❌ Sarvam Fallback FAILED:", sarvamTTSErr.response?.data || sarvamTTSErr.message);
                 return res.status(500).json({
                     error: "All TTS providers failed",
                     detail: elevenErr.message,
-                    sarvam_error: sarvamTTSErr.message
+                    sarvam_error: sarvamTTSErr.response?.data || sarvamTTSErr.message
                 });
             }
         }
