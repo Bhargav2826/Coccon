@@ -28,22 +28,34 @@ const AudioStreamer = ({ callId }) => {
   const mediaRecorderRef = useRef(null);
   const isRequestingRef = useRef(false);
   const checkIntervalRef = useRef(null);
+  const lastTrackIdRef = useRef(null);
 
   useEffect(() => {
     if (!socket || !callId) return;
 
+    const trackId = microphoneTrack?.track?.mediaStreamTrack?.id;
+
+    // SHIELD: Only restart if we have a valid socket and the track has actually changed
+    // This prevents flapping on every small state update
     const tryStartStreaming = async () => {
-      // Don't start if already streaming or in middle of a request
-      if (isRequestingRef.current || (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive')) {
+      if (!isMicrophoneEnabled || !microphoneTrack?.track?.mediaStreamTrack) {
+        // Cleanup if mic disabled
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          console.log("🛑 AudioStreamer: Mic disabled, stopping recorder.");
+          mediaRecorderRef.current.stop();
+          mediaRecorderRef.current = null;
+        }
         return;
       }
 
-      if (!isMicrophoneEnabled || !microphoneTrack?.track?.mediaStreamTrack) {
+      // Don't start if already requesting or recording with SAME track
+      if (isRequestingRef.current || (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive' && lastTrackIdRef.current === trackId)) {
         return;
       }
 
       console.log("🎙️ AudioStreamer: Mic ACTIVE. Setting up recorder...");
       isRequestingRef.current = true;
+      lastTrackIdRef.current = trackId;
 
       const mediaStreamTrack = microphoneTrack.track.mediaStreamTrack;
       const stream = new MediaStream([mediaStreamTrack]);
@@ -59,15 +71,14 @@ const AudioStreamer = ({ callId }) => {
           }
         });
 
-        const handleTranscriptionActive = () => {
+        // Use .once to avoid listener pileup if acknowledgment is slow
+        socket.once("transcription-active", () => {
           if (mediaRecorder.state === "inactive") {
             mediaRecorder.start(250);
             isRequestingRef.current = false;
             console.log("🚀 AudioStreamer: STREAMING STARTED (Backend Ack)");
           }
-        };
-
-        socket.on("transcription-active", handleTranscriptionActive);
+        });
 
         console.log("📡 AudioStreamer: Requesting Deepgram join for:", callId);
         socket.emit("join-call-room", { callId, mimetype: mediaRecorder.mimeType });
@@ -79,7 +90,7 @@ const AudioStreamer = ({ callId }) => {
     };
 
     tryStartStreaming();
-    checkIntervalRef.current = setInterval(tryStartStreaming, 2000);
+    checkIntervalRef.current = setInterval(tryStartStreaming, 3000); // 3 seconds is safer for polling
 
     return () => {
       console.log("🛑 AudioStreamer: Cleaning up effect...");
@@ -91,7 +102,7 @@ const AudioStreamer = ({ callId }) => {
       socket?.off("transcription-active");
       isRequestingRef.current = false;
     };
-  }, [socket, callId, isMicrophoneEnabled, !!microphoneTrack?.track]);
+  }, [socket, callId, isMicrophoneEnabled, microphoneTrack?.track?.mediaStreamTrack?.id]);
 
   return null;
 };
@@ -118,12 +129,11 @@ const CallPage = () => {
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const fetchingRef = useRef(false);
   const startEmittedRef = useRef(false);
+  const disconnectTimerRef = useRef(null);
 
   const isAudioOnly = useRef(new URLSearchParams(window.location.search).get('type') === 'audio').current;
 
   useEffect(() => {
-    console.log("🔄 CallPage: Root Effect", { authLoading, hasAuthUser: !!authUser, hasToken: !!token });
-
     if (!authUser || authLoading || token || fetchingRef.current) return;
 
     const fetchToken = async () => {
@@ -142,7 +152,6 @@ const CallPage = () => {
           let recipientId = null;
 
           if (callId.startsWith('faculty-')) {
-            console.log("🏫 CallPage: Initiating faculty room call");
             recipientId = null;
           } else {
             const userIds = callId.split('-');
@@ -187,7 +196,6 @@ const CallPage = () => {
 
     socket.on("call:rejected", handleRejected);
 
-    // Auto-open whiteboard for students when faculty draws
     const handleRemoteDraw = () => {
       if (authUser?.role !== 'faculty') {
         setShowWhiteboard(true);
@@ -199,6 +207,7 @@ const CallPage = () => {
     return () => {
       socket.off("call:rejected", handleRejected);
       socket.off("whiteboard:draw", handleRemoteDraw);
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
     };
   }, [socket, location.state, navigate, authUser]);
 
@@ -219,6 +228,25 @@ const CallPage = () => {
     )
   }
 
+  const handleDisconnected = () => {
+    console.log("󰵚 LiveKit: Disconnected callback triggered.");
+
+    // SHIELD: Give LiveKit 2 seconds to try auto-reconnecting before we force exit
+    // Often transient network issues cause a momentary disconnect that self-heals
+    if (disconnectTimerRef.current) return;
+
+    disconnectTimerRef.current = setTimeout(() => {
+      const queryParams = new URLSearchParams(window.location.search);
+      const isInitiating = location.state?.initiating || queryParams.get('initiating') === 'true';
+
+      if (socket && callId && isInitiating) {
+        socket.emit("call:ended", { callId });
+      }
+      toast.success("Call ended");
+      navigate('/');
+    }, 2000);
+  };
+
   return (
     <div className="w-full bg-neutral-900 min-h-[100dvh]" data-lk-theme="default">
       <LifecycleSentinel name="CallPage" />
@@ -232,25 +260,26 @@ const CallPage = () => {
         token={token}
         serverUrl={liveKitUrl}
         key={token}
+        connectOptions={{
+          autoSubscribe: true,
+          adaptiveStream: true,
+          dynacast: true,
+        }}
         data-lk-theme="default"
         style={{ height: "100dvh" }}
-        onDisconnected={() => {
-          console.log("󰵚 LiveKit: Disconnected.");
-          const queryParams = new URLSearchParams(window.location.search);
-          const isInitiating = location.state?.initiating || queryParams.get('initiating') === 'true';
-
-          if (socket && callId && isInitiating) {
-            socket.emit("call:ended", { callId });
+        onDisconnected={handleDisconnected}
+        onConnected={() => {
+          console.log("✅ LiveKit: Connected successfully");
+          if (disconnectTimerRef.current) {
+            clearTimeout(disconnectTimerRef.current);
+            disconnectTimerRef.current = null;
           }
-          toast.success("Call ended");
-          navigate('/');
         }}
       >
         <VideoConference />
         <RoomAudioRenderer />
         <AudioStreamer callId={callId} />
 
-        {/* Interactive Tools */}
         {showWhiteboard && (
           <Whiteboard
             socket={socket}
@@ -269,7 +298,6 @@ const CallPage = () => {
 
         <Subtitles socket={socket} authUser={authUser} />
 
-        {/* Tool Toggles (Faculty Only) */}
         {authUser?.role === 'faculty' && (
           <div className="fixed top-20 left-4 z-40 flex flex-col gap-2">
             <button
