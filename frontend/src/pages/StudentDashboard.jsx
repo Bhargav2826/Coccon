@@ -11,7 +11,8 @@ import {
   GraduationCapIcon,
   VideoIcon,
   UserMinusIcon,
-  PhoneIcon
+  PhoneIcon,
+  UserIcon
 } from "lucide-react";
 import { DashboardCardSkeleton } from "../components/SkeletonLoaders";
 

@@ -21,11 +21,17 @@ const io = new Server(server, {
     },
 });
 
-const userSocketMap = {}; // {userId: socketId}
+// {userId: count} - keep track of how many active connections a user has
+const userConnectionCount = {};
 const transcriptionServices = {}; // {socketId: deepgramConnection}
 
-export const getReceiverSocketId = (receiverId) => {
-    return userSocketMap[receiverId];
+/**
+ * Returns the room name/ID for a receiver. 
+ * Since we join each socket to a room named after their userId, 
+ * we can simply return the userId to emit messages to all of that user's tabs.
+ */
+export const getReceiverSocketId = (userId) => {
+    return userId;
 };
 
 const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
@@ -42,7 +48,13 @@ io.on("connection", async (socket) => {
 
     const userId = socket.handshake.query.userId;
     if (userId) {
-        userSocketMap[userId] = socket.id;
+        // Join a room unique to this user so we can emit to all their tabs
+        socket.join(userId);
+
+        // Track connection count
+        userConnectionCount[userId] = (userConnectionCount[userId] || 0) + 1;
+
+        console.log(`👤 User ${userId} connected. Total tabs: ${userConnectionCount[userId]}`);
 
         // Check if this student has any ongoing classroom calls to join
         try {
@@ -79,8 +91,8 @@ io.on("connection", async (socket) => {
         }
     }
 
-    // Used to store active users (optional)
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    // Broadcast list of user IDs who have at least one active connection
+    io.emit("getOnlineUsers", Object.keys(userConnectionCount));
 
     // Debug Ping
     socket.on("ping-test", () => {
@@ -512,13 +524,17 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("disconnect", async () => {
-        console.log("🔌 User disconnected socket:", socket.id);
+        if (userId) {
+            if (userConnectionCount[userId] > 0) {
+                userConnectionCount[userId]--;
+                console.log(`🔌 Tab disconnected for user ${userId}. Remaining tabs: ${userConnectionCount[userId]}`);
+            }
 
-        // SHIELD: We NO LONGER auto-end calls on socket disconnect. 
-        // This prevents data loss during transient network blips.
-        // Calls will stay 'ongoing' until explicitly ended via "call:ended" or a reaper task.
-
-        if (userId) delete userSocketMap[userId];
+            if (!userConnectionCount[userId] || userConnectionCount[userId] <= 0) {
+                delete userConnectionCount[userId];
+                console.log(`❌ User ${userId} is now completely offline`);
+            }
+        }
 
         // Cleanup Deepgram
         const service = transcriptionServices[socket.id];
@@ -527,7 +543,7 @@ io.on("connection", async (socket) => {
             delete transcriptionServices[socket.id];
         }
 
-        io.emit("getOnlineUsers", Object.keys(userSocketMap));
+        io.emit("getOnlineUsers", Object.keys(userConnectionCount));
     });
 });
 
