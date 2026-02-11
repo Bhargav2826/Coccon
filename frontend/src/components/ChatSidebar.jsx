@@ -82,16 +82,34 @@ const ChatSidebar = () => {
                             {onlineUsers.includes(user._id) && (
                                 <span
                                     className="absolute bottom-0 right-0 size-3 bg-green-500 
-                  border-2 border-zinc-900 rounded-full"
+                   border-2 border-zinc-900 rounded-full"
                                 />
                             )}
                         </div>
 
                         {/* User info - only visible on larger screens */}
-                        <div className="hidden lg:block text-left min-w-0">
-                            <div className="font-medium truncate">{user.fullName}</div>
-                            <div className="text-sm text-zinc-400">
-                                {onlineUsers.includes(user._id) ? "Online" : "Offline"}
+                        <div className="hidden lg:flex flex-col flex-1 text-left min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                                <div className="font-medium truncate">{user.fullName}</div>
+                                {user.unreadCount > 0 && (
+                                    <span className="bg-primary text-primary-content text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
+                                        {user.unreadCount}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between gap-1">
+                                <div className={`text-xs truncate flex-1 ${user.unreadCount > 0 ? "text-base-content font-semibold" : "text-zinc-400"}`}>
+                                    {user.lastMessage ? (
+                                        user.lastMessage.text || (user.lastMessage.image ? "🖼️ Image" : "📁 Attachment")
+                                    ) : (
+                                        onlineUsers.includes(user._id) ? "Online" : "Offline"
+                                    )}
+                                </div>
+                                {user.lastMessage && (
+                                    <div className="text-[10px] text-zinc-500 whitespace-nowrap">
+                                        {new Date(user.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </button>

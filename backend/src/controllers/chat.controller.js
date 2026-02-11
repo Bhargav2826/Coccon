@@ -6,9 +6,37 @@ import cloudinary from "../lib/cloudinary.js";
 export const getUsersForSidebar = async (req, res) => {
     try {
         const loggedInUserId = req.user._id;
-        const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
+        const users = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
 
-        res.status(200).json(filteredUsers);
+        const usersWithDetails = await Promise.all(
+            users.map(async (user) => {
+                const unreadCount = await ChatMessage.countDocuments({
+                    sender: user._id,
+                    receiver: loggedInUserId,
+                    isRead: false,
+                });
+
+                const lastMessage = await ChatMessage.findOne({
+                    $or: [
+                        { sender: loggedInUserId, receiver: user._id },
+                        { sender: user._id, receiver: loggedInUserId },
+                    ],
+                }).sort({ createdAt: -1 });
+
+                return {
+                    ...user.toObject(),
+                    unreadCount,
+                    lastMessage: lastMessage ? {
+                        text: lastMessage.text,
+                        image: lastMessage.image,
+                        fileUrl: lastMessage.fileUrl,
+                        createdAt: lastMessage.createdAt,
+                    } : null,
+                };
+            })
+        );
+
+        res.status(200).json(usersWithDetails);
     } catch (error) {
         console.error("Error in getUsersForSidebar: ", error.message);
         res.status(500).json({ error: "Internal server error" });

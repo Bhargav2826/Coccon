@@ -35,10 +35,15 @@ export const useChatStore = create((set, get) => ({
     },
 
     sendMessage: async (messageData) => {
-        const { selectedUser, messages } = get();
+        const { selectedUser, messages, users } = get();
         try {
             const res = await sendMessage(selectedUser._id, messageData);
-            set({ messages: [...messages, res] });
+            set({
+                messages: [...messages, res],
+                users: users.map(u =>
+                    u._id === selectedUser._id ? { ...u, lastMessage: res } : u
+                )
+            });
         } catch (error) {
             toast.error(error.response.data.message);
         }
@@ -57,29 +62,46 @@ export const useChatStore = create((set, get) => ({
     },
 
     subscribeToMessages: (socket) => {
-        const { selectedUser } = get();
-        if (!selectedUser || !socket) return;
+        const { selectedUser, users } = get();
+        if (!socket) return;
 
         socket.on("newMessage", (newMessage) => {
-            const isMessageSentToMe = newMessage.sender === selectedUser._id;
-            if (!isMessageSentToMe) return;
+            const isFromSelectedUser = selectedUser && newMessage.sender === selectedUser._id;
 
+            if (isFromSelectedUser) {
+                set({
+                    messages: [...get().messages, newMessage],
+                });
+                // Auto mark as read if chat is open
+                socket.emit("messageRead", { messageIds: [newMessage._id], senderId: selectedUser._id });
+            }
+
+            // Always update unread count and last message in sidebar
             set({
-                messages: [...get().messages, newMessage],
+                users: get().users.map(u => {
+                    if (u._id === newMessage.sender) {
+                        return {
+                            ...u,
+                            unreadCount: isFromSelectedUser ? 0 : (u.unreadCount || 0) + 1,
+                            lastMessage: newMessage
+                        };
+                    }
+                    if (u._id === newMessage.receiver) {
+                        return { ...u, lastMessage: newMessage };
+                    }
+                    return u;
+                })
             });
-
-            // Auto mark as read if chat is open
-            socket.emit("messageRead", { messageIds: [newMessage._id], senderId: selectedUser._id });
         });
 
         socket.on("typing", ({ senderId, isTyping }) => {
-            if (senderId === selectedUser._id) {
+            if (selectedUser && senderId === selectedUser._id) {
                 set({ typingUser: isTyping ? senderId : null });
             }
         });
 
         socket.on("messagesReadUpdate", ({ messageIds, receiverId }) => {
-            if (receiverId === selectedUser._id) {
+            if (selectedUser && receiverId === selectedUser._id) {
                 set({
                     messages: get().messages.map(m =>
                         messageIds.includes(m._id) ? { ...m, isRead: true } : m
@@ -106,5 +128,17 @@ export const useChatStore = create((set, get) => ({
         }
     },
 
-    setSelectedUser: (selectedUser) => set({ selectedUser, typingUser: null }),
+    setSelectedUser: (selectedUser) => {
+        if (selectedUser) {
+            set({
+                selectedUser,
+                typingUser: null,
+                users: get().users.map(u =>
+                    u._id === selectedUser._id ? { ...u, unreadCount: 0 } : u
+                )
+            });
+        } else {
+            set({ selectedUser: null, typingUser: null });
+        }
+    },
 }));
