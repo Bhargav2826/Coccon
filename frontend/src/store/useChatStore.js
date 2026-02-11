@@ -8,6 +8,7 @@ export const useChatStore = create((set, get) => ({
     selectedUser: null,
     isUsersLoading: false,
     isMessagesLoading: false,
+    typingUser: null,
 
     getUsers: async () => {
         set({ isUsersLoading: true });
@@ -43,6 +44,18 @@ export const useChatStore = create((set, get) => ({
         }
     },
 
+    setTyping: (socket, isTyping) => {
+        const { selectedUser } = get();
+        if (!selectedUser || !socket) return;
+        socket.emit("typing", { receiverId: selectedUser._id, isTyping });
+    },
+
+    addReaction: (socket, messageId, emoji) => {
+        const { selectedUser } = get();
+        if (!selectedUser || !socket) return;
+        socket.emit("messageReaction", { messageId, receiverId: selectedUser._id, emoji });
+    },
+
     subscribeToMessages: (socket) => {
         const { selectedUser } = get();
         if (!selectedUser || !socket) return;
@@ -54,12 +67,44 @@ export const useChatStore = create((set, get) => ({
             set({
                 messages: [...get().messages, newMessage],
             });
+
+            // Auto mark as read if chat is open
+            socket.emit("messageRead", { messageIds: [newMessage._id], senderId: selectedUser._id });
+        });
+
+        socket.on("typing", ({ senderId, isTyping }) => {
+            if (senderId === selectedUser._id) {
+                set({ typingUser: isTyping ? senderId : null });
+            }
+        });
+
+        socket.on("messagesReadUpdate", ({ messageIds, receiverId }) => {
+            if (receiverId === selectedUser._id) {
+                set({
+                    messages: get().messages.map(m =>
+                        messageIds.includes(m._id) ? { ...m, isRead: true } : m
+                    )
+                });
+            }
+        });
+
+        socket.on("messageReactionUpdate", ({ messageId, reactions }) => {
+            set({
+                messages: get().messages.map(m =>
+                    m._id === messageId ? { ...m, reactions } : m
+                )
+            });
         });
     },
 
     unsubscribeFromMessages: (socket) => {
-        if (socket) socket.off("newMessage");
+        if (socket) {
+            socket.off("newMessage");
+            socket.off("typing");
+            socket.off("messagesReadUpdate");
+            socket.off("messageReactionUpdate");
+        }
     },
 
-    setSelectedUser: (selectedUser) => set({ selectedUser }),
+    setSelectedUser: (selectedUser) => set({ selectedUser, typingUser: null }),
 }));

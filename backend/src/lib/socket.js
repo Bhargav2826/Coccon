@@ -6,6 +6,7 @@ import axios from "axios";
 import Call from "../models/Call.js";
 import User from "../models/User.js";
 import Room from "../models/Room.js";
+import ChatMessage from "../models/ChatMessage.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -167,6 +168,50 @@ io.on("connection", async (socket) => {
         const callerSocketId = getReceiverSocketId(data.callerId);
         if (callerSocketId) {
             io.to(callerSocketId).emit("call:rejected");
+        }
+    });
+
+    // --- Chat Features: Typing, Read Receipts, Reactions ---
+    socket.on("typing", ({ receiverId, isTyping }) => {
+        if (!receiverId) return;
+        io.to(receiverId).emit("typing", { senderId: userId, isTyping });
+    });
+
+    socket.on("messageRead", async ({ messageIds, senderId }) => {
+        if (!messageIds || !Array.isArray(messageIds) || !senderId) return;
+        try {
+            await ChatMessage.updateMany(
+                { _id: { $in: messageIds }, receiver: userId },
+                { isRead: true }
+            );
+            io.to(senderId).emit("messagesReadUpdate", { messageIds, receiverId: userId });
+        } catch (error) {
+            console.error("Read receipt error:", error);
+        }
+    });
+
+    socket.on("messageReaction", async ({ messageId, receiverId, emoji }) => {
+        if (!messageId || !receiverId || !emoji) return;
+        try {
+            const message = await ChatMessage.findById(messageId);
+            if (!message) return;
+
+            const existingReactionIdx = message.reactions.findIndex(
+                (r) => r.userId.toString() === userId.toString() && r.emoji === emoji
+            );
+
+            if (existingReactionIdx > -1) {
+                message.reactions.splice(existingReactionIdx, 1);
+            } else {
+                message.reactions.push({ userId, emoji });
+            }
+
+            await message.save();
+            // Emit to both parties
+            io.to(receiverId).emit("messageReactionUpdate", { messageId, reactions: message.reactions });
+            io.to(userId).emit("messageReactionUpdate", { messageId, reactions: message.reactions });
+        } catch (error) {
+            console.error("Reaction error:", error);
         }
     });
 

@@ -4,7 +4,7 @@ import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocketContext } from "../contexts/SocketContext";
-import { FileIcon, DownloadCloud } from "lucide-react";
+import { FileIcon, DownloadCloud, Check, CheckCheck, Smile } from "lucide-react";
 
 const ChatContainer = () => {
     const {
@@ -14,6 +14,8 @@ const ChatContainer = () => {
         selectedUser,
         subscribeToMessages,
         unsubscribeFromMessages,
+        typingUser,
+        addReaction,
     } = useChatStore();
     const { authUser } = useAuth();
     const { socket } = useSocketContext();
@@ -31,7 +33,18 @@ const ChatContainer = () => {
         if (messageEndRef.current && messages) {
             messageEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [messages]);
+
+        // Mark messages as read when they are viewed
+        if (selectedUser && messages.length > 0 && socket) {
+            const unreadMessages = messages
+                .filter(m => m.sender === selectedUser._id && !m.isRead)
+                .map(m => m._id);
+
+            if (unreadMessages.length > 0) {
+                socket.emit("messageRead", { messageIds: unreadMessages, senderId: selectedUser._id });
+            }
+        }
+    }, [messages, selectedUser, socket]);
 
     if (isMessagesLoading) {
         return (
@@ -85,7 +98,20 @@ const ChatContainer = () => {
                                     />
                                 </div>
                             </div>
-                            <div className={`chat-bubble flex flex-col gap-1 ${isSentByMe ? "chat-bubble-primary" : "bg-neutral text-neutral-content"}`}>
+                            <div className={`chat-bubble group relative flex flex-col gap-1 ${isSentByMe ? "chat-bubble-primary" : "bg-neutral text-neutral-content"}`}>
+                                {/* Reaction Picker */}
+                                <div className={`absolute -top-10 ${isSentByMe ? "right-0" : "left-0"} hidden group-hover:flex items-center gap-1 bg-base-200 border border-base-300 p-1.5 rounded-2xl shadow-xl z-20`}>
+                                    {["❤️", "👍", "😂", "😮", "😢", "🔥"].map((emoji) => (
+                                        <button
+                                            key={emoji}
+                                            onClick={() => addReaction(socket, message._id, emoji)}
+                                            className="hover:scale-125 transition-transform px-1 active:scale-95"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+
                                 {displayFile && (
                                     <div className="mt-1">
                                         {isImage ? (
@@ -123,17 +149,56 @@ const ChatContainer = () => {
                                         {message.text}
                                     </p>
                                 )}
-                                <time className="text-[10px] opacity-60 mt-1">
-                                    {new Date(message.createdAt).toLocaleTimeString([], {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                    })}
-                                </time>
+
+                                {/* Reactions Display */}
+                                {message.reactions?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {message.reactions.map((reaction, i) => (
+                                            <div
+                                                key={i}
+                                                className={`flex items-center gap-1 bg-black/10 rounded-full px-1.5 py-0.5 border border-black/5 text-[10px] cursor-help`}
+                                                title={`Reacted with ${reaction.emoji}`}
+                                            >
+                                                {reaction.emoji}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-between gap-2 mt-1">
+                                    <time className="text-[10px] opacity-60">
+                                        {new Date(message.createdAt).toLocaleTimeString([], {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                        })}
+                                    </time>
+                                    {isSentByMe && (
+                                        <div className="flex items-center">
+                                            {message.isRead ? (
+                                                <CheckCheck className="size-3 text-primary-content" />
+                                            ) : (
+                                                <Check className="size-3 opacity-60" />
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     );
                 })}
             </div>
+
+            {/* Typing Indicator */}
+            {typingUser === selectedUser._id && (
+                <div className="px-5 py-2 flex items-center gap-2">
+                    <div className="flex gap-1">
+                        <span className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                        <span className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                        <span className="size-1.5 bg-primary rounded-full animate-bounce" />
+                    </div>
+                    <span className="text-xs text-base-content/50 italic">{selectedUser.fullName} is typing...</span>
+                </div>
+            )}
 
             <MessageInput />
         </div>
