@@ -2,11 +2,15 @@ import { Link, useLocation } from "react-router";
 import { BellIcon, HomeIcon, UsersIcon, GraduationCapIcon, ShieldIcon, UserIcon, MessageSquare } from "lucide-react";
 import Logo from "./Logo";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import { useChatStore } from "../store/useChatStore";
 
 const Sidebar = ({ onMobileClose }) => {
   const { authUser } = useAuth();
+  const { users } = useChatStore();
   const location = useLocation();
   const currentPath = location.pathname;
+
+  const totalUnreadMessages = users.reduce((acc, user) => acc + (user.unreadCount || 0), 0);
 
   const handleLinkClick = () => {
     // Close mobile sidebar when a link is clicked
@@ -94,8 +98,15 @@ const Sidebar = ({ onMobileClose }) => {
               className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/chat" ? "btn-active" : ""
                 }`}
             >
-              <MessageSquare className="size-4 sm:size-5 text-base-content opacity-70" />
-              <span>Chat</span>
+              <div className="flex-1 flex items-center gap-3">
+                <MessageSquare className="size-4 sm:size-5 text-base-content opacity-70" />
+                <span>Chat</span>
+              </div>
+              {totalUnreadMessages > 0 && (
+                <span className="badge badge-primary badge-sm ml-auto animate-pulse">
+                  {totalUnreadMessages}
+                </span>
+              )}
             </Link>
           </>
         )}

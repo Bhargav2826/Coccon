@@ -9,6 +9,7 @@ export const useChatStore = create((set, get) => ({
     isUsersLoading: false,
     isMessagesLoading: false,
     typingUser: null,
+    isSubscribed: false,
 
     getUsers: async () => {
         set({ isUsersLoading: true });
@@ -16,7 +17,7 @@ export const useChatStore = create((set, get) => ({
             const res = await getUsersForSidebar();
             set({ users: res });
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Failed to fetch users");
         } finally {
             set({ isUsersLoading: false });
         }
@@ -28,7 +29,7 @@ export const useChatStore = create((set, get) => ({
             const res = await getMessages(userId);
             set({ messages: res });
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Failed to fetch messages");
         } finally {
             set({ isMessagesLoading: false });
         }
@@ -45,7 +46,7 @@ export const useChatStore = create((set, get) => ({
                 )
             });
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Failed to send message");
         }
     },
 
@@ -62,15 +63,17 @@ export const useChatStore = create((set, get) => ({
     },
 
     subscribeToMessages: (socket) => {
-        const { selectedUser, users } = get();
-        if (!socket) return;
+        if (!socket || get().isSubscribed) return;
+
+        const { selectedUser } = get();
 
         socket.on("newMessage", (newMessage) => {
+            const { selectedUser, users, messages } = get();
             const isFromSelectedUser = selectedUser && newMessage.sender === selectedUser._id;
 
             if (isFromSelectedUser) {
                 set({
-                    messages: [...get().messages, newMessage],
+                    messages: [...messages, newMessage],
                 });
                 // Auto mark as read if chat is open
                 socket.emit("messageRead", { messageIds: [newMessage._id], senderId: selectedUser._id });
@@ -78,7 +81,7 @@ export const useChatStore = create((set, get) => ({
 
             // Always update unread count and last message in sidebar
             set({
-                users: get().users.map(u => {
+                users: users.map(u => {
                     if (u._id === newMessage.sender) {
                         return {
                             ...u,
@@ -95,15 +98,17 @@ export const useChatStore = create((set, get) => ({
         });
 
         socket.on("typing", ({ senderId, isTyping }) => {
+            const { selectedUser } = get();
             if (selectedUser && senderId === selectedUser._id) {
                 set({ typingUser: isTyping ? senderId : null });
             }
         });
 
         socket.on("messagesReadUpdate", ({ messageIds, receiverId }) => {
+            const { selectedUser, messages } = get();
             if (selectedUser && receiverId === selectedUser._id) {
                 set({
-                    messages: get().messages.map(m =>
+                    messages: messages.map(m =>
                         messageIds.includes(m._id) ? { ...m, isRead: true } : m
                     )
                 });
@@ -111,12 +116,15 @@ export const useChatStore = create((set, get) => ({
         });
 
         socket.on("messageReactionUpdate", ({ messageId, reactions }) => {
+            const { messages } = get();
             set({
-                messages: get().messages.map(m =>
+                messages: messages.map(m =>
                     m._id === messageId ? { ...m, reactions } : m
                 )
             });
         });
+
+        set({ isSubscribed: true });
     },
 
     unsubscribeFromMessages: (socket) => {
@@ -125,6 +133,7 @@ export const useChatStore = create((set, get) => ({
             socket.off("typing");
             socket.off("messagesReadUpdate");
             socket.off("messageReactionUpdate");
+            set({ isSubscribed: false });
         }
     },
 
@@ -142,3 +151,4 @@ export const useChatStore = create((set, get) => ({
         }
     },
 }));
+

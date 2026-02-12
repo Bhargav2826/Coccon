@@ -23,11 +23,33 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { useAuth } from "./contexts/AuthContext.jsx";
 import Layout from "./components/Layout.jsx";
 import { useTheme } from "./hooks/useTheme.js";
+import { useChatStore } from "./store/useChatStore";
+import { useSocketContext } from "./contexts/SocketContext";
 
 const App = () => {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, authUser } = useAuth();
   const { theme, loadThemeFromDB } = useTheme();
+  const { getUsers, subscribeToMessages, unsubscribeFromMessages } = useChatStore();
+  const { socket } = useSocketContext();
   const navigate = useNavigate();
+
+  // Global Chat Initialization
+  useEffect(() => {
+    if (isAuthenticated && authUser && socket) {
+      getUsers();
+      subscribeToMessages(socket);
+    }
+
+    // We don't necessarily want to unsubscribe on every re-render, 
+    // but we should if the component unmounts or auth changes.
+    // However, since this is App.jsx, it unmounts only on refresh/close.
+  }, [isAuthenticated, authUser, socket, getUsers, subscribeToMessages]);
+
+  useEffect(() => {
+    return () => {
+      if (socket) unsubscribeFromMessages(socket);
+    };
+  }, [socket, unsubscribeFromMessages]);
 
   // Check if user has logged out
   const hasLoggedOut = localStorage.getItem('hasLoggedOut') === 'true';

@@ -82,23 +82,28 @@ const ChatSidebar = () => {
                             {onlineUsers.includes(user._id) && (
                                 <span
                                     className="absolute bottom-0 right-0 size-3 bg-green-500 
-                   border-2 border-zinc-900 rounded-full"
+                                    border-2 border-zinc-900 rounded-full"
                                 />
+                            )}
+                            {user.unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-primary text-primary-content text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-md animate-pulse">
+                                    {user.unreadCount}
+                                </span>
                             )}
                         </div>
 
                         {/* User info - only visible on larger screens */}
                         <div className="hidden lg:flex flex-col flex-1 text-left min-w-0">
                             <div className="flex items-center justify-between gap-1">
-                                <div className="font-medium truncate">{user.fullName}</div>
+                                <div className={`font-medium truncate ${user.unreadCount > 0 ? "text-primary" : ""}`}>{user.fullName}</div>
                                 {user.unreadCount > 0 && (
-                                    <span className="bg-primary text-primary-content text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
-                                        {user.unreadCount}
+                                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                                        New
                                     </span>
                                 )}
                             </div>
                             <div className="flex items-center justify-between gap-1">
-                                <div className={`text-xs truncate flex-1 ${user.unreadCount > 0 ? "text-base-content font-semibold" : "text-zinc-400"}`}>
+                                <div className={`text-xs truncate flex-1 ${user.unreadCount > 0 ? "text-base-content font-bold" : "text-zinc-400"}`}>
                                     {user.lastMessage ? (
                                         user.lastMessage.text || (user.lastMessage.image ? "🖼️ Image" : "📁 Attachment")
                                     ) : (
