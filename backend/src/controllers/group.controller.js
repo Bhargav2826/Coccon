@@ -35,8 +35,24 @@ export const getGroups = async (req, res) => {
     try {
         const userId = req.user._id;
         const groups = await GroupChat.find({ members: userId }).populate("lastMessage");
-        res.status(200).json(groups);
+
+        const groupsWithUnread = await Promise.all(
+            groups.map(async (group) => {
+                const unreadCount = await GroupMessage.countDocuments({
+                    group: group._id,
+                    sender: { $ne: userId },
+                    isReadBy: { $ne: userId }
+                });
+                return {
+                    ...group.toObject(),
+                    unreadCount
+                };
+            })
+        );
+
+        res.status(200).json(groupsWithUnread);
     } catch (error) {
+        console.error("Error in getGroups:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };

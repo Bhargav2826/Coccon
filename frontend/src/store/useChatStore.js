@@ -145,12 +145,21 @@ export const useChatStore = create((set, get) => ({
 
         socket.on("newGroupMessage", ({ groupId, message }) => {
             const { selectedGroup, messages, groups } = get();
-            if (selectedGroup && selectedGroup._id === groupId) {
+            const isFromSelectedGroup = selectedGroup && selectedGroup._id === groupId;
+
+            if (isFromSelectedGroup) {
                 set({ messages: [...messages, message] });
+                // Auto mark as read if group chat is open
+                socket.emit("groupMessageRead", { messageIds: [message._id], groupId });
             }
+
             set({
                 groups: groups.map(g =>
-                    g._id === groupId ? { ...g, lastMessage: message } : g
+                    g._id === groupId ? {
+                        ...g,
+                        lastMessage: message,
+                        unreadCount: isFromSelectedGroup ? 0 : (g.unreadCount || 0) + 1
+                    } : g
                 )
             });
         });
@@ -291,7 +300,18 @@ export const useChatStore = create((set, get) => ({
     },
 
     setSelectedGroup: (group) => {
-        set({ selectedGroup: group, selectedUser: null, messages: [] });
+        if (group) {
+            set({
+                selectedGroup: group,
+                selectedUser: null,
+                messages: [],
+                groups: get().groups.map(g =>
+                    g._id === group._id ? { ...g, unreadCount: 0 } : g
+                )
+            });
+        } else {
+            set({ selectedGroup: null });
+        }
     },
 
     setReplyMessage: (message) => {

@@ -6,11 +6,13 @@ import { useChatStore } from "../store/useChatStore";
 
 const Sidebar = ({ onMobileClose }) => {
   const { authUser } = useAuth();
-  const { users } = useChatStore();
+  const { users, groups } = useChatStore();
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const totalUnreadMessages = users.reduce((acc, user) => acc + (user.unreadCount || 0), 0);
+  const totalUnreadMessages =
+    users.reduce((acc, user) => acc + (user.unreadCount || 0), 0) +
+    groups.reduce((acc, group) => acc + (group.unreadCount || 0), 0);
 
   const handleLinkClick = () => {
     // Close mobile sidebar when a link is clicked

@@ -62,6 +62,16 @@ const ChatContainer = () => {
                 socket.emit("messageRead", { messageIds: unreadMessages, senderId: selectedUser._id });
             }
         }
+
+        if (selectedGroup && messages.length > 0 && socket) {
+            const unreadMessages = messages
+                .filter(m => m.sender !== authUser._id && (!m.isReadBy || !m.isReadBy.includes(authUser._id)))
+                .map(m => m._id);
+
+            if (unreadMessages.length > 0) {
+                socket.emit("groupMessageRead", { messageIds: unreadMessages, groupId: selectedGroup._id });
+            }
+        }
     }, [messages, selectedUser, socket]);
 
     const handleEdit = (message) => {

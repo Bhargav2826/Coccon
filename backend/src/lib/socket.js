@@ -190,6 +190,18 @@ io.on("connection", async (socket) => {
         }
     });
 
+    socket.on("groupMessageRead", async ({ messageIds, groupId }) => {
+        if (!messageIds || !Array.isArray(messageIds) || !groupId) return;
+        try {
+            await GroupMessage.updateMany(
+                { _id: { $in: messageIds } },
+                { $addToSet: { isReadBy: userId } }
+            );
+        } catch (error) {
+            console.error("Group read receipt error:", error);
+        }
+    });
+
     socket.on("messageReaction", async ({ messageId, receiverId, emoji }) => {
         if (!messageId || !receiverId || !emoji) return;
         try {

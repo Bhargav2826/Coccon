@@ -33,11 +33,14 @@ const ChatSidebar = () => {
         setSelectedMembers(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
     };
 
+    const totalUnreadChats = users.reduce((acc, u) => acc + (u.unreadCount || 0), 0);
+    const totalUnreadGroups = groups.reduce((acc, g) => acc + (g.unreadCount || 0), 0);
+
     return (
         <aside className="h-full w-20 lg:w-80 border-r border-base-300 flex flex-col transition-all duration-200 bg-base-100">
             <div className="p-4 border-b border-base-300">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold hidden lg:block">Messages</h2>
+                    <h2 className="text-xl font-bold hidden lg:block text-primary">Messages</h2>
                     <button onClick={() => setShowCreateGroup(true)} className="btn btn-ghost btn-circle btn-sm"><Plus size={20} /></button>
                 </div>
 
@@ -46,7 +49,7 @@ const ChatSidebar = () => {
                     <input
                         type="text"
                         placeholder="Search chats..."
-                        className="input input-sm w-full pl-10 bg-base-200"
+                        className="input input-sm w-full pl-10 bg-base-200 focus:outline-none focus:border-primary"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -55,15 +58,23 @@ const ChatSidebar = () => {
                 <div className="flex bg-base-200 rounded-lg p-1">
                     <button
                         onClick={() => setActiveTab("chats")}
-                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === "chats" ? "bg-base-100 shadow-sm" : "opacity-60"}`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "chats" ? "bg-base-100 shadow-md text-primary" : "opacity-60 hover:opacity-100"}`}
                     >
-                        <User size={14} /> <span className="hidden lg:inline">Chats</span>
+                        <User size={14} />
+                        <span className="hidden lg:inline">Chats</span>
+                        {totalUnreadChats > 0 && (
+                            <span className="badge badge-primary badge-sm px-1.5 min-w-[1.25rem] h-5 rounded-full">{totalUnreadChats}</span>
+                        )}
                     </button>
                     <button
                         onClick={() => setActiveTab("groups")}
-                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === "groups" ? "bg-base-100 shadow-sm" : "opacity-60"}`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "groups" ? "bg-base-100 shadow-md text-primary" : "opacity-60 hover:opacity-100"}`}
                     >
-                        <Users size={14} /> <span className="hidden lg:inline">Groups</span>
+                        <Users size={14} />
+                        <span className="hidden lg:inline">Groups</span>
+                        {totalUnreadGroups > 0 && (
+                            <span className="badge badge-primary badge-sm px-1.5 min-w-[1.25rem] h-5 rounded-full">{totalUnreadGroups}</span>
+                        )}
                     </button>
                 </div>
             </div>
@@ -74,19 +85,23 @@ const ChatSidebar = () => {
                         <button
                             key={user._id}
                             onClick={() => setSelectedUser(user)}
-                            className={`w-full p-3 flex items-center gap-3 hover:bg-base-200 transition-colors ${selectedUser?._id === user._id ? "bg-base-200" : ""}`}
+                            className={`w-full p-3 flex items-center gap-3 hover:bg-base-200 transition-all border-l-4 ${selectedUser?._id === user._id ? "bg-base-200 border-primary" : "border-transparent"}`}
                         >
                             <div className="relative">
-                                <img src={user.profilePic || "/avatar.png"} className="size-12 rounded-full object-cover" />
+                                <img src={user.profilePic || "/avatar.png"} className="size-12 rounded-full object-cover border-2 border-base-300" />
                                 {onlineUsers.includes(user._id) && <span className="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-base-100 rounded-full" />}
                             </div>
                             <div className="hidden lg:flex flex-col flex-1 text-left min-w-0">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-semibold truncate">{user.fullName}</span>
-                                    {user.unreadCount > 0 && <span className="badge badge-primary badge-xs">{user.unreadCount}</span>}
+                                <div className="flex justify-between items-center gap-2">
+                                    <span className={`font-semibold truncate ${user.unreadCount > 0 ? "text-base-content" : "text-base-content/80"}`}>{user.fullName}</span>
+                                    {user.unreadCount > 0 && (
+                                        <span className="flex items-center justify-center min-w-[20px] h-[20px] px-1 bg-primary text-primary-content text-[10px] font-bold rounded-full shadow-sm">
+                                            {user.unreadCount}
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="text-xs text-base-content/60 truncate">
-                                    {user.lastMessage?.text || (user.lastMessage?.image ? "🖼️ Image" : "Offline")}
+                                <div className={`text-xs truncate ${user.unreadCount > 0 ? "font-semibold text-primary" : "text-base-content/60"}`}>
+                                    {user.lastMessage?.text || (user.lastMessage?.image ? "🖼️ Image" : "Last seen recently")}
                                 </div>
                             </div>
                         </button>
@@ -96,16 +111,25 @@ const ChatSidebar = () => {
                         <button
                             key={group._id}
                             onClick={() => setSelectedGroup(group)}
-                            className={`w-full p-3 flex items-center gap-3 hover:bg-base-200 transition-colors ${selectedGroup?._id === group._id ? "bg-base-200" : ""}`}
+                            className={`w-full p-3 flex items-center gap-3 hover:bg-base-200 transition-all border-l-4 ${selectedGroup?._id === group._id ? "bg-base-200 border-primary" : "border-transparent"}`}
                         >
-                            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                {group.groupPic ? <img src={group.groupPic} className="size-12 rounded-full" /> : <Users className="text-primary" />}
+                            <div className="relative">
+                                <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center border-2 border-base-300">
+                                    {group.groupPic ? <img src={group.groupPic} className="size-12 rounded-full" /> : <Users className="text-primary size-6" />}
+                                </div>
                             </div>
                             <div className="hidden lg:flex flex-col flex-1 text-left min-w-0">
-                                <span className="font-semibold truncate">{group.name}</span>
-                                <span className="text-xs text-base-content/60 truncate">
+                                <div className="flex justify-between items-center gap-2">
+                                    <span className={`font-semibold truncate ${group.unreadCount > 0 ? "text-base-content" : "text-base-content/80"}`}>{group.name}</span>
+                                    {group.unreadCount > 0 && (
+                                        <span className="flex items-center justify-center min-w-[20px] h-[20px] px-1 bg-primary text-primary-content text-[10px] font-bold rounded-full shadow-sm">
+                                            {group.unreadCount}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className={`text-xs truncate ${group.unreadCount > 0 ? "font-semibold text-primary" : "text-base-content/60"}`}>
                                     {group.lastMessage?.text || "No messages yet"}
-                                </span>
+                                </div>
                             </div>
                         </button>
                     ))
