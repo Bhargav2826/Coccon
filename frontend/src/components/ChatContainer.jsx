@@ -4,7 +4,9 @@ import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocketContext } from "../contexts/SocketContext";
-import { FileIcon, DownloadCloud, Check, CheckCheck, Play, Pause, Reply, Edit2, Trash2, Star, MoreVertical } from "lucide-react";
+import { FileIcon, DownloadCloud, Check, CheckCheck, Play, Pause, Reply, Edit2, Trash2, Star, MoreVertical, Smile } from "lucide-react";
+import { motion, useAnimation } from "framer-motion";
+import LottieReaction, { REACTION_LOTTIES } from "./LottieReaction";
 
 const ChatContainer = () => {
     const {
@@ -30,6 +32,7 @@ const ChatContainer = () => {
     const messageEndRef = useRef(null);
     const [editingMessage, setEditingMessage] = useState(null);
     const [editText, setEditText] = useState("");
+    const [showReactionPicker, setShowReactionPicker] = useState(null);
 
     useEffect(() => {
         updateLastSeen();
@@ -148,10 +151,26 @@ const ChatContainer = () => {
                                 {selectedGroup && !isSentByMe && <span className="mr-1 text-xs font-bold">{message.sender?.fullName}</span>}
                             </div>
 
-                            <div className={`chat-bubble group relative flex flex-col gap-1 ${isSentByMe ? "chat-bubble-primary" : "bg-neutral text-neutral-content"}`}>
+                            <motion.div
+                                drag="x"
+                                dragConstraints={{ left: 0, right: 100 }}
+                                dragElastic={0.2}
+                                onDragEnd={(e, info) => {
+                                    if (info.offset.x > 80) {
+                                        setReplyMessage(message);
+                                    }
+                                }}
+                                className={`chat-bubble group relative flex flex-col gap-1 cursor-default ${isSentByMe ? "chat-bubble-primary" : "bg-neutral text-neutral-content"}`}
+                            >
+                                {/* Pull-to-reply Indicator */}
+                                <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 opacity-0 group-drag:opacity-50 transition-opacity">
+                                    <Reply size={20} className="text-primary" />
+                                </div>
+
                                 {/* Context Menu */}
                                 {!isDeleted && (
                                     <div className={`absolute top-0 ${isSentByMe ? "-left-8" : "-right-8"} opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1`}>
+                                        <button onClick={() => setShowReactionPicker(showReactionPicker === message._id ? null : message._id)} className="btn btn-ghost btn-circle btn-xs text-base-content"><Smile size={12} /></button>
                                         <button onClick={() => setReplyMessage(message)} className="btn btn-ghost btn-circle btn-xs text-base-content"><Reply size={12} /></button>
                                         <button onClick={() => starMessage(message._id)} className="btn btn-ghost btn-circle btn-xs text-base-content"><Star size={12} className={message.starredBy?.includes(authUser._id) ? "fill-yellow-400 text-yellow-400" : ""} /></button>
                                         {isSentByMe && (
@@ -160,6 +179,24 @@ const ChatContainer = () => {
                                                 <button onClick={() => deleteMessage(message._id)} className="btn btn-ghost btn-circle btn-xs text-error"><Trash2 size={12} /></button>
                                             </>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* Reaction Picker Popover */}
+                                {showReactionPicker === message._id && (
+                                    <div className={`absolute bottom-full mb-2 ${isSentByMe ? "right-0" : "left-0"} bg-base-200 p-1 rounded-full shadow-xl flex gap-1 z-20 border border-base-300 animate-in fade-in zoom-in duration-200`}>
+                                        {Object.keys(REACTION_LOTTIES).map((emoji) => (
+                                            <button
+                                                key={emoji}
+                                                onClick={() => {
+                                                    addReaction(socket, message._id, emoji, !!selectedGroup);
+                                                    setShowReactionPicker(null);
+                                                }}
+                                                className="hover:scale-125 transition-transform p-1"
+                                            >
+                                                <LottieReaction emoji={emoji} size={24} />
+                                            </button>
+                                        ))}
                                     </div>
                                 )}
 
@@ -206,7 +243,11 @@ const ChatContainer = () => {
                                 <div className="flex items-center justify-between gap-2 mt-1">
                                     <div className="flex flex-wrap gap-1">
                                         {message.reactions?.length > 0 &&
-                                            message.reactions.map((r, i) => <span key={i} className="bg-black/10 rounded-full px-1.5 py-0.5 text-[10px]">{r.emoji}</span>)
+                                            message.reactions.map((r, i) => (
+                                                <div key={i} className="bg-black/10 rounded-full px-1 py-0.5 flex items-center gap-1">
+                                                    <LottieReaction emoji={r.emoji} size={14} />
+                                                </div>
+                                            ))
                                         }
                                     </div>
                                     <div className="flex items-center gap-1">
@@ -218,7 +259,7 @@ const ChatContainer = () => {
                                         )}
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
                     );
                 })}
@@ -241,3 +282,4 @@ const ChatContainer = () => {
 };
 
 export default ChatContainer;
+

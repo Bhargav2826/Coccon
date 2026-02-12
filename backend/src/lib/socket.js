@@ -228,6 +228,30 @@ io.on("connection", async (socket) => {
         }
     });
 
+    socket.on("groupMessageReaction", async ({ messageId, groupId, emoji }) => {
+        if (!messageId || !groupId || !emoji) return;
+        try {
+            const message = await GroupMessage.findById(messageId);
+            if (!message) return;
+
+            const existingReactionIdx = message.reactions.findIndex(
+                (r) => r.userId.toString() === userId.toString() && r.emoji === emoji
+            );
+
+            if (existingReactionIdx > -1) {
+                message.reactions.splice(existingReactionIdx, 1);
+            } else {
+                message.reactions.push({ userId, emoji });
+            }
+
+            await message.save();
+            // Emit to all members in the group
+            io.to(groupId).emit("messageReactionUpdate", { messageId, reactions: message.reactions });
+        } catch (error) {
+            console.error("Group reaction error:", error);
+        }
+    });
+
     // --- Interactive Whiteboard Events ---
     socket.on("whiteboard:draw", (data) => {
         // data: { callId, x0, y0, x1, y1, color, lineWidth }

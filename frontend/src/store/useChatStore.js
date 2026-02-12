@@ -62,10 +62,17 @@ export const useChatStore = create((set, get) => ({
         socket.emit("typing", { receiverId: selectedUser._id, isTyping });
     },
 
-    addReaction: (socket, messageId, emoji) => {
-        const { selectedUser } = get();
-        if (!selectedUser || !socket) return;
-        socket.emit("messageReaction", { messageId, receiverId: selectedUser._id, emoji });
+    addReaction: (socket, messageId, emoji, isGroup = false) => {
+        const { selectedUser, selectedGroup } = get();
+        if (!socket) return;
+
+        if (isGroup) {
+            if (!selectedGroup) return;
+            socket.emit("groupMessageReaction", { messageId, groupId: selectedGroup._id, emoji });
+        } else {
+            if (!selectedUser) return;
+            socket.emit("messageReaction", { messageId, receiverId: selectedUser._id, emoji });
+        }
     },
 
     subscribeToMessages: (socket) => {

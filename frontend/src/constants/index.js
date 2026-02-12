@@ -160,6 +160,11 @@ export const THEMES = [
     label: "Sunset",
     colors: ["#1e293b", "#f5734c", "#ec4899", "#ffffff"],
   },
+  {
+    name: "glass",
+    label: "Glass Mode",
+    colors: ["#ffffff", "#cbd5e1", "#94a3b8", "#64748b"],
+  },
 ];
 
 export const LANGUAGES = [
