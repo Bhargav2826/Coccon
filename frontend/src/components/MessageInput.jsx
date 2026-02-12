@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
-import { Send, X, FileIcon, Paperclip } from "lucide-react";
+import { Send, X, FileIcon, Paperclip, Mic, MicOff, Smile, Search } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useSocketContext } from "../contexts/SocketContext";
 
@@ -9,17 +9,36 @@ const MessageInput = () => {
     const [filePreview, setFilePreview] = useState(null);
     const [fileType, setFileType] = useState(null);
     const [fileName, setFileName] = useState("");
+    const [recording, setRecording] = useState(false);
+    const [audioBlob, setAudioBlob] = useState(null);
+    const [showGiphy, setShowGiphy] = useState(false);
+    const [giphySearch, setGiphySearch] = useState("");
+    const [giphyResults, setGiphyResults] = useState([]);
+
     const fileInputRef = useRef(null);
+    const mediaRecorderRef = useRef(null);
     const typingTimeoutRef = useRef(null);
-    const { sendMessage, setTyping } = useChatStore();
+    const { sendMessage, sendGroupMessage, setTyping, selectedUser, selectedGroup, replyMessage, setReplyMessage } = useChatStore();
     const { socket } = useSocketContext();
+
+    const GIPHY_API_KEY = "dc6zaTOxFJmzC"; // Public beta key for demo
+
+    const searchGiphy = async (query) => {
+        if (!query) return;
+        try {
+            const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${query}&limit=10`);
+            const data = await res.json();
+            setGiphyResults(data.data);
+        } catch (error) {
+            console.error("Giphy error:", error);
+        }
+    };
 
     const handleInputChange = (e) => {
         const value = e.target.value;
         setText(value);
 
-        // Emit typing status
-        if (value.trim()) {
+        if (selectedUser && value.trim()) {
             setTyping(socket, true);
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
             typingTimeoutRef.current = setTimeout(() => {
@@ -30,95 +49,108 @@ const MessageInput = () => {
         }
     };
 
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Check size - 10MB limit
-        if (file.size > 10 * 1024 * 1024) {
-            toast.error("File size must be less than 10MB");
-            return;
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorderRef.current = new MediaRecorder(stream);
+            const chunks = [];
+            mediaRecorderRef.current.ondataavailable = (e) => chunks.push(e.data);
+            mediaRecorderRef.current.onstop = () => {
+                const blob = new Blob(chunks, { type: "audio/ogg; codecs=opus" });
+                setAudioBlob(blob);
+                const reader = new FileReader();
+                reader.onloadend = () => setFilePreview(reader.result);
+                reader.readAsDataURL(blob);
+                setFileType("audio/ogg");
+                setFileName("voice_message.ogg");
+            };
+            mediaRecorderRef.current.start();
+            setRecording(true);
+        } catch (error) {
+            toast.error("Microphone access denied");
         }
+    };
 
-        setFileName(file.name);
-        setFileType(file.type);
+    const stopRecording = () => {
+        if (mediaRecorderRef.current) {
+            mediaRecorderRef.current.stop();
+            setRecording(false);
+        }
+    };
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setFilePreview(reader.result);
+    const handleSendMessage = async (e) => {
+        if (e) e.preventDefault();
+        if (!text.trim() && !filePreview) return;
+
+        const messageData = {
+            text: text.trim(),
+            file: filePreview,
+            fileName: fileName,
+            fileType: fileType,
+            replyTo: replyMessage?._id,
         };
-        reader.readAsDataURL(file);
+
+        try {
+            if (selectedGroup) {
+                await sendGroupMessage(messageData);
+            } else {
+                await sendMessage(messageData);
+            }
+
+            setText("");
+            setReplyMessage(null);
+            removeFile();
+            setShowGiphy(false);
+        } catch (error) {
+            toast.error("Failed to send message");
+        }
     };
 
     const removeFile = () => {
         setFilePreview(null);
         setFileType(null);
         setFileName("");
+        setAudioBlob(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleSendMessage = async (e) => {
-        e.preventDefault();
-        if (!text.trim() && !filePreview) return;
-
-        try {
-            await sendMessage({
-                text: text.trim(),
-                file: filePreview,
-                fileName: fileName,
-                fileType: fileType,
-            });
-
-            // Clear form
-            setText("");
-            setTyping(socket, false);
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-            removeFile();
-        } catch (error) {
-            console.error("Failed to send message:", error);
-        }
-    };
-
-    const isImage = fileType?.startsWith("image/");
-
     return (
-        <div className="p-4 w-full">
+        <div className="p-4 w-full relative">
+            {replyMessage && (
+                <div className="mb-2 p-2 bg-base-300 rounded-lg flex items-center justify-between animate-in slide-in-from-bottom-2">
+                    <div className="flex flex-col border-l-2 border-primary pl-2 overflow-hidden">
+                        <span className="text-xs font-semibold text-primary">Replying to {replyMessage.sender?.fullName || "User"}</span>
+                        <span className="text-xs opacity-70 truncate">{replyMessage.text || "Media"}</span>
+                    </div>
+                    <button onClick={() => setReplyMessage(null)}><X className="size-4" /></button>
+                </div>
+            )}
+
             {filePreview && (
                 <div className="mb-3 flex items-center gap-2">
                     <div className="relative group">
-                        {isImage ? (
-                            <img
-                                src={filePreview}
-                                alt="Preview"
-                                className="w-20 h-20 object-cover rounded-lg border border-base-300 shadow-sm"
-                            />
+                        {fileType?.startsWith("image/") ? (
+                            <img src={filePreview} className="w-20 h-20 object-cover rounded-lg" />
+                        ) : fileType?.startsWith("audio/") ? (
+                            <div className="bg-base-300 p-2 rounded-lg flex items-center gap-2">
+                                <Mic className="text-primary" size={20} />
+                                <span className="text-xs">Voice Message</span>
+                            </div>
                         ) : (
-                            <div className="w-20 h-20 flex flex-col items-center justify-center bg-base-300 rounded-lg border border-base-300 shadow-sm p-2">
-                                <FileIcon className="size-8 text-primary opacity-70" />
-                                <span className="text-[10px] truncate w-full text-center mt-1">{fileName}</span>
+                            <div className="w-20 h-20 flex flex-col items-center justify-center bg-base-300 rounded-lg p-2">
+                                <FileIcon size={24} />
+                                <span className="text-[10px] truncate w-full text-center">{fileName}</span>
                             </div>
                         )}
-                        <button
-                            onClick={removeFile}
-                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-base-content text-base-100
-              flex items-center justify-center hover:scale-110 transition-transform shadow-md"
-                            type="button"
-                        >
-                            <X className="size-4" />
-                        </button>
+                        <button onClick={removeFile} className="absolute -top-2 -right-2 bg-base-content text-base-100 rounded-full p-1"><X size={12} /></button>
                     </div>
                 </div>
             )}
 
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                <div className="flex-1 flex gap-2">
-                    <button
-                        type="button"
-                        className="btn btn-circle btn-sm sm:btn-md btn-ghost"
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        <Paperclip size={20} className={filePreview ? "text-primary" : "text-base-content/40"} />
-                    </button>
+                <div className="flex-1 flex gap-2 relative">
+                    <button type="button" className="btn btn-circle btn-sm btn-ghost" onClick={() => fileInputRef.current?.click()}><Paperclip size={20} /></button>
+                    <button type="button" className="btn btn-circle btn-sm btn-ghost" onClick={() => setShowGiphy(!showGiphy)}><Smile size={20} /></button>
 
                     <input
                         type="text"
@@ -127,21 +159,65 @@ const MessageInput = () => {
                         value={text}
                         onChange={handleInputChange}
                     />
-                    <input
-                        type="file"
-                        className="hidden"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                    />
+
+                    {showGiphy && (
+                        <div className="absolute bottom-12 left-0 w-64 bg-base-200 p-2 rounded-lg shadow-xl z-50 border border-base-300">
+                            <div className="flex gap-1 mb-2">
+                                <input
+                                    autoFocus
+                                    className="input input-sm flex-1"
+                                    placeholder="Search GIFs..."
+                                    value={giphySearch}
+                                    onChange={(e) => {
+                                        setGiphySearch(e.target.value);
+                                        searchGiphy(e.target.value);
+                                    }}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 h-48 overflow-y-auto">
+                                {giphyResults.map(g => (
+                                    <img
+                                        key={g.id}
+                                        src={g.images.fixed_height_small.url}
+                                        className="cursor-pointer hover:opacity-80 rounded"
+                                        onClick={() => {
+                                            setFilePreview(g.images.fixed_height.url);
+                                            setFileType("image/gif");
+                                            setFileName("giphy.gif");
+                                            setShowGiphy(false);
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            setFileName(file.name);
+                            setFileType(file.type);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setFilePreview(reader.result);
+                            reader.readAsDataURL(file);
+                        }
+                    }} />
                 </div>
 
-                <button
-                    type="submit"
-                    className="btn btn-sm sm:btn-md btn-primary btn-circle"
-                    disabled={!text.trim() && !filePreview}
-                >
-                    <Send size={20} />
-                </button>
+                {!text && !filePreview ? (
+                    <button
+                        type="button"
+                        className={`btn btn-circle btn-sm ${recording ? 'btn-error animate-pulse' : 'btn-ghost'}`}
+                        onMouseDown={startRecording}
+                        onMouseUp={stopRecording}
+                        onTouchStart={startRecording}
+                        onTouchEnd={stopRecording}
+                    >
+                        {recording ? <MicOff size={20} /> : <Mic size={20} />}
+                    </button>
+                ) : (
+                    <button type="submit" className="btn btn-sm btn-primary btn-circle"><Send size={20} /></button>
+                )}
             </form>
         </div>
     );

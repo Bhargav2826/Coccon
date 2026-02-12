@@ -226,3 +226,70 @@ export async function sendMessage(userId, messageData) {
   const response = await axiosInstance.post(`/messages/send/${userId}`, messageData);
   return response.data;
 }
+
+export async function deleteMessage(messageId) {
+  const response = await axiosInstance.delete(`/messages/delete/${messageId}`);
+  return response.data;
+}
+
+export async function updateMessage(messageId, text) {
+  const response = await axiosInstance.put(`/messages/update/${messageId}`, { text });
+  return response.data;
+}
+
+export async function searchMessages(query, otherUserId) {
+  const response = await axiosInstance.get(`/messages/search?query=${query}&userId=${otherUserId}`);
+  return response.data;
+}
+
+// Group Chat API functions
+export async function createGroup(groupData) {
+  const response = await axiosInstance.post("/messages/groups", groupData);
+  return response.data;
+}
+
+export async function getGroups() {
+  const response = await axiosInstance.get("/messages/groups");
+  return response.data;
+}
+
+export async function getGroupMessages(groupId) {
+  const response = await axiosInstance.get(`/messages/groups/${groupId}/messages`);
+  return response.data;
+}
+
+export async function sendGroupMessage(groupId, messageData) {
+  const response = await axiosInstance.post(`/messages/groups/${groupId}/send`, messageData);
+  return response.data;
+}
+
+// User preferences for Chat
+export async function updateStatus(status) {
+  const response = await axiosInstance.put("/users/status", status);
+  return response.data;
+}
+
+export async function updateWallpaper(userId, wallpaperUrl) {
+  const response = await axiosInstance.put("/users/wallpaper", { userId, wallpaperUrl });
+  return response.data;
+}
+
+export async function pinChat(userId) {
+  const response = await axiosInstance.put(`/users/pin/${userId}`);
+  return response.data;
+}
+
+export async function muteChat(userId) {
+  const response = await axiosInstance.put(`/users/mute/${userId}`);
+  return response.data;
+}
+
+export async function blockUser(userId) {
+  const response = await axiosInstance.put(`/users/block/${userId}`);
+  return response.data;
+}
+
+export async function getStarredMessages() {
+  const response = await axiosInstance.get("/messages/starred");
+  return response.data;
+}

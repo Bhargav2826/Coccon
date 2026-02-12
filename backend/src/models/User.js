@@ -221,6 +221,37 @@ const userSchema = new mongoose.Schema(
       ],
       default: 'night',
     },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
+    status: {
+      text: { type: String, default: "" },
+      emoji: { type: String, default: "" },
+    },
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    pinnedChats: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    mutedChats: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    chatWallpapers: {
+      type: Map,
+      of: String,
+      default: {},
+    },
   },
   { timestamps: true }
 );

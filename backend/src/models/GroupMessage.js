@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
 
-const chatMessageSchema = new mongoose.Schema(
+const groupMessageSchema = new mongoose.Schema(
     {
-        sender: {
+        group: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
+            ref: "GroupChat",
             required: true,
         },
-        receiver: {
+        sender: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
@@ -27,10 +27,15 @@ const chatMessageSchema = new mongoose.Schema(
         fileType: {
             type: String,
         },
-        isRead: {
-            type: Boolean,
-            default: false,
+        voiceUrl: {
+            type: String,
         },
+        isReadBy: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            }
+        ],
         reactions: [
             {
                 userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -39,37 +44,21 @@ const chatMessageSchema = new mongoose.Schema(
         ],
         replyTo: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "ChatMessage",
+            ref: "GroupMessage",
             default: null
         },
         isEdited: {
             type: Boolean,
             default: false
         },
-        editHistory: [
-            {
-                text: String,
-                updatedAt: { type: Date, default: Date.now }
-            }
-        ],
         isDeleted: {
             type: Boolean,
             default: false
-        },
-        starredBy: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "User"
-            }
-        ],
-        voiceUrl: {
-            type: String
         },
     },
     { timestamps: true }
 );
 
-// Prevent model overwrite error
-const ChatMessage = mongoose.models.ChatMessage || mongoose.model("ChatMessage", chatMessageSchema);
+const GroupMessage = mongoose.model("GroupMessage", groupMessageSchema);
 
-export default ChatMessage;
+export default GroupMessage;

@@ -558,3 +558,89 @@ export async function getTheme(req, res) {
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
+
+export async function updateStatus(req, res) {
+  try {
+    const { text, emoji } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { status: { text, emoji } },
+      { new: true }
+    ).select("status");
+    res.status(200).json(user.status);
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function updateWallpaper(req, res) {
+  try {
+    const { userId: otherUserId, wallpaperUrl } = req.body;
+    const user = await User.findById(req.user.id);
+    user.chatWallpapers.set(otherUserId, wallpaperUrl);
+    await user.save();
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function pinChat(req, res) {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(req.user.id);
+    const isPinned = user.pinnedChats.includes(userId);
+    if (isPinned) {
+      user.pinnedChats = user.pinnedChats.filter(id => id.toString() !== userId);
+    } else {
+      user.pinnedChats.push(userId);
+    }
+    await user.save();
+    res.status(200).json({ isPinned: !isPinned });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function muteChat(req, res) {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(req.user.id);
+    const isMuted = user.mutedChats.includes(userId);
+    if (isMuted) {
+      user.mutedChats = user.mutedChats.filter(id => id.toString() !== userId);
+    } else {
+      user.mutedChats.push(userId);
+    }
+    await user.save();
+    res.status(200).json({ isMuted: !isMuted });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function blockUser(req, res) {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(req.user.id);
+    const isBlocked = user.blockedUsers.includes(userId);
+    if (isBlocked) {
+      user.blockedUsers = user.blockedUsers.filter(id => id.toString() !== userId);
+    } else {
+      user.blockedUsers.push(userId);
+    }
+    await user.save();
+    res.status(200).json({ isBlocked: !isBlocked });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function updateLastSeen(req, res) {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { lastSeen: new Date() });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}

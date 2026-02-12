@@ -1,36 +1,78 @@
-import { X } from "lucide-react";
+import { X, Search, Phone, Video, MoreVertical, Settings } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 import { useSocketContext } from "../contexts/SocketContext";
+import { useState } from "react";
+import ChatSettings from "./ChatSettings";
 
 const ChatHeader = () => {
-    const { selectedUser, setSelectedUser } = useChatStore();
+    const { selectedUser, selectedGroup, setSelectedUser, setSelectedGroup, searchMessages, searchQuery } = useChatStore();
     const { onlineUsers } = useSocketContext();
+    const [showSearch, setShowSearch] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+
+    if (!selectedUser && !selectedGroup) return null;
+
+    const title = selectedUser ? selectedUser.fullName : selectedGroup.name;
+    const profilePic = selectedUser ? selectedUser.profilePic : selectedGroup.groupPic;
+    const isOnline = selectedUser ? onlineUsers.includes(selectedUser._id) : false;
 
     return (
-        <div className="p-2.5 border-b border-base-300">
+        <div className="p-2.5 border-b border-base-300 bg-base-100/50 backdrop-blur-md sticky top-0 z-30">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    {/* Avatar */}
                     <div className="avatar">
                         <div className="size-10 rounded-full relative">
-                            <img src={selectedUser.profilePic || "/avatar.png"} alt={selectedUser.fullName} />
+                            <img src={profilePic || "/avatar.png"} alt={title} />
+                            {isOnline && (
+                                <span className="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-base-100 rounded-full" />
+                            )}
                         </div>
                     </div>
 
-                    {/* User info */}
                     <div>
-                        <h3 className="font-medium">{selectedUser.fullName}</h3>
-                        <p className="text-sm text-base-content/70">
-                            {onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{title}</h3>
+                            {selectedUser?.status?.emoji && <span>{selectedUser.status.emoji}</span>}
+                        </div>
+                        <p className="text-[10px] text-base-content/70">
+                            {selectedUser ? (
+                                isOnline ? (selectedUser.status?.text || "Online") :
+                                    `Last seen ${new Date(selectedUser.lastSeen || Date.now()).toLocaleTimeString()}`
+                            ) : (
+                                `${selectedGroup.members?.length} members`
+                            )}
                         </p>
                     </div>
                 </div>
 
-                {/* Close button */}
-                <button onClick={() => setSelectedUser(null)}>
-                    <X className="size-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                    {showSearch ? (
+                        <div className="flex items-center bg-base-200 rounded-full px-3 py-1 animate-in fade-in slide-in-from-right-2">
+                            <Search size={14} className="opacity-50" />
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder="Search messages..."
+                                className="bg-transparent border-none outline-none text-xs ml-2 w-32"
+                                value={searchQuery}
+                                onChange={(e) => searchMessages(e.target.value)}
+                            />
+                            <button onClick={() => { setShowSearch(false); searchMessages(""); }}><X size={14} /></button>
+                        </div>
+                    ) : (
+                        <button onClick={() => setShowSearch(true)} className="btn btn-ghost btn-circle btn-sm"><Search size={18} /></button>
+                    )}
+                    <button className="btn btn-ghost btn-circle btn-sm"><Phone size={18} /></button>
+                    <button className="btn btn-ghost btn-circle btn-sm"><Video size={18} /></button>
+                    {!selectedGroup && (
+                        <button onClick={() => setShowSettings(true)} className="btn btn-ghost btn-circle btn-sm"><Settings size={18} /></button>
+                    )}
+                    <button onClick={() => selectedGroup ? setSelectedGroup(null) : setSelectedUser(null)} className="btn btn-ghost btn-circle btn-sm">
+                        <X size={20} />
+                    </button>
+                </div>
             </div>
+            {showSettings && <ChatSettings onClose={() => setShowSettings(false)} />}
         </div>
     );
 };

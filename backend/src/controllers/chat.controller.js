@@ -64,7 +64,7 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
     try {
-        const { text, image, file, fileName, fileType } = req.body;
+        const { text, image, file, fileName, fileType, voiceUrl, replyTo } = req.body;
         const { id: receiverId } = req.params;
         const senderId = req.user._id;
 
@@ -72,49 +72,125 @@ export const sendMessage = async (req, res) => {
             return res.status(400).json({ error: "Receiver ID is required" });
         }
 
-        let fileUrl = "";
-        let finalFileType = "text";
+        let finalFileUrl = "";
+        let finalFileType = fileType || "text";
 
-        // Handle Image or File Upload
+        // Handle Image or File Upload if sent as base64/buffer
         const fileToUpload = file || image;
-        if (fileToUpload) {
+        if (fileToUpload && !fileToUpload.startsWith("http")) {
             try {
                 const uploadResponse = await cloudinary.uploader.upload(fileToUpload, {
                     resource_type: "auto",
                 });
-                fileUrl = uploadResponse.secure_url;
-                finalFileType = uploadResponse.resource_type; // 'image', 'video', or 'raw'
+                finalFileUrl = uploadResponse.secure_url;
+                finalFileType = uploadResponse.resource_type;
             } catch (uploadError) {
                 console.error("Cloudinary upload error:", uploadError);
-                return res.status(500).json({ error: `Failed to upload file to Cloudinary: ${uploadError.message}` });
             }
+        } else if (typeof fileToUpload === "string" && fileToUpload.startsWith("http")) {
+            finalFileUrl = fileToUpload;
         }
 
         const newMessage = new ChatMessage({
             sender: senderId,
             receiver: receiverId,
             text: text || "",
-            image: finalFileType === "image" ? fileUrl : undefined,
-            fileUrl: fileUrl || undefined,
+            image: (finalFileType === "image" || image) ? (finalFileUrl || image) : undefined,
+            fileUrl: finalFileUrl || (fileType !== "text" ? file : undefined),
             fileType: finalFileType,
             fileName: fileName || undefined,
+            voiceUrl: voiceUrl || undefined,
+            replyTo: replyTo || undefined,
         });
 
         await newMessage.save();
 
+        if (replyTo) {
+            await newMessage.populate("replyTo");
+        }
+
         // Broadcast via socket
-        try {
-            const receiverSocketId = getReceiverSocketId(receiverId);
-            if (receiverSocketId) {
-                io.to(receiverSocketId).emit("newMessage", newMessage.toObject());
-            }
-        } catch (socketError) {
-            console.error("Socket emission error:", socketError);
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newMessage", newMessage);
         }
 
         res.status(201).json(newMessage);
     } catch (error) {
-        console.error("Error in sendMessage controller detail:", error);
-        res.status(500).json({ error: `Server Error: ${error.message}` });
+        console.error("Error in sendMessage:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const updateMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { text } = req.body;
+        const userId = req.user._id;
+
+        const message = await ChatMessage.findById(messageId);
+        if (!message) return res.status(404).json({ error: "Message not found" });
+        if (message.sender.toString() !== userId.toString()) return res.status(403).json({ error: "Unauthorized" });
+
+        message.editHistory.push({ text: message.text, updatedAt: new Date() });
+        message.text = text;
+        message.isEdited = true;
+        await message.save();
+
+        const receiverSocketId = getReceiverSocketId(message.receiver);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("messageUpdate", message);
+        }
+
+        res.status(200).json(message);
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const userId = req.user._id;
+
+        const message = await ChatMessage.findById(messageId);
+        if (!message) return res.status(404).json({ error: "Message not found" });
+        if (message.sender.toString() !== userId.toString()) return res.status(403).json({ error: "Unauthorized" });
+
+        message.isDeleted = true;
+        message.text = "This message was deleted";
+        message.image = undefined;
+        message.fileUrl = undefined;
+        message.voiceUrl = undefined;
+        await message.save();
+
+        const receiverSocketId = getReceiverSocketId(message.receiver);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("messageUpdate", message);
+        }
+
+        res.status(200).json(message);
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const searchMessages = async (req, res) => {
+    try {
+        const { query, userId: otherUserId } = req.query;
+        const myId = req.user._id;
+
+        const messages = await ChatMessage.find({
+            $or: [
+                { sender: myId, receiver: otherUserId },
+                { sender: otherUserId, receiver: myId },
+            ],
+            text: { $regex: query, $options: "i" },
+            isDeleted: false,
+        }).sort({ createdAt: -1 });
+
+        res.status(200).json(messages);
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
     }
 };

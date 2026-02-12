@@ -19,6 +19,12 @@ import {
   getTheme,
   getUserById,
   rejectFriendRequest,
+  updateStatus,
+  updateWallpaper,
+  pinChat,
+  muteChat,
+  blockUser,
+  updateLastSeen,
 } from "../controllers/user.controller.js";
 import {
   validateFriendRequest,
@@ -61,6 +67,14 @@ router.get("/linked-accounts", getLinkedAccounts);
 // Theme management routes
 router.get("/theme", getTheme);
 router.put("/theme", updateTheme);
+
+// Chat preference routes
+router.put("/status", updateStatus);
+router.put("/wallpaper", updateWallpaper);
+router.put("/pin/:userId", pinChat);
+router.put("/mute/:userId", muteChat);
+router.put("/block/:userId", blockUser);
+router.put("/lastseen", updateLastSeen);
 
 // Get user by ID (moved here to avoid route collision with static routes)
 router.get("/:id", validateObjectId, getUserById);

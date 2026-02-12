@@ -5,11 +5,17 @@ import { getMessages, getUsersForSidebar, sendMessage } from "../lib/api";
 export const useChatStore = create((set, get) => ({
     messages: [],
     users: [],
+    groups: [],
     selectedUser: null,
+    selectedGroup: null,
     isUsersLoading: false,
     isMessagesLoading: false,
     typingUser: null,
     isSubscribed: false,
+    replyMessage: null,
+    starredMessages: [],
+    searchQuery: "",
+    searchResults: [],
 
     getUsers: async () => {
         set({ isUsersLoading: true });
@@ -124,6 +130,31 @@ export const useChatStore = create((set, get) => ({
             });
         });
 
+        socket.on("messageUpdate", (updatedMessage) => {
+            const { messages } = get();
+            set({
+                messages: messages.map(m =>
+                    m._id === updatedMessage._id ? updatedMessage : m
+                )
+            });
+        });
+
+        socket.on("newGroup", (newGroup) => {
+            set({ groups: [...get().groups, newGroup] });
+        });
+
+        socket.on("newGroupMessage", ({ groupId, message }) => {
+            const { selectedGroup, messages, groups } = get();
+            if (selectedGroup && selectedGroup._id === groupId) {
+                set({ messages: [...messages, message] });
+            }
+            set({
+                groups: groups.map(g =>
+                    g._id === groupId ? { ...g, lastMessage: message } : g
+                )
+            });
+        });
+
         set({ isSubscribed: true });
     },
 
@@ -137,10 +168,141 @@ export const useChatStore = create((set, get) => ({
         }
     },
 
+    deleteMessage: async (messageId) => {
+        try {
+            const { deleteMessage: deleteMsgApi } = await import("../lib/api");
+            await deleteMsgApi(messageId);
+            set({
+                messages: get().messages.map(m =>
+                    m._id === messageId ? { ...m, isDeleted: true, text: "This message was deleted" } : m
+                )
+            });
+        } catch (error) {
+            toast.error("Failed to delete message");
+        }
+    },
+
+    updateMessage: async (messageId, text) => {
+        try {
+            const { updateMessage: updateMsgApi } = await import("../lib/api");
+            const res = await updateMsgApi(messageId, text);
+            set({
+                messages: get().messages.map(m =>
+                    m._id === messageId ? res : m
+                )
+            });
+        } catch (error) {
+            toast.error("Failed to update message");
+        }
+    },
+
+    searchMessages: async (query) => {
+        const { selectedUser } = get();
+        if (!selectedUser || !query.trim()) {
+            set({ searchResults: [], searchQuery: query });
+            return;
+        }
+        try {
+            const { searchMessages: searchMsgApi } = await import("../lib/api");
+            const res = await searchMsgApi(query, selectedUser._id);
+            set({ searchResults: res, searchQuery: query });
+        } catch (error) {
+            console.error("Search failed:", error);
+        }
+    },
+
+    getGroups: async () => {
+        try {
+            const { getGroups: fetchGroups } = await import("../lib/api");
+            const res = await fetchGroups();
+            set({ groups: res });
+        } catch (error) {
+            toast.error("Failed to fetch groups");
+        }
+    },
+
+    createGroup: async (groupData) => {
+        try {
+            const { createGroup: makeGroup } = await import("../lib/api");
+            const res = await makeGroup(groupData);
+            set({
+                groups: [...get().groups, res],
+                selectedGroup: res,
+                selectedUser: null,
+                messages: []
+            });
+            toast.success("Group created!");
+        } catch (error) {
+            toast.error("Failed to create group");
+        }
+    },
+
+    getGroupMessages: async (groupId) => {
+        set({ isMessagesLoading: true });
+        try {
+            const { getGroupMessages: fetchGMsg } = await import("../lib/api");
+            const res = await fetchGMsg(groupId);
+            set({ messages: res });
+        } catch (error) {
+            toast.error("Failed to fetch group messages");
+        } finally {
+            set({ isMessagesLoading: false });
+        }
+    },
+
+    sendGroupMessage: async (messageData) => {
+        const { selectedGroup, messages } = get();
+        try {
+            const { sendGroupMessage: sendGM } = await import("../lib/api");
+            const res = await sendGM(selectedGroup._id, messageData);
+            set({ messages: [...messages, res] });
+        } catch (error) {
+            toast.error("Failed to send group message");
+        }
+    },
+
+    starMessage: async (messageId) => {
+        try {
+            const { starMessage: starMsgApi } = await import("../lib/api");
+            await starMsgApi(messageId);
+            toast.success("Message starred");
+        } catch (error) {
+            toast.error("Failed to star message");
+        }
+    },
+
+    getStarredMessages: async () => {
+        try {
+            const { getStarredMessages: fetchStarred } = await import("../lib/api");
+            const res = await fetchStarred();
+            set({ starredMessages: res });
+        } catch (error) {
+            toast.error("Failed to fetch starred messages");
+        }
+    },
+
+    updateLastSeen: async () => {
+        try {
+            const { updateLastSeen: updateLSApi } = await import("../lib/api");
+            await updateLSApi();
+        } catch (error) {
+            console.error("Failed to update last seen");
+        }
+    },
+
+    setSelectedGroup: (group) => {
+        set({ selectedGroup: group, selectedUser: null, messages: [] });
+    },
+
+    setReplyMessage: (message) => {
+        set({ replyMessage: message });
+    },
+
     setSelectedUser: (selectedUser) => {
         if (selectedUser) {
             set({
                 selectedUser,
+                selectedGroup: null,
                 typingUser: null,
                 users: get().users.map(u =>
                     u._id === selectedUser._id ? { ...u, unreadCount: 0 } : u
