@@ -19,16 +19,16 @@ const router = express.Router();
 
 router.get("/users", protectRoute, getUsersForSidebar);
 router.get("/search", protectRoute, searchMessages);
-router.get("/:id", protectRoute, getMessages);
-
-router.post("/send/:id", protectRoute, sendMessage);
-router.put("/update/:messageId", protectRoute, updateMessage);
-router.delete("/delete/:messageId", protectRoute, deleteMessage);
 
 // Group Chat Routes
 router.post("/groups", protectRoute, createGroup);
 router.get("/groups", protectRoute, getGroups);
 router.post("/groups/:groupId/send", protectRoute, sendGroupMessage);
 router.get("/groups/:groupId/messages", protectRoute, getGroupMessages);
+
+router.get("/:id", protectRoute, getMessages);
+router.post("/send/:id", protectRoute, sendMessage);
+router.put("/update/:messageId", protectRoute, updateMessage);
+router.delete("/delete/:messageId", protectRoute, deleteMessage);
 
 export default router;

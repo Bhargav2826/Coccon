@@ -129,18 +129,16 @@ const ChatContainer = () => {
                     return (
                         <div key={message._id} className={`chat ${isSentByMe ? "chat-end" : "chat-start"}`} ref={messageEndRef}>
                             <div className="chat-image avatar">
-                                <div className="size-8 rounded-full border">
+                                <div className="size-10 rounded-full border">
                                     <img src={(isSentByMe ? authUser.profilePic : (selectedGroup ? message.sender?.profilePic : selectedUser.profilePic)) || "/avatar.png"} />
                                 </div>
                             </div>
 
-                            <div className="chat-header mb-0.5 opacity-50 text-[10px]">
-                                {selectedGroup && !isSentByMe && <span className="mr-1">{message.sender?.fullName}</span>}
-                                <time>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>
+                            <div className="chat-header mb-1 opacity-50">
+                                {selectedGroup && !isSentByMe && <span className="mr-1 text-xs font-bold">{message.sender?.fullName}</span>}
                             </div>
 
-                            <div className={`chat-bubble group relative flex flex-col gap-1 transition-all ${isHighlighted ? "ring-2 ring-primary bg-primary/10" : ""} ${isSentByMe ? "chat-bubble-primary shadow-lg" : "bg-neutral text-neutral-content shadow-md"}`}>
-
+                            <div className={`chat-bubble group relative flex flex-col gap-1 ${isSentByMe ? "chat-bubble-primary" : "bg-neutral text-neutral-content"}`}>
                                 {/* Context Menu */}
                                 {!isDeleted && (
                                     <div className={`absolute top-0 ${isSentByMe ? "-left-8" : "-right-8"} opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1`}>
@@ -194,17 +192,21 @@ const ChatContainer = () => {
                                     </p>
                                 )}
 
-                                {/* Reactions */}
-                                {message.reactions?.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                        {message.reactions.map((r, i) => <span key={i} className="bg-black/10 rounded-full px-1.5 py-0.5 text-[10px]">{r.emoji}</span>)}
+                                {/* Reactions and Metadata */}
+                                <div className="flex items-center justify-between gap-2 mt-1">
+                                    <div className="flex flex-wrap gap-1">
+                                        {message.reactions?.length > 0 &&
+                                            message.reactions.map((r, i) => <span key={i} className="bg-black/10 rounded-full px-1.5 py-0.5 text-[10px]">{r.emoji}</span>)
+                                        }
                                     </div>
-                                )}
-
-                                <div className="flex items-center justify-end gap-1">
-                                    {isSentByMe && (
-                                        message.isRead ? <CheckCheck className="size-3 text-primary-content" /> : <Check className="size-3 opacity-60" />
-                                    )}
+                                    <div className="flex items-center gap-1">
+                                        <time className="text-[10px] opacity-60">
+                                            {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                        </time>
+                                        {isSentByMe && (
+                                            message.isRead ? <CheckCheck className="size-3 text-primary-content" /> : <Check className="size-3 opacity-60" />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
