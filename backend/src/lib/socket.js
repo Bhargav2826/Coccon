@@ -7,6 +7,7 @@ import Call from "../models/Call.js";
 import User from "../models/User.js";
 import Room from "../models/Room.js";
 import ChatMessage from "../models/ChatMessage.js";
+import GroupMessage from "../models/GroupMessage.js";
 
 const app = express();
 const server = http.createServer(app);

@@ -72,7 +72,7 @@ const ChatContainer = () => {
                 socket.emit("groupMessageRead", { messageIds: unreadMessages, groupId: selectedGroup._id });
             }
         }
-    }, [messages, selectedUser, socket]);
+    }, [messages, selectedUser, selectedGroup, socket, authUser._id]);
 
     const handleEdit = (message) => {
         setEditingMessage(message);
