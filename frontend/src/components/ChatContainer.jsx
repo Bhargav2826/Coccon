@@ -190,13 +190,15 @@ const ChatContainer = () => {
 
             {/* Typing Indicator */}
             {typingUser === selectedUser._id && (
-                <div className="px-5 py-2 flex items-center gap-2">
+                <div className="px-6 py-2 flex items-center gap-3 animate-typing-in">
                     <div className="flex gap-1">
-                        <span className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <span className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <span className="size-1.5 bg-primary rounded-full animate-bounce" />
+                        <span className="size-1.5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                        <span className="size-1.5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                        <span className="size-1.5 bg-green-500 rounded-full animate-bounce" />
                     </div>
-                    <span className="text-xs text-base-content/50 italic">{selectedUser.fullName} is typing...</span>
+                    <span className="text-xs text-zinc-500 italic">
+                        {selectedUser.fullName} is typing...
+                    </span>
                 </div>
             )}
 
