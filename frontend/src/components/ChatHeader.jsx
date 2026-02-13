@@ -3,6 +3,8 @@ import { useChatStore } from "../store/useChatStore";
 import { useSocketContext } from "../contexts/SocketContext";
 import { useState } from "react";
 import ChatSettings from "./ChatSettings";
+import { formatLastSeen } from "../utils/dateUtils";
+
 
 const ChatHeader = () => {
     const { selectedUser, selectedGroup, setSelectedUser, setSelectedGroup, searchMessages, searchQuery } = useChatStore();
@@ -37,7 +39,7 @@ const ChatHeader = () => {
                         <p className="text-[10px] text-base-content/70">
                             {selectedUser ? (
                                 isOnline ? (selectedUser.status?.text || "Online") :
-                                    `Last seen ${new Date(selectedUser.lastSeen || Date.now()).toLocaleTimeString()}`
+                                    formatLastSeen(selectedUser.lastSeen)
                             ) : (
                                 `${selectedGroup.members?.length} members`
                             )}

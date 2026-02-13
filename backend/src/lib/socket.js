@@ -58,6 +58,18 @@ io.on("connection", async (socket) => {
 
         console.log(`👤 User ${userId} connected. Total tabs: ${userConnectionCount[userId]}`);
 
+        // Update lastSeen when user comes online (first tab)
+        if (userConnectionCount[userId] === 1) {
+            try {
+                await User.findByIdAndUpdate(userId, {
+                    lastSeen: new Date()
+                });
+                console.log(`⏰ Updated lastSeen for user ${userId} (came online)`);
+            } catch (err) {
+                console.error(`Failed to update lastSeen on connect for user ${userId}:`, err);
+            }
+        }
+
         // Check if this student has any ongoing classroom calls to join
         try {
             const studentRooms = await Room.find({ members: userId });
@@ -100,6 +112,20 @@ io.on("connection", async (socket) => {
     socket.on("ping-test", () => {
         console.log("🏓 Ping received from", socket.id);
         socket.emit("pong-test");
+    });
+
+    // Heartbeat to update lastSeen periodically
+    socket.on("heartbeat", async () => {
+        if (userId) {
+            try {
+                await User.findByIdAndUpdate(userId, {
+                    lastSeen: new Date()
+                });
+                console.log(`💓 Heartbeat: Updated lastSeen for user ${userId}`);
+            } catch (err) {
+                console.error(`Failed to update lastSeen on heartbeat for user ${userId}:`, err);
+            }
+        }
     });
 
     // --- Call Signaling Events ---
@@ -615,6 +641,16 @@ io.on("connection", async (socket) => {
             if (!userConnectionCount[userId] || userConnectionCount[userId] <= 0) {
                 delete userConnectionCount[userId];
                 console.log(`❌ User ${userId} is now completely offline`);
+
+                // Update lastSeen timestamp when user goes completely offline
+                try {
+                    await User.findByIdAndUpdate(userId, {
+                        lastSeen: new Date()
+                    });
+                    console.log(`⏰ Updated lastSeen for user ${userId}`);
+                } catch (err) {
+                    console.error(`Failed to update lastSeen for user ${userId}:`, err);
+                }
             }
         }
 

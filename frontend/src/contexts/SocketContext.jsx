@@ -33,7 +33,17 @@ export const SocketContextProvider = ({ children }) => {
                 setOnlineUsers(users);
             });
 
-            return () => socket.close();
+            // Heartbeat to update lastSeen every 2 minutes while user is active
+            const heartbeatInterval = setInterval(() => {
+                if (socket && socket.connected) {
+                    socket.emit("heartbeat");
+                }
+            }, 2 * 60 * 1000); // Every 2 minutes
+
+            return () => {
+                clearInterval(heartbeatInterval);
+                socket.close();
+            };
         } else {
             if (socket) {
                 socket.close();

@@ -293,3 +293,14 @@ export async function getStarredMessages() {
   const response = await axiosInstance.get("/messages/starred");
   return response.data;
 }
+
+export async function starMessage(messageId) {
+  const response = await axiosInstance.post(`/messages/star/${messageId}`);
+  return response.data;
+}
+
+export async function updateLastSeen() {
+  const response = await axiosInstance.put("/users/lastseen");
+  return response.data;
+}
+

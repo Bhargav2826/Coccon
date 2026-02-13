@@ -101,7 +101,7 @@ const ChatSidebar = () => {
                                     )}
                                 </div>
                                 <div className={`text-xs truncate ${user.unreadCount > 0 ? "font-semibold text-primary" : "text-base-content/60"}`}>
-                                    {user.lastMessage?.text || (user.lastMessage?.image ? "🖼️ Image" : "Last seen recently")}
+                                    {user.lastMessage?.text || (user.lastMessage?.image ? "🖼️ Image" : "No messages yet")}
                                 </div>
                             </div>
                         </button>
