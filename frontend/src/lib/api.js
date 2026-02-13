@@ -304,3 +304,9 @@ export async function updateLastSeen() {
   return response.data;
 }
 
+
+export async function votePoll(messageId, optionIndex, isGroup = false) {
+  const url = isGroup ? `/messages/groups/vote/${messageId}` : `/messages/vote/${messageId}`;
+  const response = await axiosInstance.put(url, { optionIndex });
+  return response.data;
+}

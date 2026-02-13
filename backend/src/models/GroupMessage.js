@@ -30,6 +30,20 @@ const groupMessageSchema = new mongoose.Schema(
         voiceUrl: {
             type: String,
         },
+        poll: {
+            question: { type: String },
+            options: [
+                {
+                    text: { type: String },
+                    voters: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
+                }
+            ],
+            allowMultiple: { type: Boolean, default: false }
+        },
+        contact: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        },
         isReadBy: [
             {
                 type: mongoose.Schema.Types.ObjectId,

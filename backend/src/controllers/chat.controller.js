@@ -65,7 +65,7 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
     try {
-        const { text, image, file, fileName, fileType, voiceUrl, replyTo } = req.body;
+        const { text, image, file, fileName, fileType, voiceUrl, replyTo, poll, contact } = req.body;
         const { id: receiverId } = req.params;
         const senderId = req.user._id;
 
@@ -102,12 +102,17 @@ export const sendMessage = async (req, res) => {
             fileName: fileName || undefined,
             voiceUrl: voiceUrl || undefined,
             replyTo: replyTo || undefined,
+            poll: poll || undefined,
+            contact: contact || undefined,
         });
 
         await newMessage.save();
 
         if (replyTo) {
             await newMessage.populate("replyTo");
+        }
+        if (contact) {
+            await newMessage.populate("contact", "fullName profilePic email");
         }
 
         // Broadcast via socket
@@ -210,6 +215,51 @@ export const getCallLogs = async (req, res) => {
         res.status(200).json(calls);
     } catch (error) {
         console.error("Error in getCallLogs:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+
+export const votePoll = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { optionIndex } = req.body;
+        const userId = req.user._id;
+
+        const message = await ChatMessage.findById(messageId);
+        if (!message) return res.status(404).json({ error: "Message not found" });
+
+        const poll = message.poll;
+        if (!poll) return res.status(400).json({ error: "This is not a poll" });
+
+        const option = poll.options[optionIndex];
+        if (!option) return res.status(400).json({ error: "Option not found" });
+
+        const existingVoteIndex = option.voters.indexOf(userId);
+
+        if (existingVoteIndex !== -1) {
+            option.voters.splice(existingVoteIndex, 1);
+        } else {
+            if (!poll.allowMultiple) {
+                poll.options.forEach((opt) => {
+                    const idx = opt.voters.indexOf(userId);
+                    if (idx !== -1) opt.voters.splice(idx, 1);
+                });
+            }
+            option.voters.push(userId);
+        }
+
+        await message.save();
+
+        const otherUserId = message.sender.toString() === userId.toString() ? message.receiver : message.sender;
+        const otherSocketId = getReceiverSocketId(otherUserId);
+        if (otherSocketId) {
+            io.to(otherSocketId).emit("messageUpdate", message);
+        }
+
+        res.status(200).json(message);
+    } catch (error) {
+        console.error("Error in votePoll:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };

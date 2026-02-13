@@ -339,5 +339,14 @@ export const useChatStore = create((set, get) => ({
             set({ selectedUser: null, typingUser: null });
         }
     },
+
+    votePoll: async (messageId, optionIndex, isGroup = false) => {
+        try {
+            const { votePoll: voteApi } = await import("../lib/api");
+            await voteApi(messageId, optionIndex, isGroup);
+        } catch (error) {
+            toast.error("Failed to vote");
+        }
+    },
 }));
 

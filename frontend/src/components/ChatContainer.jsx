@@ -4,7 +4,7 @@ import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocketContext } from "../contexts/SocketContext";
-import { FileIcon, DownloadCloud, Check, CheckCheck, Play, Pause, Reply, Edit2, Trash2, Star, MoreVertical, Smile } from "lucide-react";
+import { FileIcon, DownloadCloud, Check, CheckCheck, Play, Pause, Reply, Edit2, Trash2, Star, MoreVertical, Smile, Download } from "lucide-react";
 import { motion, useAnimation } from "framer-motion";
 import LottieReaction, { REACTION_LOTTIES } from "./LottieReaction";
 
@@ -86,6 +86,30 @@ const ChatContainer = () => {
         if (!editText.trim()) return;
         await updateMessage(editingMessage._id, editText);
         setEditingMessage(null);
+    };
+
+    const handleDownload = async (url, fileName) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const urlBlob = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = urlBlob;
+            link.download = fileName || `image-${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(urlBlob);
+        } catch (error) {
+            console.error("Download failed:", error);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName || `image-${Date.now()}`;
+            link.target = "_blank";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     };
 
     const VoicePlayer = ({ url }) => {
@@ -213,7 +237,16 @@ const ChatContainer = () => {
                                 ) : (message.fileUrl || message.image) && (
                                     <div className="mt-1">
                                         {message.fileType === "image" || (!message.fileType && message.image) ? (
-                                            <img src={message.fileUrl || message.image} className="max-w-[250px] rounded-lg border border-black/5" />
+                                            <div className="relative group/image">
+                                                <img src={message.fileUrl || message.image} className="max-w-[250px] rounded-lg border border-black/5" />
+                                                <button
+                                                    onClick={() => handleDownload(message.fileUrl || message.image, message.fileName)}
+                                                    className="absolute bottom-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover/image:opacity-100 transition-opacity"
+                                                    title="Download Image"
+                                                >
+                                                    <Download size={16} />
+                                                </button>
+                                            </div>
                                         ) : (
                                             <a href={message.fileUrl} target="_blank" className="flex items-center gap-3 p-3 bg-black/10 rounded-lg border border-black/5">
                                                 <FileIcon className="size-5 text-primary" />

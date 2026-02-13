@@ -7,13 +7,15 @@ import {
     updateMessage,
     deleteMessage,
     searchMessages,
-    getCallLogs
+    getCallLogs,
+    votePoll
 } from "../controllers/chat.controller.js";
 import {
     createGroup,
     getGroups,
     sendGroupMessage,
-    getGroupMessages
+    getGroupMessages,
+    voteGroupPoll
 } from "../controllers/group.controller.js";
 
 const router = express.Router();
@@ -26,10 +28,12 @@ router.post("/groups", protectRoute, createGroup);
 router.get("/groups", protectRoute, getGroups);
 router.post("/groups/:groupId/send", protectRoute, sendGroupMessage);
 router.get("/groups/:groupId/messages", protectRoute, getGroupMessages);
+router.put("/groups/vote/:messageId", protectRoute, voteGroupPoll);
 
 router.get("/:id", protectRoute, getMessages);
 router.post("/send/:id", protectRoute, sendMessage);
 router.put("/update/:messageId", protectRoute, updateMessage);
+router.put("/vote/:messageId", protectRoute, votePoll);
 router.delete("/delete/:messageId", protectRoute, deleteMessage);
 router.get("/calls/:id", protectRoute, getCallLogs);
 

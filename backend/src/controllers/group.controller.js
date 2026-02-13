@@ -59,7 +59,7 @@ export const getGroups = async (req, res) => {
 
 export const sendGroupMessage = async (req, res) => {
     try {
-        const { text, image, file, fileName, fileType, voiceUrl, replyTo } = req.body;
+        const { text, image, file, fileName, fileType, voiceUrl, replyTo, poll, contact } = req.body;
         const { groupId } = req.params;
         const senderId = req.user._id;
 
@@ -94,12 +94,15 @@ export const sendGroupMessage = async (req, res) => {
             fileName,
             voiceUrl,
             replyTo,
+            poll,
+            contact,
         });
 
         await newMessage.save();
         const populatedMessage = await newMessage.populate([
             { path: "sender", select: "fullName profilePic" },
-            { path: "replyTo" }
+            { path: "replyTo" },
+            { path: "contact", select: "fullName profilePic email" }
         ]);
 
         group.lastMessage = newMessage._id;
@@ -125,8 +128,63 @@ export const getGroupMessages = async (req, res) => {
             .populate("sender", "fullName profilePic")
             .populate("replyTo")
             .sort({ createdAt: 1 });
+
         res.status(200).json(messages);
     } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const voteGroupPoll = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { optionIndex } = req.body;
+        const userId = req.user._id;
+
+        const message = await GroupMessage.findById(messageId).populate("group");
+        if (!message) return res.status(404).json({ error: "Message not found" });
+
+        const poll = message.poll;
+        if (!poll) return res.status(400).json({ error: "This is not a poll" });
+
+        const option = poll.options[optionIndex];
+        if (!option) return res.status(400).json({ error: "Option not found" });
+
+        // Check vote
+        const existingVoteIndex = option.voters.indexOf(userId);
+
+        if (existingVoteIndex !== -1) {
+            option.voters.splice(existingVoteIndex, 1);
+        } else {
+            if (!poll.allowMultiple) {
+                poll.options.forEach((opt) => {
+                    const idx = opt.voters.indexOf(userId);
+                    if (idx !== -1) opt.voters.splice(idx, 1);
+                });
+            }
+            option.voters.push(userId);
+        }
+
+        await message.save();
+
+        // Broadcast to group members
+        const group = message.group;
+        if (group && group.members) {
+            group.members.forEach((memberId) => {
+                const socketId = getReceiverSocketId(memberId);
+                // Front-end should listen for 'messageUpdate' or similar. 
+                // We'll use 'groupMessageUpdate' to be specific if needed, or re-use 'messageUpdate' if frontend is generic.
+                // ChatStore likely handles message updates differently for groups?
+                // Let's use 'messageUpdate' which seems generic enough, but check frontend logic later.
+                if (socketId) {
+                    io.to(socketId).emit("messageUpdate", message);
+                }
+            });
+        }
+
+        res.status(200).json(message);
+    } catch (error) {
+        console.error("Error in voteGroupPoll:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
