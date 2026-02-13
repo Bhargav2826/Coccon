@@ -1,4 +1,4 @@
-import { X, Search, Phone, Video, MoreVertical, Settings, Clock } from "lucide-react";
+import { X, Search, Phone, Video, MoreVertical, Settings } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 import { useSocketContext } from "../contexts/SocketContext";
 import { useState } from "react";
@@ -6,7 +6,6 @@ import ChatSettings from "./ChatSettings";
 import { formatLastSeen } from "../utils/dateUtils";
 import { Link } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
-import CallHistoryModal from "./CallHistoryModal";
 
 
 const ChatHeader = () => {
@@ -15,7 +14,6 @@ const ChatHeader = () => {
     const { authUser } = useAuthUser();
     const [showSearch, setShowSearch] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
 
     if (!selectedUser && !selectedGroup) return null;
 
@@ -103,13 +101,6 @@ const ChatHeader = () => {
                             >
                                 <Video size={18} />
                             </Link>
-                            <button
-                                onClick={() => setShowHistory(true)}
-                                className="btn btn-ghost btn-circle btn-sm"
-                                title="Call History"
-                            >
-                                <Clock size={18} />
-                            </button>
                         </>
                     )}
 
@@ -122,7 +113,6 @@ const ChatHeader = () => {
                 </div>
             </div>
             {showSettings && <ChatSettings onClose={() => setShowSettings(false)} />}
-            {showHistory && selectedUser && <CallHistoryModal user={selectedUser} onClose={() => setShowHistory(false)} />}
         </div>
     );
 };
