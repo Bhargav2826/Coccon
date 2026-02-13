@@ -6,7 +6,8 @@ import {
     sendMessage,
     updateMessage,
     deleteMessage,
-    searchMessages
+    searchMessages,
+    getCallLogs
 } from "../controllers/chat.controller.js";
 import {
     createGroup,
@@ -30,5 +31,6 @@ router.get("/:id", protectRoute, getMessages);
 router.post("/send/:id", protectRoute, sendMessage);
 router.put("/update/:messageId", protectRoute, updateMessage);
 router.delete("/delete/:messageId", protectRoute, deleteMessage);
+router.get("/calls/:id", protectRoute, getCallLogs);
 
 export default router;

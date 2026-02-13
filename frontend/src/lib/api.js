@@ -242,6 +242,12 @@ export async function searchMessages(query, otherUserId) {
   return response.data;
 }
 
+export async function getChatCallLogs(userId) {
+  const response = await axiosInstance.get(`/messages/calls/${userId}`);
+  return response.data;
+}
+
+
 // Group Chat API functions
 export async function createGroup(groupData) {
   const response = await axiosInstance.post("/messages/groups", groupData);

@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import ChatMessage from "../models/ChatMessage.js";
+import Call from "../models/Call.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 import cloudinary from "../lib/cloudinary.js";
 
@@ -191,6 +192,24 @@ export const searchMessages = async (req, res) => {
 
         res.status(200).json(messages);
     } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const getCallLogs = async (req, res) => {
+    try {
+        const { id: userToChatId } = req.params;
+        const myId = req.user._id;
+
+        const calls = await Call.find({
+            participants: { $all: [myId, userToChatId] }
+        })
+            .populate("participants", "fullName profilePic")
+            .sort({ createdAt: -1 });
+
+        res.status(200).json(calls);
+    } catch (error) {
+        console.error("Error in getCallLogs:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
