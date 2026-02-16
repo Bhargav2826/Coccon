@@ -4,7 +4,7 @@ import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocketContext } from "../contexts/SocketContext";
-import { FileIcon, DownloadCloud, Check, CheckCheck, Play, Pause, Reply, Edit2, Trash2, Star, MoreVertical, Smile, Download } from "lucide-react";
+import { FileIcon, DownloadCloud, Check, CheckCheck, Play, Pause, Reply, Edit2, Trash2, Star, MoreVertical, Smile, Download, X } from "lucide-react";
 import { motion, useAnimation } from "framer-motion";
 import LottieReaction, { REACTION_LOTTIES } from "./LottieReaction";
 
@@ -33,8 +33,10 @@ const ChatContainer = () => {
     const [editingMessage, setEditingMessage] = useState(null);
     const [editText, setEditText] = useState("");
     const [showReactionPicker, setShowReactionPicker] = useState(null);
+    const [expandedImage, setExpandedImage] = useState(null);
 
     useEffect(() => {
+        setExpandedImage(null);
         updateLastSeen();
         const interval = setInterval(updateLastSeen, 60000); // Every minute
 
@@ -238,7 +240,11 @@ const ChatContainer = () => {
                                     <div className="mt-1">
                                         {message.fileType === "image" || (!message.fileType && message.image) ? (
                                             <div className="relative group/image">
-                                                <img src={message.fileUrl || message.image} className="max-w-[250px] rounded-lg border border-black/5" />
+                                                <img
+                                                    src={message.fileUrl || message.image}
+                                                    className="max-w-[250px] rounded-lg border border-black/5 cursor-pointer hover:opacity-90 transition-opacity"
+                                                    onClick={() => setExpandedImage(message.fileUrl || message.image)}
+                                                />
                                                 <button
                                                     onClick={() => handleDownload(message.fileUrl || message.image, message.fileName)}
                                                     className="absolute bottom-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover/image:opacity-100 transition-opacity"
@@ -310,6 +316,24 @@ const ChatContainer = () => {
             )}
 
             <MessageInput />
+
+            {/* Image Modal */}
+            {expandedImage && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200">
+                    <button
+                        onClick={() => setExpandedImage(null)}
+                        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50 backdrop-blur-sm"
+                    >
+                        <X size={24} />
+                    </button>
+                    <img
+                        src={expandedImage}
+                        className="max-w-full max-h-full rounded-lg object-contain shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="absolute inset-0 -z-10" onClick={() => setExpandedImage(null)} />
+                </div>
+            )}
         </div>
     );
 };
