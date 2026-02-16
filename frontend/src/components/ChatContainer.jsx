@@ -319,7 +319,7 @@ const ChatContainer = () => {
 
             {/* Image Modal */}
             {expandedImage && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
                     <button
                         onClick={() => setExpandedImage(null)}
                         className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50 backdrop-blur-sm"
