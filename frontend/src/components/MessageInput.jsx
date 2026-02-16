@@ -298,39 +298,70 @@ const MessageInput = () => {
                     )}
 
                     {showCamera && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4">
-                            <div className="relative bg-base-100 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-base-300">
-                                <button onClick={stopCamera} className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors">
-                                    <X size={20} />
-                                </button>
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-in fade-in duration-300">
+                            <div className="relative bg-zinc-900 w-full max-w-2xl rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10">
+                                {/* Header / Close */}
+                                <div className="absolute top-0 inset-x-0 p-6 flex justify-between items-start z-20 bg-gradient-to-b from-black/80 to-transparent">
+                                    <div className="flex items-center gap-2">
+                                        <div className="size-2 bg-red-500 rounded-full animate-pulse" />
+                                        <span className="text-white text-xs font-bold tracking-widest uppercase opacity-80">Live Camera</span>
+                                    </div>
+                                    <button
+                                        onClick={stopCamera}
+                                        className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-md border border-white/10 hover:scale-110 active:scale-95"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
 
-                                <div className="aspect-video bg-black flex items-center justify-center overflow-hidden">
+                                {/* Camera Viewport */}
+                                <div className="aspect-[4/3] sm:aspect-video bg-black flex items-center justify-center overflow-hidden relative">
                                     {capturedImage ? (
-                                        <img src={capturedImage} className="w-full h-full object-cover" />
+                                        <img src={capturedImage} className="w-full h-full object-cover animate-in zoom-in-95 duration-300" />
                                     ) : (
                                         <video
                                             ref={videoRef}
                                             autoPlay
                                             playsInline
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover scale-x-[-1]"
                                             onLoadedMetadata={() => videoRef.current?.play()}
                                         />
                                     )}
+
+                                    {/* Overlay Gradient */}
+                                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent z-10" />
                                 </div>
 
-                                <div className="p-6 flex justify-center gap-4 bg-base-200">
+                                {/* Bottom Controls */}
+                                <div className="p-8 bg-zinc-900 flex justify-center items-center relative z-20">
                                     {!capturedImage ? (
-                                        <button
-                                            onClick={capturePhoto}
-                                            className="btn btn-primary btn-circle btn-lg shadow-lg hover:scale-110 transition-transform"
-                                        >
-                                            <Camera size={32} />
-                                        </button>
+                                        <div className="flex items-center gap-12">
+                                            <button
+                                                onClick={capturePhoto}
+                                                className="group relative size-20 flex items-center justify-center transition-all"
+                                            >
+                                                <div className="absolute inset-0 bg-white/10 rounded-full scale-125 group-hover:scale-150 transition-transform duration-500" />
+                                                <div className="absolute inset-0 border-4 border-white rounded-full" />
+                                                <div className="size-16 bg-white rounded-full scale-90 group-active:scale-75 transition-transform shadow-xl flex items-center justify-center">
+                                                    <Camera className="text-zinc-900 group-hover:scale-110 transition-transform" size={28} />
+                                                </div>
+                                            </button>
+                                        </div>
                                     ) : (
-                                        <>
-                                            <button onClick={() => setCapturedImage(null)} className="btn btn-ghost px-6">Retake</button>
-                                            <button onClick={sendCapturedPhoto} className="btn btn-primary px-8">Use Photo</button>
-                                        </>
+                                        <div className="flex items-center gap-6 w-full max-w-sm">
+                                            <button
+                                                onClick={() => setCapturedImage(null)}
+                                                className="btn flex-1 bg-white/5 hover:bg-white/10 text-white border-white/10 rounded-2xl h-14 normal-case text-base"
+                                            >
+                                                Retake
+                                            </button>
+                                            <button
+                                                onClick={sendCapturedPhoto}
+                                                className="btn flex-1 btn-primary rounded-2xl h-14 normal-case text-base shadow-lg shadow-primary/20"
+                                            >
+                                                Use Photo
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                                 <canvas ref={canvasRef} className="hidden" />
