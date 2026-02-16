@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
-import { Send, X, FileIcon, Paperclip, Mic, MicOff, Smile, Search } from "lucide-react";
+import { Send, X, FileIcon, Paperclip, Mic, MicOff, Smile, Search, Image as ImageIcon, Camera, Headphones, User, BarChart2, FileText } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useSocketContext } from "../contexts/SocketContext";
 
@@ -14,6 +14,7 @@ const MessageInput = () => {
     const [showGiphy, setShowGiphy] = useState(false);
     const [giphySearch, setGiphySearch] = useState("");
     const [giphyResults, setGiphyResults] = useState([]);
+    const [showAttachments, setShowAttachments] = useState(false);
 
     const fileInputRef = useRef(null);
     const mediaRecorderRef = useRef(null);
@@ -149,8 +150,57 @@ const MessageInput = () => {
 
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <div className="flex-1 flex gap-2 relative">
-                    <button type="button" className="btn btn-circle btn-sm btn-ghost" onClick={() => fileInputRef.current?.click()}><Paperclip size={20} /></button>
+                    <button
+                        type="button"
+                        className={`btn btn-circle btn-sm ${showAttachments ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setShowAttachments(!showAttachments)}
+                    >
+                        <Paperclip size={20} />
+                    </button>
                     <button type="button" className="btn btn-circle btn-sm btn-ghost" onClick={() => setShowGiphy(!showGiphy)}><Smile size={20} /></button>
+
+                    {showAttachments && (
+                        <div className="absolute bottom-12 left-0 bg-base-100 p-4 rounded-xl shadow-2xl border border-base-300 z-50 mb-2 animate-in fade-in slide-in-from-bottom-2 w-64">
+                            <div className="grid grid-cols-3 gap-4">
+                                <button className="flex flex-col items-center gap-1 group" onClick={() => { fileInputRef.current.accept = ".doc,.docx,.pdf,.txt"; fileInputRef.current.click(); setShowAttachments(false); }}>
+                                    <div className="p-3 bg-indigo-100 text-indigo-600 rounded-full group-hover:scale-110 transition-transform">
+                                        <FileText size={24} />
+                                    </div>
+                                    <span className="text-xs text-center">Document</span>
+                                </button>
+                                <button className="flex flex-col items-center gap-1 group" onClick={() => { fileInputRef.current.accept = "image/*,video/*"; fileInputRef.current.click(); setShowAttachments(false); }}>
+                                    <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:scale-110 transition-transform">
+                                        <ImageIcon size={24} />
+                                    </div>
+                                    <span className="text-xs text-center">Gallery</span>
+                                </button>
+                                <button className="flex flex-col items-center gap-1 group">
+                                    <div className="p-3 bg-rose-100 text-rose-600 rounded-full group-hover:scale-110 transition-transform">
+                                        <Camera size={24} />
+                                    </div>
+                                    <span className="text-xs text-center">Camera</span>
+                                </button>
+                                <button className="flex flex-col items-center gap-1 group" onClick={() => { fileInputRef.current.accept = "audio/*"; fileInputRef.current.click(); setShowAttachments(false); }}>
+                                    <div className="p-3 bg-orange-100 text-orange-600 rounded-full group-hover:scale-110 transition-transform">
+                                        <Headphones size={24} />
+                                    </div>
+                                    <span className="text-xs text-center">Audio</span>
+                                </button>
+                                <button className="flex flex-col items-center gap-1 group">
+                                    <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:scale-110 transition-transform">
+                                        <User size={24} />
+                                    </div>
+                                    <span className="text-xs text-center">Contact</span>
+                                </button>
+                                <button className="flex flex-col items-center gap-1 group">
+                                    <div className="p-3 bg-teal-100 text-teal-600 rounded-full group-hover:scale-110 transition-transform">
+                                        <BarChart2 size={24} />
+                                    </div>
+                                    <span className="text-xs text-center">Poll</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <input
                         type="text"
