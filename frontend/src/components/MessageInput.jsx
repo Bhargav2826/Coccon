@@ -15,11 +15,15 @@ const MessageInput = () => {
     const [giphySearch, setGiphySearch] = useState("");
     const [giphyResults, setGiphyResults] = useState([]);
     const [showAttachments, setShowAttachments] = useState(false);
+    const [showContactPicker, setShowContactPicker] = useState(false);
+    const [showPollCreator, setShowPollCreator] = useState(false);
+    const [pollData, setPollData] = useState({ question: "", options: ["", ""] });
 
     const fileInputRef = useRef(null);
+    const cameraInputRef = useRef(null);
     const mediaRecorderRef = useRef(null);
     const typingTimeoutRef = useRef(null);
-    const { sendMessage, sendGroupMessage, setTyping, selectedUser, selectedGroup, replyMessage, setReplyMessage } = useChatStore();
+    const { sendMessage, sendGroupMessage, setTyping, selectedUser, selectedGroup, replyMessage, setReplyMessage, users } = useChatStore();
     const { socket } = useSocketContext();
 
     const GIPHY_API_KEY = "dc6zaTOxFJmzC"; // Public beta key for demo
@@ -102,8 +106,54 @@ const MessageInput = () => {
             setReplyMessage(null);
             removeFile();
             setShowGiphy(false);
+            setShowAttachments(false);
+            setShowPollCreator(false);
+            setShowContactPicker(false);
         } catch (error) {
             toast.error("Failed to send message");
+        }
+    };
+
+    const handleSendPoll = async () => {
+        if (!pollData.question.trim() || pollData.options.some(opt => !opt.trim())) {
+            return toast.error("Please fill poll question and all options");
+        }
+
+        const messageData = {
+            poll: {
+                question: pollData.question,
+                options: pollData.options.map(text => ({ text, votes: [] }))
+            },
+            replyTo: replyMessage?._id,
+        };
+
+        try {
+            if (selectedGroup) await sendGroupMessage(messageData);
+            else await sendMessage(messageData);
+            setShowPollCreator(false);
+            setPollData({ question: "", options: ["", ""] });
+        } catch (error) {
+            toast.error("Failed to create poll");
+        }
+    };
+
+    const handleSendContact = async (contact) => {
+        const messageData = {
+            contact: {
+                fullName: contact.fullName,
+                profilePic: contact.profilePic,
+                _id: contact._id
+            },
+            text: `Contact: ${contact.fullName}`,
+            replyTo: replyMessage?._id,
+        };
+
+        try {
+            if (selectedGroup) await sendGroupMessage(messageData);
+            else await sendMessage(messageData);
+            setShowContactPicker(false);
+        } catch (error) {
+            toast.error("Failed to share contact");
         }
     };
 
@@ -174,7 +224,7 @@ const MessageInput = () => {
                                     </div>
                                     <span className="text-xs text-center">Gallery</span>
                                 </button>
-                                <button className="flex flex-col items-center gap-1 group">
+                                <button className="flex flex-col items-center gap-1 group" onClick={() => { cameraInputRef.current?.click(); setShowAttachments(false); }}>
                                     <div className="p-3 bg-rose-100 text-rose-600 rounded-full group-hover:scale-110 transition-transform">
                                         <Camera size={24} />
                                     </div>
@@ -186,18 +236,93 @@ const MessageInput = () => {
                                     </div>
                                     <span className="text-xs text-center">Audio</span>
                                 </button>
-                                <button className="flex flex-col items-center gap-1 group">
+                                <button className="flex flex-col items-center gap-1 group" onClick={() => { setShowContactPicker(true); setShowAttachments(false); }}>
                                     <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:scale-110 transition-transform">
                                         <User size={24} />
                                     </div>
                                     <span className="text-xs text-center">Contact</span>
                                 </button>
-                                <button className="flex flex-col items-center gap-1 group">
+                                <button className="flex flex-col items-center gap-1 group" onClick={() => { setShowPollCreator(true); setShowAttachments(false); }}>
                                     <div className="p-3 bg-teal-100 text-teal-600 rounded-full group-hover:scale-110 transition-transform">
                                         <BarChart2 size={24} />
                                     </div>
                                     <span className="text-xs text-center">Poll</span>
                                 </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modals for Contact and Poll */}
+                    {showContactPicker && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+                            <div className="bg-base-100 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-base-300">
+                                <div className="p-4 border-b border-base-300 flex justify-between items-center bg-base-200">
+                                    <h3 className="font-bold">Share Contact</h3>
+                                    <button onClick={() => setShowContactPicker(false)}><X size={20} /></button>
+                                </div>
+                                <div className="max-h-96 overflow-y-auto p-2">
+                                    {users.filter(u => u._id !== selectedUser?._id).map(user => (
+                                        <div
+                                            key={user._id}
+                                            className="flex items-center gap-3 p-3 hover:bg-base-200 rounded-xl cursor-pointer"
+                                            onClick={() => handleSendContact(user)}
+                                        >
+                                            <img src={user.profilePic || "/avatar.png"} className="size-10 rounded-full border" />
+                                            <span className="font-medium">{user.fullName}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showPollCreator && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+                            <div className="bg-base-100 w-full max-w-md rounded-2xl shadow-2xl border border-base-300">
+                                <div className="p-4 border-b border-base-300 flex justify-between items-center bg-base-200 rounded-t-2xl">
+                                    <h3 className="font-bold">Create Poll</h3>
+                                    <button onClick={() => setShowPollCreator(false)}><X size={20} /></button>
+                                </div>
+                                <div className="p-4 space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold opacity-70">Question</label>
+                                        <input
+                                            className="input input-bordered w-full"
+                                            placeholder="Ask something..."
+                                            value={pollData.question}
+                                            onChange={e => setPollData({ ...pollData, question: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold opacity-70">Options</label>
+                                        {pollData.options.map((opt, i) => (
+                                            <div key={i} className="flex gap-2">
+                                                <input
+                                                    className="input input-bordered input-sm flex-1"
+                                                    placeholder={`Option ${i + 1}`}
+                                                    value={opt}
+                                                    onChange={e => {
+                                                        const newOpts = [...pollData.options];
+                                                        newOpts[i] = e.target.value;
+                                                        setPollData({ ...pollData, options: newOpts });
+                                                    }}
+                                                />
+                                                {pollData.options.length > 2 && (
+                                                    <button onClick={() => setPollData({ ...pollData, options: pollData.options.filter((_, idx) => idx !== i) })} className="btn btn-ghost btn-xs text-error">Remove</button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {pollData.options.length < 5 && (
+                                            <button
+                                                className="btn btn-ghost btn-xs btn-primary"
+                                                onClick={() => setPollData({ ...pollData, options: [...pollData.options, ""] })}
+                                            >
+                                                + Add Option
+                                            </button>
+                                        )}
+                                    </div>
+                                    <button className="btn btn-primary w-full" onClick={handleSendPoll}>Create Poll</button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -243,6 +368,17 @@ const MessageInput = () => {
                     )}
 
                     <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            setFileName(file.name);
+                            setFileType(file.type);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setFilePreview(reader.result);
+                            reader.readAsDataURL(file);
+                        }
+                    }} />
+
+                    <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
                             setFileName(file.name);
