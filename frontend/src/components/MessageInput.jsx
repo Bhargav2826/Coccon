@@ -162,13 +162,24 @@ const MessageInput = () => {
         }
     };
 
+    useEffect(() => {
+        if (showCamera && cameraStream && videoRef.current) {
+            videoRef.current.srcObject = cameraStream;
+        }
+    }, [showCamera, cameraStream]);
+
     const startCamera = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "user",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            });
             setCameraStream(stream);
             setShowCamera(true);
             setShowAttachments(false);
-            if (videoRef.current) videoRef.current.srcObject = stream;
         } catch (error) {
             toast.error("Could not access camera");
             console.error(error);
@@ -186,11 +197,19 @@ const MessageInput = () => {
 
     const capturePhoto = () => {
         if (videoRef.current && canvasRef.current) {
-            const context = canvasRef.current.getContext("2d");
-            canvasRef.current.width = videoRef.current.videoWidth;
-            canvasRef.current.height = videoRef.current.videoHeight;
-            context.drawImage(videoRef.current, 0, 0);
-            const imageData = canvasRef.current.toDataURL("image/jpeg");
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            const context = canvas.getContext("2d");
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Mirror the context to match the mirrored video preview
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL("image/jpeg", 0.9);
             setCapturedImage(imageData);
         }
     };
