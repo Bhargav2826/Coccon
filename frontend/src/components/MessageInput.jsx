@@ -17,10 +17,15 @@ const MessageInput = () => {
     const [showAttachments, setShowAttachments] = useState(false);
     const [showContactPicker, setShowContactPicker] = useState(false);
     const [showPollCreator, setShowPollCreator] = useState(false);
+    const [showCamera, setShowCamera] = useState(false);
+    const [cameraStream, setCameraStream] = useState(null);
+    const [capturedImage, setCapturedImage] = useState(null);
     const [pollData, setPollData] = useState({ question: "", options: ["", ""] });
 
     const fileInputRef = useRef(null);
     const cameraInputRef = useRef(null);
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
     const mediaRecorderRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const { sendMessage, sendGroupMessage, setTyping, selectedUser, selectedGroup, replyMessage, setReplyMessage, users } = useChatStore();
@@ -157,6 +162,46 @@ const MessageInput = () => {
         }
     };
 
+    const startCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            setCameraStream(stream);
+            setShowCamera(true);
+            setShowAttachments(false);
+            if (videoRef.current) videoRef.current.srcObject = stream;
+        } catch (error) {
+            toast.error("Could not access camera");
+            console.error(error);
+        }
+    };
+
+    const stopCamera = () => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            setCameraStream(null);
+        }
+        setShowCamera(false);
+        setCapturedImage(null);
+    };
+
+    const capturePhoto = () => {
+        if (videoRef.current && canvasRef.current) {
+            const context = canvasRef.current.getContext("2d");
+            canvasRef.current.width = videoRef.current.videoWidth;
+            canvasRef.current.height = videoRef.current.videoHeight;
+            context.drawImage(videoRef.current, 0, 0);
+            const imageData = canvasRef.current.toDataURL("image/jpeg");
+            setCapturedImage(imageData);
+        }
+    };
+
+    const sendCapturedPhoto = () => {
+        setFilePreview(capturedImage);
+        setFileType("image/jpeg");
+        setFileName(`camera_capture_${Date.now()}.jpg`);
+        stopCamera();
+    };
+
     const removeFile = () => {
         setFilePreview(null);
         setFileType(null);
@@ -224,7 +269,7 @@ const MessageInput = () => {
                                     </div>
                                     <span className="text-xs text-center">Gallery</span>
                                 </button>
-                                <button className="flex flex-col items-center gap-1 group" onClick={() => { cameraInputRef.current?.click(); setShowAttachments(false); }}>
+                                <button className="flex flex-col items-center gap-1 group" onClick={startCamera}>
                                     <div className="p-3 bg-rose-100 text-rose-600 rounded-full group-hover:scale-110 transition-transform">
                                         <Camera size={24} />
                                     </div>
@@ -252,7 +297,47 @@ const MessageInput = () => {
                         </div>
                     )}
 
-                    {/* Modals for Contact and Poll */}
+                    {showCamera && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4">
+                            <div className="relative bg-base-100 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-base-300">
+                                <button onClick={stopCamera} className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors">
+                                    <X size={20} />
+                                </button>
+
+                                <div className="aspect-video bg-black flex items-center justify-center overflow-hidden">
+                                    {capturedImage ? (
+                                        <img src={capturedImage} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            className="w-full h-full object-cover"
+                                            onLoadedMetadata={() => videoRef.current?.play()}
+                                        />
+                                    )}
+                                </div>
+
+                                <div className="p-6 flex justify-center gap-4 bg-base-200">
+                                    {!capturedImage ? (
+                                        <button
+                                            onClick={capturePhoto}
+                                            className="btn btn-primary btn-circle btn-lg shadow-lg hover:scale-110 transition-transform"
+                                        >
+                                            <Camera size={32} />
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button onClick={() => setCapturedImage(null)} className="btn btn-ghost px-6">Retake</button>
+                                            <button onClick={sendCapturedPhoto} className="btn btn-primary px-8">Use Photo</button>
+                                        </>
+                                    )}
+                                </div>
+                                <canvas ref={canvasRef} className="hidden" />
+                            </div>
+                        </div>
+                    )}
+
                     {showContactPicker && (
                         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
                             <div className="bg-base-100 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-base-300">
