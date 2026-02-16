@@ -166,7 +166,7 @@ const MessageInput = () => {
         if (showCamera && cameraStream && videoRef.current) {
             videoRef.current.srcObject = cameraStream;
         }
-    }, [showCamera, cameraStream]);
+    }, [showCamera, cameraStream, capturedImage]);
 
     const startCamera = async () => {
         try {
