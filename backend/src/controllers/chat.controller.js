@@ -83,9 +83,12 @@ export const sendMessage = async (req, res) => {
         if (isVoiceMessage && file && !file.startsWith("http")) {
             // Handle voice message upload
             try {
-                const uploadResponse = await cloudinary.uploader.upload(file, {
+                // Cloudinary can sometimes fail with 'codecs=opus' in the data URI prefix
+                const cleanFile = file.replace(/;codecs=[^;,]+/, "");
+
+                const uploadResponse = await cloudinary.uploader.upload(cleanFile, {
                     resource_type: "video", // Cloudinary uses 'video' for audio files
-                    format: "ogg",
+                    format: "mp3",          // Transcode to mp3 for universal support
                 });
                 finalVoiceUrl = uploadResponse.secure_url;
             } catch (uploadError) {

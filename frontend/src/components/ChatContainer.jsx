@@ -8,6 +8,101 @@ import { FileIcon, DownloadCloud, Check, CheckCheck, Play, Pause, Reply, Edit2, 
 import { motion, useAnimation } from "framer-motion";
 import LottieReaction, { REACTION_LOTTIES } from "./LottieReaction";
 
+const VoicePlayer = ({ url }) => {
+    const audioRef = useRef(null);
+    const [playing, setPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+
+    const toggle = () => {
+        if (!audioRef.current) return;
+        if (playing) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play().catch(err => {
+                console.error("Audio Playback Error:", err);
+            });
+        }
+    };
+
+    const formatTime = (time) => {
+        if (isNaN(time) || time === Infinity) return "0:00";
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    };
+
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    return (
+        <div className="flex items-center gap-4 bg-white/10 dark:bg-base-300/80 backdrop-blur-md p-3 rounded-2xl min-w-[240px] border border-white/5 shadow-lg group transition-all hover:bg-white/20">
+            <audio
+                ref={audioRef}
+                src={url}
+                crossOrigin="anonymous"
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                onEnded={() => {
+                    setPlaying(false);
+                    setCurrentTime(0);
+                }}
+                onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+                onLoadedMetadata={(e) => {
+                    if (e.target.duration !== Infinity && !isNaN(e.target.duration)) {
+                        setDuration(e.target.duration);
+                    }
+                }}
+                preload="metadata"
+            />
+
+            {/* Play Button with Gradient */}
+            <button
+                onClick={toggle}
+                className="size-10 flex items-center justify-center rounded-full bg-gradient-to-tr from-primary to-primary-focus text-primary-content shadow-md shadow-primary/20 transform active:scale-90 transition-all hover:scale-105"
+                type="button"
+            >
+                {playing ? <Pause size={18} fill="currentColor" /> : <Play size={18} className="translate-x-0.5" fill="currentColor" />}
+            </button>
+
+            {/* Audio Waveform/Progress */}
+            <div className="flex-1 flex flex-col gap-1.5 cursor-pointer" onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const clickedProgress = x / rect.width;
+                if (audioRef.current && duration) {
+                    audioRef.current.currentTime = clickedProgress * duration;
+                }
+            }}>
+                <div className="h-1 bg-white/20 rounded-full overflow-hidden relative">
+                    <div
+                        className="h-full bg-primary rounded-full absolute left-0 top-0 transition-all duration-75"
+                        style={{ width: `${progress}%` }}
+                    />
+                    {/* Pulsing head indicator */}
+                    <div
+                        className="size-2.5 bg-white rounded-full absolute top-1/2 -translate-y-1/2 shadow-sm border border-primary transition-all duration-75"
+                        style={{ left: `calc(${progress}% - 5px)` }}
+                    />
+                </div>
+
+                <div className="flex justify-between items-center text-[11px] font-medium opacity-70 tracking-tight">
+                    <span className="text-primary">{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                </div>
+            </div>
+
+            {/* Micro Wave Animation when playing */}
+            {playing && (
+                <div className="flex items-center gap-0.5 h-3 opacity-50">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="w-0.5 bg-primary rounded-full animate-bounce" style={{ height: '100%', animationDelay: `${i * 0.1}s` }} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ChatContainer = () => {
     const {
         messages,
@@ -114,75 +209,7 @@ const ChatContainer = () => {
         }
     };
 
-    const VoicePlayer = ({ url }) => {
-        const [playing, setPlaying] = useState(false);
-        const [currentTime, setCurrentTime] = useState(0);
-        const [duration, setDuration] = useState(0);
-        const audioRef = useRef(new Audio(url));
 
-        useEffect(() => {
-            const audio = audioRef.current;
-
-            const updateTime = () => setCurrentTime(audio.currentTime);
-            const updateDuration = () => setDuration(audio.duration);
-            const handleEnded = () => {
-                setPlaying(false);
-                setCurrentTime(0);
-            };
-
-            audio.addEventListener('timeupdate', updateTime);
-            audio.addEventListener('loadedmetadata', updateDuration);
-            audio.addEventListener('ended', handleEnded);
-
-            return () => {
-                audio.removeEventListener('timeupdate', updateTime);
-                audio.removeEventListener('loadedmetadata', updateDuration);
-                audio.removeEventListener('ended', handleEnded);
-                audio.pause();
-            };
-        }, [url]);
-
-        const toggle = () => {
-            if (playing) {
-                audioRef.current.pause();
-            } else {
-                audioRef.current.play();
-            }
-            setPlaying(!playing);
-        };
-
-        const formatTime = (time) => {
-            if (isNaN(time)) return "0:00";
-            const minutes = Math.floor(time / 60);
-            const seconds = Math.floor(time % 60);
-            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        };
-
-        const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-        return (
-            <div className="flex items-center gap-3 bg-base-200/50 p-3 rounded-xl min-w-[200px] max-w-[280px]">
-                <button
-                    onClick={toggle}
-                    className="btn btn-circle btn-sm btn-primary hover:scale-110 transition-transform"
-                >
-                    {playing ? <Pause size={16} /> : <Play size={16} />}
-                </button>
-                <div className="flex-1 flex flex-col gap-1">
-                    <div className="h-1.5 bg-primary/20 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-primary transition-all duration-100 rounded-full"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <div className="flex justify-between text-[10px] opacity-60">
-                        <span>{formatTime(currentTime)}</span>
-                        <span>{formatTime(duration)}</span>
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     if (isMessagesLoading) {
         return (
@@ -289,7 +316,7 @@ const ChatContainer = () => {
                                 )}
 
                                 {message.voiceUrl || (message.fileType && message.fileType.startsWith("audio")) ? (
-                                    <VoicePlayer url={message.voiceUrl || message.fileUrl} />
+                                    <VoicePlayer key={`voice-${message._id}`} url={message.voiceUrl || message.fileUrl} />
                                 ) : (message.fileUrl || message.image) && (
                                     <div className="mt-1">
                                         {message.fileType === "image" || (!message.fileType && message.image) ? (
