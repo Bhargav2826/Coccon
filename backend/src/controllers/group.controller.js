@@ -66,22 +66,45 @@ export const sendGroupMessage = async (req, res) => {
         const group = await GroupChat.findById(groupId);
         if (!group) return res.status(404).json({ error: "Group not found" });
 
+        // Check if it's a classroom group and restrict posting to admin (faculty) only
+        if (group.type === 'classroom' && group.admin.toString() !== senderId.toString()) {
+            return res.status(403).json({ error: "Only faculty can send messages in this classroom group" });
+        }
+
         let finalFileUrl = "";
         let finalFileType = fileType || "text";
+        let finalVoiceUrl = "";
 
-        const fileToUpload = file || image;
-        if (fileToUpload && !fileToUpload.startsWith("http")) {
+        // Check if this is a voice message (audio file)
+        const isVoiceMessage = fileType && (fileType.startsWith("audio") || fileType === "audio/ogg");
+
+        if (isVoiceMessage && file && !file.startsWith("http")) {
+            // Handle voice message upload
             try {
-                const uploadResponse = await cloudinary.uploader.upload(fileToUpload, {
-                    resource_type: "auto",
+                const uploadResponse = await cloudinary.uploader.upload(file, {
+                    resource_type: "video", // Cloudinary uses 'video' for audio files
+                    format: "ogg",
                 });
-                finalFileUrl = uploadResponse.secure_url;
-                finalFileType = uploadResponse.resource_type;
-            } catch (error) {
-                console.error("Cloudinary upload error:", error);
+                finalVoiceUrl = uploadResponse.secure_url;
+            } catch (uploadError) {
+                console.error("Voice upload error:", uploadError);
             }
-        } else if (typeof fileToUpload === "string" && fileToUpload.startsWith("http")) {
-            finalFileUrl = fileToUpload;
+        } else {
+            // Handle Image or File Upload if sent as base64/buffer
+            const fileToUpload = file || image;
+            if (fileToUpload && !fileToUpload.startsWith("http")) {
+                try {
+                    const uploadResponse = await cloudinary.uploader.upload(fileToUpload, {
+                        resource_type: "auto",
+                    });
+                    finalFileUrl = uploadResponse.secure_url;
+                    finalFileType = uploadResponse.resource_type;
+                } catch (error) {
+                    console.error("Cloudinary upload error:", error);
+                }
+            } else if (typeof fileToUpload === "string" && fileToUpload.startsWith("http")) {
+                finalFileUrl = fileToUpload;
+            }
         }
 
         const newMessage = new GroupMessage({
@@ -89,10 +112,10 @@ export const sendGroupMessage = async (req, res) => {
             sender: senderId,
             text,
             image: (finalFileType === "image" || image) ? (finalFileUrl || image) : undefined,
-            fileUrl: finalFileUrl || (fileType !== "text" ? file : undefined),
+            fileUrl: !isVoiceMessage ? (finalFileUrl || (fileType !== "text" ? file : undefined)) : undefined,
             fileType: finalFileType,
             fileName,
-            voiceUrl,
+            voiceUrl: finalVoiceUrl || voiceUrl || undefined,
             replyTo,
             poll,
             contact,

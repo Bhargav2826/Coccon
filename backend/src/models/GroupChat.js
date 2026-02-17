@@ -14,6 +14,11 @@ const groupChatSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        type: {
+            type: String,
+            enum: ['regular', 'classroom'],
+            default: 'regular',
+        },
         admin: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",

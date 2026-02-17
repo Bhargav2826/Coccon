@@ -1,6 +1,8 @@
 import Room from "../models/Room.js";
 import User from "../models/User.js";
 import Call from "../models/Call.js";
+import GroupChat from "../models/GroupChat.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 // Generate a unique invite code
 const generateInviteCode = () => {
@@ -46,8 +48,31 @@ export async function createRoom(req, res) {
       members: [facultyId], // Faculty is automatically a member
     });
 
+    // Create a corresponding group chat for the classroom
+    const newGroup = await GroupChat.create({
+      name: roomName,
+      description: `Official classroom group for ${roomName}`,
+      groupPic: `https://ui-avatars.com/api/?name=${encodeURIComponent(roomName)}&background=random`,
+      admin: facultyId,
+      members: [facultyId],
+      type: 'classroom',
+    });
+
+    // Notify all members (faculty)
+    newGroup.members.forEach(memberId => {
+      const socketId = getReceiverSocketId(memberId);
+      if (socketId) io.to(socketId).emit("newGroup", newGroup);
+    });
+
+    // Link the group to the room
+    newRoom.linkedGroup = newGroup._id;
+    await newRoom.save();
+
     // Populate faculty details
     await newRoom.populate("faculty", "fullName email");
+
+    // Include the linked group in the response
+    await newRoom.populate("linkedGroup");
 
     res.status(201).json({
       success: true,
@@ -80,6 +105,38 @@ export async function joinRoom(req, res) {
     room.members.push(userId);
     await room.save();
 
+    // Check if the room has a linked group chat
+    if (room.linkedGroup) {
+      // Add user to the linked group chat
+      const linkedGroup = await GroupChat.findById(room.linkedGroup);
+      if (linkedGroup && !linkedGroup.members.includes(userId)) {
+        linkedGroup.members.push(userId);
+        await linkedGroup.save();
+
+        // Notify the user who joined so the group appears in their chat list immediately
+        const socketId = getReceiverSocketId(userId);
+        if (socketId) io.to(socketId).emit("newGroup", linkedGroup);
+      }
+    } else {
+      // Create a linked group chat if it doesn't exist (Self-healing for existing classrooms)
+      const newGroup = await GroupChat.create({
+        name: room.roomName,
+        description: `Official classroom group for ${room.roomName}`,
+        groupPic: `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`,
+        admin: room.faculty._id || room.faculty, // Handle if populated or not
+        members: [room.faculty._id || room.faculty, userId],
+        type: 'classroom',
+      });
+      room.linkedGroup = newGroup._id;
+      await room.save();
+
+      // Notify all members
+      newGroup.members.forEach(memberId => {
+        const socketId = getReceiverSocketId(memberId);
+        if (socketId) io.to(socketId).emit("newGroup", newGroup);
+      });
+    }
+
     // Populate room details
     await room.populate("faculty", "fullName email");
     await room.populate("members", "fullName email role");
@@ -111,6 +168,30 @@ export async function getFacultyRooms(req, res) {
       .populate("faculty", "fullName email")
       .populate("members", "fullName email role")
       .sort({ createdAt: -1 });
+
+    // SELF-HEALING: Ensure all rooms have a linked group chat
+    for (const room of rooms) {
+      if (!room.linkedGroup) {
+        // Create the missing group chat
+        const newGroup = await GroupChat.create({
+          name: room.roomName,
+          description: `Official classroom group for ${room.roomName}`,
+          groupPic: `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`,
+          admin: facultyId,
+          members: [facultyId, ...room.members.map(m => m._id)],
+          type: 'classroom',
+        });
+
+        // Notify all members
+        newGroup.members.forEach(memberId => {
+          const socketId = getReceiverSocketId(memberId);
+          if (socketId) io.to(socketId).emit("newGroup", newGroup);
+        });
+
+        room.linkedGroup = newGroup._id;
+        await room.save();
+      }
+    }
 
     // For each room, check if there's an ongoing faculty call
     const roomsWithCallStatus = await Promise.all(rooms.map(async (room) => {
@@ -153,6 +234,31 @@ export async function getStudentRooms(req, res) {
       .populate("faculty", "fullName email")
       .populate("members", "fullName email role")
       .sort({ createdAt: -1 });
+
+    // SELF-HEALING: Ensure joined rooms have a linked group chat
+    for (const room of rooms) {
+      if (!room.linkedGroup) {
+        // Create the missing group chat (using room.faculty as admin)
+        const facultyId = room.faculty._id || room.faculty;
+        const newGroup = await GroupChat.create({
+          name: room.roomName,
+          description: `Official classroom group for ${room.roomName}`,
+          groupPic: `https://ui-avatars.com/api/?name=${encodeURIComponent(room.roomName)}&background=random`,
+          admin: facultyId,
+          members: [facultyId, ...room.members.map(m => m._id)],
+          type: 'classroom',
+        });
+
+        // Notify all members
+        newGroup.members.forEach(memberId => {
+          const socketId = getReceiverSocketId(memberId);
+          if (socketId) io.to(socketId).emit("newGroup", newGroup);
+        });
+
+        room.linkedGroup = newGroup._id;
+        await room.save();
+      }
+    }
 
     // For each room, check if there's an ongoing faculty call
     const roomsWithCallStatus = await Promise.all(rooms.map(async (room) => {
@@ -247,6 +353,11 @@ export async function deleteRoom(req, res) {
     }
 
 
+    // Delete the associated group chat if it exists
+    if (room.linkedGroup) {
+      await GroupChat.findByIdAndDelete(room.linkedGroup);
+    }
+
     // Delete the room
     await Room.findByIdAndDelete(roomId);
 
@@ -298,6 +409,17 @@ export async function deleteRooms(req, res) {
       return res.status(403).json({
         message: "You can only delete rooms that you created",
         notFoundIds
+      });
+    }
+
+    // Find linked groups and delete them
+    const groupIdsToDelete = rooms
+      .filter(room => room.linkedGroup)
+      .map(room => room.linkedGroup);
+
+    if (groupIdsToDelete.length > 0) {
+      await GroupChat.deleteMany({
+        _id: { $in: groupIdsToDelete }
       });
     }
 

@@ -11,6 +11,8 @@ const MessageInput = () => {
     const [fileName, setFileName] = useState("");
     const [recording, setRecording] = useState(false);
     const [audioBlob, setAudioBlob] = useState(null);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const [showVoicePreview, setShowVoicePreview] = useState(false);
     const [showGiphy, setShowGiphy] = useState(false);
     const [giphySearch, setGiphySearch] = useState("");
     const [giphyResults, setGiphyResults] = useState([]);
@@ -64,15 +66,29 @@ const MessageInput = () => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorderRef.current = new MediaRecorder(stream);
             const chunks = [];
+
+            // Start timer
+            setRecordingTime(0);
+            const timerInterval = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
+
             mediaRecorderRef.current.ondataavailable = (e) => chunks.push(e.data);
             mediaRecorderRef.current.onstop = () => {
+                clearInterval(timerInterval);
                 const blob = new Blob(chunks, { type: "audio/ogg; codecs=opus" });
                 setAudioBlob(blob);
                 const reader = new FileReader();
-                reader.onloadend = () => setFilePreview(reader.result);
+                reader.onloadend = () => {
+                    setFilePreview(reader.result);
+                    setShowVoicePreview(true);
+                };
                 reader.readAsDataURL(blob);
                 setFileType("audio/ogg");
                 setFileName("voice_message.ogg");
+
+                // Stop all audio tracks
+                stream.getTracks().forEach(track => track.stop());
             };
             mediaRecorderRef.current.start();
             setRecording(true);
@@ -82,10 +98,24 @@ const MessageInput = () => {
     };
 
     const stopRecording = () => {
-        if (mediaRecorderRef.current) {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
             mediaRecorderRef.current.stop();
             setRecording(false);
         }
+    };
+
+    const cancelVoiceRecording = () => {
+        setShowVoicePreview(false);
+        setAudioBlob(null);
+        setFilePreview(null);
+        setFileType(null);
+        setFileName("");
+        setRecordingTime(0);
+    };
+
+    const sendVoiceMessage = () => {
+        setShowVoicePreview(false);
+        // The message will be sent via handleSendMessage when user clicks send
     };
 
     const handleSendMessage = async (e) => {
@@ -231,6 +261,76 @@ const MessageInput = () => {
 
     return (
         <div className="p-4 w-full relative">
+            {/* Recording Indicator */}
+            {recording && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-base-100 rounded-3xl p-8 shadow-2xl border border-base-300 flex flex-col items-center gap-6 min-w-[300px]">
+                        <div className="relative">
+                            <div className="size-24 bg-red-500/20 rounded-full flex items-center justify-center animate-pulse">
+                                <div className="size-20 bg-red-500/40 rounded-full flex items-center justify-center">
+                                    <Mic className="text-red-500 size-10" />
+                                </div>
+                            </div>
+                            <div className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full animate-ping" />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-lg font-semibold mb-1">Recording...</p>
+                            <p className="text-3xl font-mono font-bold text-primary">
+                                {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                            </p>
+                        </div>
+                        <button
+                            onClick={stopRecording}
+                            className="btn btn-error btn-wide rounded-full"
+                        >
+                            <MicOff size={20} />
+                            Stop Recording
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Voice Preview Modal */}
+            {showVoicePreview && filePreview && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-base-100 rounded-3xl p-8 shadow-2xl border border-base-300 flex flex-col items-center gap-6 min-w-[350px]">
+                        <div className="flex items-center gap-3">
+                            <div className="size-16 bg-primary/20 rounded-full flex items-center justify-center">
+                                <Mic className="text-primary size-8" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-lg">Voice Message</p>
+                                <p className="text-sm opacity-70">
+                                    Duration: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                                </p>
+                            </div>
+                        </div>
+
+                        <audio src={filePreview} controls className="w-full" />
+
+                        <div className="flex gap-3 w-full">
+                            <button
+                                onClick={cancelVoiceRecording}
+                                className="btn btn-outline flex-1 rounded-full"
+                            >
+                                <X size={20} />
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    sendVoiceMessage();
+                                    handleSendMessage();
+                                }}
+                                className="btn btn-primary flex-1 rounded-full"
+                            >
+                                <Send size={20} />
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {replyMessage && (
                 <div className="mb-2 p-2 bg-base-300 rounded-lg flex items-center justify-between animate-in slide-in-from-bottom-2">
                     <div className="flex flex-col border-l-2 border-primary pl-2 overflow-hidden">
@@ -525,16 +625,13 @@ const MessageInput = () => {
                     }} />
                 </div>
 
-                {!text && !filePreview ? (
+                {!text && !filePreview && !showVoicePreview ? (
                     <button
                         type="button"
-                        className={`btn btn-circle btn-sm ${recording ? 'btn-error animate-pulse' : 'btn-ghost'}`}
-                        onMouseDown={startRecording}
-                        onMouseUp={stopRecording}
-                        onTouchStart={startRecording}
-                        onTouchEnd={stopRecording}
+                        className="btn btn-circle btn-sm btn-ghost"
+                        onClick={startRecording}
                     >
-                        {recording ? <MicOff size={20} /> : <Mic size={20} />}
+                        <Mic size={20} />
                     </button>
                 ) : (
                     <button type="submit" className="btn btn-sm btn-primary btn-circle"><Send size={20} /></button>

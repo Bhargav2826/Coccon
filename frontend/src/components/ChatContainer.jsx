@@ -116,21 +116,69 @@ const ChatContainer = () => {
 
     const VoicePlayer = ({ url }) => {
         const [playing, setPlaying] = useState(false);
+        const [currentTime, setCurrentTime] = useState(0);
+        const [duration, setDuration] = useState(0);
         const audioRef = useRef(new Audio(url));
 
+        useEffect(() => {
+            const audio = audioRef.current;
+
+            const updateTime = () => setCurrentTime(audio.currentTime);
+            const updateDuration = () => setDuration(audio.duration);
+            const handleEnded = () => {
+                setPlaying(false);
+                setCurrentTime(0);
+            };
+
+            audio.addEventListener('timeupdate', updateTime);
+            audio.addEventListener('loadedmetadata', updateDuration);
+            audio.addEventListener('ended', handleEnded);
+
+            return () => {
+                audio.removeEventListener('timeupdate', updateTime);
+                audio.removeEventListener('loadedmetadata', updateDuration);
+                audio.removeEventListener('ended', handleEnded);
+                audio.pause();
+            };
+        }, [url]);
+
         const toggle = () => {
-            if (playing) audioRef.current.pause();
-            else audioRef.current.play();
+            if (playing) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play();
+            }
             setPlaying(!playing);
         };
 
+        const formatTime = (time) => {
+            if (isNaN(time)) return "0:00";
+            const minutes = Math.floor(time / 60);
+            const seconds = Math.floor(time % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        };
+
+        const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
         return (
-            <div className="flex items-center gap-2 bg-base-200/50 p-2 rounded-lg min-w-[120px]">
-                <button onClick={toggle} className="btn btn-circle btn-xs btn-primary">
-                    {playing ? <Pause size={12} /> : <Play size={12} />}
+            <div className="flex items-center gap-3 bg-base-200/50 p-3 rounded-xl min-w-[200px] max-w-[280px]">
+                <button
+                    onClick={toggle}
+                    className="btn btn-circle btn-sm btn-primary hover:scale-110 transition-transform"
+                >
+                    {playing ? <Pause size={16} /> : <Play size={16} />}
                 </button>
-                <div className="h-1 flex-1 bg-primary/20 rounded-full overflow-hidden">
-                    <div className={`h-full bg-primary ${playing ? 'w-full transition-all duration-1000' : 'w-0'}`} />
+                <div className="flex-1 flex flex-col gap-1">
+                    <div className="h-1.5 bg-primary/20 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-primary transition-all duration-100 rounded-full"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                    <div className="flex justify-between text-[10px] opacity-60">
+                        <span>{formatTime(currentTime)}</span>
+                        <span>{formatTime(duration)}</span>
+                    </div>
                 </div>
             </div>
         );
@@ -234,8 +282,8 @@ const ChatContainer = () => {
                                     </div>
                                 )}
 
-                                {message.voiceUrl ? (
-                                    <VoicePlayer url={message.voiceUrl} />
+                                {message.voiceUrl || (message.fileType && message.fileType.startsWith("audio")) ? (
+                                    <VoicePlayer url={message.voiceUrl || message.fileUrl} />
                                 ) : (message.fileUrl || message.image) && (
                                     <div className="mt-1">
                                         {message.fileType === "image" || (!message.fileType && message.image) ? (

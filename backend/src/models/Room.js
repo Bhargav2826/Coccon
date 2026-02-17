@@ -22,6 +22,10 @@ const roomSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    linkedGroup: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "GroupChat",
+    },
   },
   { timestamps: true }
 );

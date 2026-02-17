@@ -219,7 +219,7 @@ const userSchema = new mongoose.Schema(
         'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade',
         'coffee', 'winter', 'dim', 'nord', 'sunset'
       ],
-      default: 'night',
+      default: 'forest',
     },
     lastSeen: {
       type: Date,

@@ -75,21 +75,38 @@ export const sendMessage = async (req, res) => {
 
         let finalFileUrl = "";
         let finalFileType = fileType || "text";
+        let finalVoiceUrl = "";
 
-        // Handle Image or File Upload if sent as base64/buffer
-        const fileToUpload = file || image;
-        if (fileToUpload && !fileToUpload.startsWith("http")) {
+        // Check if this is a voice message (audio file)
+        const isVoiceMessage = fileType && (fileType.startsWith("audio") || fileType === "audio/ogg");
+
+        if (isVoiceMessage && file && !file.startsWith("http")) {
+            // Handle voice message upload
             try {
-                const uploadResponse = await cloudinary.uploader.upload(fileToUpload, {
-                    resource_type: "auto",
+                const uploadResponse = await cloudinary.uploader.upload(file, {
+                    resource_type: "video", // Cloudinary uses 'video' for audio files
+                    format: "ogg",
                 });
-                finalFileUrl = uploadResponse.secure_url;
-                finalFileType = uploadResponse.resource_type;
+                finalVoiceUrl = uploadResponse.secure_url;
             } catch (uploadError) {
-                console.error("Cloudinary upload error:", uploadError);
+                console.error("Voice upload error:", uploadError);
             }
-        } else if (typeof fileToUpload === "string" && fileToUpload.startsWith("http")) {
-            finalFileUrl = fileToUpload;
+        } else {
+            // Handle Image or File Upload if sent as base64/buffer
+            const fileToUpload = file || image;
+            if (fileToUpload && !fileToUpload.startsWith("http")) {
+                try {
+                    const uploadResponse = await cloudinary.uploader.upload(fileToUpload, {
+                        resource_type: "auto",
+                    });
+                    finalFileUrl = uploadResponse.secure_url;
+                    finalFileType = uploadResponse.resource_type;
+                } catch (uploadError) {
+                    console.error("Cloudinary upload error:", uploadError);
+                }
+            } else if (typeof fileToUpload === "string" && fileToUpload.startsWith("http")) {
+                finalFileUrl = fileToUpload;
+            }
         }
 
         const newMessage = new ChatMessage({
@@ -97,10 +114,10 @@ export const sendMessage = async (req, res) => {
             receiver: receiverId,
             text: text || "",
             image: (finalFileType === "image" || image) ? (finalFileUrl || image) : undefined,
-            fileUrl: finalFileUrl || (fileType !== "text" ? file : undefined),
+            fileUrl: !isVoiceMessage ? (finalFileUrl || (fileType !== "text" ? file : undefined)) : undefined,
             fileType: finalFileType,
             fileName: fileName || undefined,
-            voiceUrl: voiceUrl || undefined,
+            voiceUrl: finalVoiceUrl || voiceUrl || undefined,
             replyTo: replyTo || undefined,
             poll: poll || undefined,
             contact: contact || undefined,
