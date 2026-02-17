@@ -6,6 +6,8 @@ import ChatSettings from "./ChatSettings";
 import { formatLastSeen } from "../utils/dateUtils";
 import { Link } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
+import ProfilePreview from "./ProfilePreview";
+import UserAvatar from "./UserAvatar";
 
 
 const ChatHeader = () => {
@@ -14,6 +16,7 @@ const ChatHeader = () => {
     const { authUser } = useAuthUser();
     const [showSearch, setShowSearch] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     if (!selectedUser && !selectedGroup) return null;
 
@@ -34,18 +37,15 @@ const ChatHeader = () => {
         <div className="p-2.5 border-b border-base-300 bg-base-100/50 backdrop-blur-md sticky top-0 z-30">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="avatar">
-                        <div className="size-10 rounded-full relative">
-                            <img src={profilePic || "/avatar.png"} alt={title} />
-                            {isOnline && (
-                                <span className="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-base-100 rounded-full" />
-                            )}
-                        </div>
-                    </div>
+                    <UserAvatar
+                        user={selectedUser || { fullName: selectedGroup?.name, profilePic: selectedGroup?.groupPic }}
+                        size="md"
+                        onClick={() => setIsPreviewOpen(true)}
+                    />
 
                     <div>
                         <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{title}</h3>
+                            <h3 className="font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => setIsPreviewOpen(true)}>{title}</h3>
                             {selectedUser?.status?.emoji && <span>{selectedUser.status.emoji}</span>}
                         </div>
                         <p className="text-[10px] text-base-content/70">
@@ -113,6 +113,12 @@ const ChatHeader = () => {
                 </div>
             </div>
             {showSettings && <ChatSettings onClose={() => setShowSettings(false)} />}
+
+            <ProfilePreview
+                isOpen={isPreviewOpen}
+                onClose={() => setIsPreviewOpen(false)}
+                user={selectedUser || { fullName: selectedGroup?.name, profilePic: selectedGroup?.groupPic, role: 'Group' }}
+            />
         </div>
     );
 };

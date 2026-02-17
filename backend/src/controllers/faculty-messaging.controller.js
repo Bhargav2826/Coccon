@@ -90,7 +90,13 @@ export async function startFacultyVideoCall(req, res) {
             callerInfo: {
               id: facultyId.toString(),
               name: req.user.fullName,
-              profilePic: req.user.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user.fullName)}&background=random`
+              profilePic: req.user.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user.fullName)}&background=random`,
+              emojiAvatar: req.user.emojiAvatar,
+              lottieAvatar: req.user.lottieAvatar,
+              role: req.user.role,
+              academicSubjects: req.user.academicSubjects,
+              lastProfileUpdate: req.user.lastProfileUpdate,
+              profileVisibility: req.user.profileVisibility
             },
             isClassroomCall: true,
             roomName: room.roomName
@@ -128,7 +134,7 @@ export async function startFacultyVideoCall(req, res) {
         await newMessage.save();
 
         // Populate sender info for frontend display
-        await newMessage.populate("sender", "fullName profilePic");
+        await newMessage.populate("sender", "fullName profilePic role email academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility");
 
         // Update last message in GroupChat
         await GroupChat.findByIdAndUpdate(room.linkedGroup, {

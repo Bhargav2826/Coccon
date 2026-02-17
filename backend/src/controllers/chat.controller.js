@@ -132,7 +132,7 @@ export const sendMessage = async (req, res) => {
             await newMessage.populate("replyTo");
         }
         if (contact) {
-            await newMessage.populate("contact", "fullName profilePic email");
+            await newMessage.populate("contact", "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility");
         }
 
         // Broadcast via socket
@@ -229,7 +229,7 @@ export const getCallLogs = async (req, res) => {
         const calls = await Call.find({
             participants: { $all: [myId, userToChatId] }
         })
-            .populate("participants", "fullName profilePic")
+            .populate("participants", "fullName profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility")
             .sort({ createdAt: -1 });
 
         res.status(200).json(calls);

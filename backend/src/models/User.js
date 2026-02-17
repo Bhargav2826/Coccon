@@ -252,6 +252,31 @@ const userSchema = new mongoose.Schema(
       of: String,
       default: {},
     },
+    profileVisibility: {
+      type: String,
+      enum: ['everyone', 'friends', 'nobody'],
+      default: 'everyone',
+    },
+    lastProfileUpdate: {
+      type: Date,
+      default: Date.now,
+    },
+    avatarHistory: [{
+      type: String,
+      default: [],
+    }],
+    activeFrame: {
+      type: String, // 'gold', 'silver', 'blue', or null
+      default: null,
+    },
+    emojiAvatar: {
+      emoji: { type: String, default: "" },
+      gradient: { type: String, default: "" },
+    },
+    lottieAvatar: {
+      type: String, // name or URL of lottie animation
+      default: "",
+    },
   },
   { timestamps: true }
 );

@@ -168,7 +168,13 @@ const CallPage = () => {
               callerInfo: {
                 id: authUser._id,
                 name: authUser.fullName,
-                profilePic: authUser.profilePic
+                profilePic: authUser.profilePic,
+                emojiAvatar: authUser.emojiAvatar,
+                lottieAvatar: authUser.lottieAvatar,
+                role: authUser.role,
+                academicSubjects: authUser.academicSubjects,
+                lastProfileUpdate: authUser.lastProfileUpdate,
+                profileVisibility: authUser.profileVisibility
               }
             });
           }

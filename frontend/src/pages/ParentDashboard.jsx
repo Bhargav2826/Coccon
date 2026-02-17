@@ -38,6 +38,7 @@ import {
   CardSkeleton,
   AnalysisSkeleton
 } from "../components/SkeletonLoaders";
+import UserAvatar from "../components/UserAvatar";
 
 const AnalysisResultCard = ({ data, icon: Icon, title, dateLabel }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -542,9 +543,7 @@ const ParentDashboard = () => {
                 <div className="card-body p-3 sm:p-4">
                   <div className="flex items-center gap-3">
                     <div className="avatar">
-                      <div className="w-10 sm:w-12 rounded-full ring ring-base-100 ring-offset-base-100 ring-offset-2">
-                        <img src={child.profilePic} alt={child.fullName} />
-                      </div>
+                      <UserAvatar user={child} size="md" showStatus={false} />
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-semibold truncate">{child.fullName}</h3>
@@ -617,9 +616,7 @@ const ParentDashboard = () => {
                       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 mb-6">
                         <div className="flex items-center gap-4">
                           <div className="avatar">
-                            <div className="w-12 sm:w-14 rounded-full ring-2 ring-primary ring-offset-base-100 ring-offset-2">
-                              <img src={conversation.profilePic} alt={conversation.fullName} />
-                            </div>
+                            <UserAvatar user={conversation} size="lg" showStatus={false} />
                           </div>
                           <div>
                             <h3 className="font-bold text-lg sm:text-xl">{conversation.fullName}</h3>

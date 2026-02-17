@@ -3,6 +3,7 @@ import { useChatStore } from "../store/useChatStore";
 import { useSocketContext } from "../contexts/SocketContext";
 import { Users, User, Plus, Pin, BellOff, MessageSquare, Search, X } from "lucide-react";
 import { toast } from "react-hot-toast";
+import UserAvatar from "./UserAvatar";
 
 const ChatSidebar = () => {
     const { getUsers, users, groups, getGroups, selectedUser, setSelectedUser, selectedGroup, setSelectedGroup, isUsersLoading, createGroup } = useChatStore();
@@ -87,10 +88,12 @@ const ChatSidebar = () => {
                             onClick={() => setSelectedUser(user)}
                             className={`w-full p-3 flex items-center gap-3 hover:bg-base-200 transition-all border-l-4 ${selectedUser?._id === user._id ? "bg-base-200 border-primary" : "border-transparent"}`}
                         >
-                            <div className="relative">
-                                <img src={user.profilePic || "/avatar.png"} className="size-12 rounded-full object-cover border-2 border-base-300" />
-                                {onlineUsers.includes(user._id) && <span className="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-base-100 rounded-full" />}
-                            </div>
+                            <UserAvatar
+                                user={user}
+                                size="md"
+                                showStatus={true}
+                                className="shrink-0"
+                            />
                             <div className="hidden lg:flex flex-col flex-1 text-left min-w-0">
                                 <div className="flex justify-between items-center gap-2">
                                     <span className={`font-semibold truncate ${user.unreadCount > 0 ? "text-base-content" : "text-base-content/80"}`}>{user.fullName}</span>
@@ -113,11 +116,12 @@ const ChatSidebar = () => {
                             onClick={() => setSelectedGroup(group)}
                             className={`w-full p-3 flex items-center gap-3 hover:bg-base-200 transition-all border-l-4 ${selectedGroup?._id === group._id ? "bg-base-200 border-primary" : "border-transparent"}`}
                         >
-                            <div className="relative">
-                                <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center border-2 border-base-300">
-                                    {group.groupPic ? <img src={group.groupPic} className="size-12 rounded-full" /> : <Users className="text-primary size-6" />}
-                                </div>
-                            </div>
+                            <UserAvatar
+                                user={{ fullName: group.name, profilePic: group.groupPic }}
+                                size="md"
+                                showStatus={false}
+                                className="shrink-0"
+                            />
                             <div className="hidden lg:flex flex-col flex-1 text-left min-w-0">
                                 <div className="flex justify-between items-center gap-2">
                                     <span className={`font-semibold truncate ${group.unreadCount > 0 ? "text-base-content" : "text-base-content/80"}`}>{group.name}</span>

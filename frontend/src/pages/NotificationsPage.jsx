@@ -3,6 +3,7 @@ import { acceptFriendRequest, getFriendRequests, rejectFriendRequest } from "../
 import { BellIcon, ClockIcon, MessageSquareIcon, UserCheckIcon } from "lucide-react";
 import NoNotificationsFound from "../components/NoNotificationsFound";
 import { ListSkeleton } from "../components/SkeletonLoaders";
+import UserAvatar from "../components/UserAvatar";
 
 const NotificationsPage = () => {
   const queryClient = useQueryClient();
@@ -59,12 +60,7 @@ const NotificationsPage = () => {
                     <div className="card-body p-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="avatar w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-base-300">
-                            <img
-                              src={request.sender?.profilePic || "/avatar.png"}
-                              alt={request.sender?.fullName || "User"}
-                            />
-                          </div>
+                          <UserAvatar user={request.sender} size="lg" showStatus={false} />
                           <div>
                             <h3 className="font-semibold text-sm sm:text-base">
                               {request.sender?.fullName || "Unknown User"}
@@ -119,12 +115,7 @@ const NotificationsPage = () => {
                   <div key={notification._id} className="card bg-base-200 shadow-sm">
                     <div className="card-body p-4">
                       <div className="flex items-start gap-3">
-                        <div className="avatar mt-1 size-8 sm:size-10 rounded-full">
-                          <img
-                            src={notification.recipient?.profilePic || "/avatar.png"}
-                            alt={notification.recipient?.fullName || "User"}
-                          />
-                        </div>
+                        <UserAvatar user={notification.recipient} size="sm" showStatus={false} className="mt-1" />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm sm:text-base">{notification.recipient?.fullName || "Unknown User"}</h3>
                           <p className="text-xs sm:text-sm my-1">

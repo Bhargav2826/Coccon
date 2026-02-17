@@ -293,8 +293,8 @@ export async function getRoomMembers(req, res) {
 
     // Find the room and verify user is a member
     const room = await Room.findById(roomId)
-      .populate("faculty", "fullName email profilePic role")
-      .populate("members", "fullName email profilePic role");
+      .populate("faculty", "fullName email profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility")
+      .populate("members", "fullName email profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility");
 
     if (!room) {
       return res.status(404).json({ message: "Room not found" });

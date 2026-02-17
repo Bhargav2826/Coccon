@@ -7,6 +7,7 @@ import { useSocketContext } from "../contexts/SocketContext";
 import { FileIcon, DownloadCloud, Check, CheckCheck, Play, Pause, Reply, Edit2, Trash2, Star, MoreVertical, Smile, Download, X } from "lucide-react";
 import { motion, useAnimation } from "framer-motion";
 import LottieReaction, { REACTION_LOTTIES } from "./LottieReaction";
+import UserAvatar from "./UserAvatar";
 
 const VoicePlayer = ({ url }) => {
     const audioRef = useRef(null);
@@ -248,11 +249,12 @@ const ChatContainer = () => {
 
                     return (
                         <div key={message._id} className={`chat ${isSentByMe ? "chat-end" : "chat-start"}`} ref={messageEndRef}>
-                            <div className="chat-image avatar">
-                                <div className="size-10 rounded-full border">
-                                    <img src={(isSentByMe ? authUser.profilePic : (selectedGroup ? message.sender?.profilePic : selectedUser.profilePic)) || "/avatar.png"} />
-                                </div>
-                            </div>
+                            <UserAvatar
+                                user={isSentByMe ? authUser : (selectedGroup ? message.sender : selectedUser)}
+                                size="sm" // Small for message bubbles
+                                showStatus={false}
+                                className="chat-image"
+                            />
 
                             <div className="chat-header mb-1 opacity-50">
                                 {selectedGroup && !isSentByMe && <span className="mr-1 text-xs font-bold">{message.sender?.fullName}</span>}

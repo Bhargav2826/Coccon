@@ -1,20 +1,22 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSocketContext } from "../contexts/SocketContext";
 import { useNavigate } from "react-router";
 import { PhoneIcon, VideoIcon, XIcon, CheckIcon } from "lucide-react";
-
-// Standard phone ringtone sound
-const RINGTONE_URL = "https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/pause.mp3"; // Placeholder sound, user can replace
-// Ideally use: "https://upload.wikimedia.org/wikipedia/commons/e/e5/Telephone_Ring_Tone.ogg" but simplified for now to ensure it plays safely.
-// Actually lets use a simple reliable one.
-const CALL_SOUND = new Audio("https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg");
-CALL_SOUND.loop = true;
+import UserAvatar from "./UserAvatar";
 
 const IncomingCall = () => {
     const { socket } = useSocketContext();
     const [incomingCall, setIncomingCall] = useState(null);
     const navigate = useNavigate();
+    const audioRef = useRef(null);
+
+    const getAudio = () => {
+        if (!audioRef.current) {
+            audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg");
+            audioRef.current.loop = true;
+        }
+        return audioRef.current;
+    };
 
     useEffect(() => {
         if (!socket) return;
@@ -30,9 +32,9 @@ const IncomingCall = () => {
 
             setIncomingCall(data);
             try {
-                // Audio might be blocked if user hasn't interacted with DOM yet
-                CALL_SOUND.currentTime = 0;
-                CALL_SOUND.play().catch(e => {
+                const sound = getAudio();
+                sound.currentTime = 0;
+                sound.play().catch(e => {
                     if (e.name !== "NotAllowedError") {
                         console.log("Audio play failed:", e);
                     }
@@ -44,8 +46,10 @@ const IncomingCall = () => {
 
         const handleCallEnded = () => {
             setIncomingCall(null);
-            CALL_SOUND.pause();
-            CALL_SOUND.currentTime = 0;
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
         }
 
         socket.on("call:incoming", handleIncomingCall);
@@ -55,16 +59,20 @@ const IncomingCall = () => {
         return () => {
             socket.off("call:incoming", handleIncomingCall);
             socket.off("call:rejected", handleCallEnded);
-            CALL_SOUND.pause();
-            CALL_SOUND.currentTime = 0;
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
         };
     }, [socket]);
 
     const acceptCall = () => {
         if (!incomingCall) return;
 
-        CALL_SOUND.pause();
-        CALL_SOUND.currentTime = 0;
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
 
         // Navigate to the call page
         // Ensure we keep the video/audio preference
@@ -74,8 +82,10 @@ const IncomingCall = () => {
     };
 
     const declineCall = () => {
-        CALL_SOUND.pause();
-        CALL_SOUND.currentTime = 0;
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
         if (incomingCall?.callerInfo?.id && socket) {
             socket.emit("call:rejected", { callerId: incomingCall.callerInfo.id });
         }
@@ -89,11 +99,12 @@ const IncomingCall = () => {
             <div className="card w-80 max-w-full bg-base-100 shadow-2xl border border-primary/20">
                 <div className="card-body p-4">
                     <div className="flex items-center gap-4">
-                        <div className="avatar placeholder">
-                            <div className="bg-neutral text-neutral-content rounded-full w-12">
-                                <span className="text-xl">{incomingCall.callerInfo?.name?.charAt(0) || "?"}</span>
-                            </div>
-                        </div>
+                        <UserAvatar
+                            user={incomingCall.callerInfo}
+                            size="md"
+                            showStatus={false}
+                            className="shrink-0"
+                        />
                         <div>
                             <h3 className="font-bold text-lg">
                                 {incomingCall.isClassroomCall ? incomingCall.roomName : (incomingCall.callerInfo?.name || "Unknown")}

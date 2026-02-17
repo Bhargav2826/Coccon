@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
   const queryClient = useQueryClient();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
   // Check if user has explicitly logged out
   const hasLoggedOut = localStorage.getItem('hasLoggedOut') === 'true';
@@ -294,6 +295,42 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfilePic = async (params) => {
+    try {
+      setIsUpdatingProfile(true);
+      // If params is a string, it's just the profilePicBase64 (backward compatibility)
+      const body = typeof params === 'string' ? { profilePic: params } : params;
+
+      const response = await fetch("/api/users/profile-pic", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update profile picture");
+      }
+
+      // Update local cache
+      queryClient.setQueryData(["authUser"], (oldData) => ({
+        ...oldData,
+        user: data.user,
+      }));
+
+      return data.user.profilePic;
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast.error(error.message || "Failed to update profile picture");
+      throw error;
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
   // Refresh auth data
   const refreshAuth = () => {
     refetch();
@@ -304,11 +341,13 @@ export const AuthProvider = ({ children }) => {
     authUser,
     isAuthenticated,
     isOnboarded,
+    isUpdatingProfile,
     isLoading: isLoading || !isInitialized || isLoggingOut, // Removed hasLoggedOut from loading calculation
     error,
 
     // Actions
     logout,
+    updateProfilePic,
     refreshAuth,
     clearLogoutFlag,
     checkHasLoggedOut,

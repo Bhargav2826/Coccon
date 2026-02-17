@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
+import cloudinary from "../lib/cloudinary.js";
 
 export async function getRecommendedUsers(req, res) {
   try {
@@ -641,6 +642,99 @@ export async function updateLastSeen(req, res) {
     await User.findByIdAndUpdate(req.user.id, { lastSeen: new Date() });
     res.status(200).json({ success: true });
   } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function updateProfilePic(req, res) {
+  try {
+    const { profilePic, emojiAvatar, lottieAvatar, visibility, useFromHistory } = req.body;
+    const userId = req.user.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Handle visibility update separately or alongside
+    if (visibility) {
+      user.profileVisibility = visibility;
+    }
+
+    // Handle removal
+    if (profilePic === "" || profilePic === null) {
+      if (user.profilePic && user.profilePic.includes("cloudinary")) {
+        // We only delete if it's NOT in history, or we can choose to keep history
+        // For simplicity, let's just clear the active one
+      }
+      user.profilePic = "";
+      user.emojiAvatar = { emoji: "", gradient: "" };
+      user.lottieAvatar = "";
+      await user.save();
+      return res.status(200).json({ message: "Profile picture removed", user });
+    }
+
+    // 1. Handle History Swap
+    if (useFromHistory) {
+      user.profilePic = useFromHistory;
+      user.lastProfileUpdate = new Date();
+      await user.save();
+      return res.status(200).json({ message: "Avatar swapped from history", user });
+    }
+
+    // 2. Handle Emoji Avatar
+    if (emojiAvatar) {
+      user.emojiAvatar = emojiAvatar;
+      user.profilePic = ""; // Clear image if using emoji
+      user.lottieAvatar = "";
+      user.lastProfileUpdate = new Date();
+      await user.save();
+      return res.status(200).json({ message: "Emoji avatar updated", user });
+    }
+
+    // 3. Handle Lottie Avatar
+    if (lottieAvatar) {
+      user.lottieAvatar = lottieAvatar;
+      user.profilePic = "";
+      user.emojiAvatar = { emoji: "", gradient: "" };
+      user.lastProfileUpdate = new Date();
+      await user.save();
+      return res.status(200).json({ message: "Lottie avatar updated", user });
+    }
+
+    // 4. Handle Standard Upload (with history logic)
+    if (profilePic) {
+      // Manage History before updating
+      if (user.profilePic && !user.avatarHistory.includes(user.profilePic)) {
+        user.avatarHistory.unshift(user.profilePic);
+        if (user.avatarHistory.length > 5) {
+          const removed = user.avatarHistory.pop();
+          if (removed.includes("cloudinary") && removed !== profilePic) {
+            // Optional: Cleanup old history from Cloudinary
+          }
+        }
+      }
+
+      const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+        folder: "avatars",
+      });
+
+      user.profilePic = uploadResponse.secure_url;
+      user.emojiAvatar = { emoji: "", gradient: "" };
+      user.lottieAvatar = "";
+      user.lastProfileUpdate = new Date();
+      await user.save();
+
+      return res.status(200).json({
+        message: "Profile picture updated successfully",
+        user
+      });
+    }
+
+    await user.save();
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error("Error in updateProfilePic controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }

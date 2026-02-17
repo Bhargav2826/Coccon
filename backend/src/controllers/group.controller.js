@@ -126,9 +126,9 @@ export const sendGroupMessage = async (req, res) => {
 
         await newMessage.save();
         const populatedMessage = await newMessage.populate([
-            { path: "sender", select: "fullName profilePic" },
+            { path: "sender", select: "fullName profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility" },
             { path: "replyTo" },
-            { path: "contact", select: "fullName profilePic email" }
+            { path: "contact", select: "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility" }
         ]);
 
         group.lastMessage = newMessage._id;
@@ -151,7 +151,7 @@ export const getGroupMessages = async (req, res) => {
     try {
         const { groupId } = req.params;
         const messages = await GroupMessage.find({ group: groupId })
-            .populate("sender", "fullName profilePic")
+            .populate("sender", "fullName profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility")
             .populate("replyTo")
             .sort({ createdAt: 1 });
 

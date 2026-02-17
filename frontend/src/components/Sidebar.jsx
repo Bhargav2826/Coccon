@@ -1,14 +1,25 @@
 import { Link, useLocation } from "react-router";
-import { BellIcon, HomeIcon, UsersIcon, GraduationCapIcon, ShieldIcon, UserIcon, MessageSquare } from "lucide-react";
+import { BellIcon, HomeIcon, UsersIcon, GraduationCapIcon, ShieldIcon, UserIcon, MessageSquare, CameraIcon } from "lucide-react";
+import { useState } from "react";
 import Logo from "./Logo";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useChatStore } from "../store/useChatStore";
+import AvatarEditor from "./AvatarEditor";
+import ProfilePreview from "./ProfilePreview";
+import UserAvatar from "./UserAvatar";
 
 const Sidebar = ({ onMobileClose }) => {
-  const { authUser } = useAuth();
+  const { authUser, updateProfilePic, isUpdatingProfile } = useAuth();
   const { users, groups } = useChatStore();
   const location = useLocation();
   const currentPath = location.pathname;
+
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const handleSaveAvatar = async (base64) => {
+    await updateProfilePic(base64);
+  };
 
   const totalUnreadMessages =
     users.reduce((acc, user) => acc + (user.unreadCount || 0), 0) +
@@ -130,13 +141,26 @@ const Sidebar = ({ onMobileClose }) => {
       {/* USER PROFILE SECTION */}
       <div className="p-4 border-t border-base-300">
         <div className="flex items-center gap-3">
-          <div className="avatar">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full">
-              <img src={authUser?.profilePic} alt="User Avatar" />
-            </div>
+          <div className="group relative" title="View Profile">
+            <UserAvatar
+              user={authUser}
+              size="md"
+              onClick={() => setIsPreviewOpen(true)}
+              showStatus={false}
+            />
+
+            {/* Upload Trigger */}
+            <button
+              onClick={() => setIsEditorOpen(true)}
+              className="absolute -bottom-1 -right-1 size-5 bg-primary rounded-full flex items-center justify-center text-white border-2 border-base-100 shadow-lg hover:scale-110 transition-transform z-20"
+              title="Change Photo"
+            >
+              <CameraIcon size={10} />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate">{authUser?.fullName}</p>
+
+          <div className="flex-1 min-w-0 cursor-pointer group/name" onClick={() => setIsPreviewOpen(true)}>
+            <p className="font-semibold text-sm truncate group-hover/name:text-primary transition-colors">{authUser?.fullName}</p>
             <p className="text-xs text-success flex items-center gap-1">
               <span className="size-2 rounded-full bg-success inline-block" />
               Online
@@ -144,6 +168,23 @@ const Sidebar = ({ onMobileClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Profile Modals */}
+      <AvatarEditor
+        isOpen={isEditorOpen}
+        onClose={() => setIsEditorOpen(false)}
+        onSave={handleSaveAvatar}
+        currentAvatar={authUser?.profilePic}
+        isUploading={isUpdatingProfile}
+        userHistory={authUser?.avatarHistory}
+        currentVisibility={authUser?.profileVisibility}
+      />
+
+      <ProfilePreview
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        user={authUser}
+      />
     </aside>
   );
 };

@@ -25,6 +25,7 @@ import {
   muteChat,
   blockUser,
   updateLastSeen,
+  updateProfilePic,
 } from "../controllers/user.controller.js";
 import {
   validateFriendRequest,
@@ -75,6 +76,7 @@ router.put("/pin/:userId", pinChat);
 router.put("/mute/:userId", muteChat);
 router.put("/block/:userId", blockUser);
 router.put("/lastseen", updateLastSeen);
+router.put("/profile-pic", updateProfilePic);
 
 // Get user by ID (moved here to avoid route collision with static routes)
 router.get("/:id", validateObjectId, getUserById);

@@ -1091,9 +1091,11 @@ svg {
 .zoom-in-95 {
   animation-name: zoomIn;
 }
+
 /* Glass Mode Theme */
 [data-theme='glass'] {
-  --b1: 210 20% 98% / 0; /* Fully transparent base */
+  --b1: 210 20% 98% / 0;
+  /* Fully transparent base */
   --bc: 215 25% 27%;
   --p: 221.2 83.2% 53.3%;
   --pc: 210 20% 98%;
@@ -1111,9 +1113,17 @@ svg {
 }
 
 @keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 [data-theme='glass'] .chat-bubble {
@@ -1147,8 +1157,8 @@ svg {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-[data-theme='glass'] aside, 
-[data-theme='glass'] .drawer-side > *:not(.drawer-overlay) {
+[data-theme='glass'] aside,
+[data-theme='glass'] .drawer-side>*:not(.drawer-overlay) {
   background: rgba(255, 255, 255, 0.05) !important;
   backdrop-filter: blur(25px) !important;
   -webkit-backdrop-filter: blur(25px) !important;
@@ -1173,3 +1183,63 @@ svg {
   background: rgba(255, 255, 255, 0.2) !important;
 }
 
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+
+  @keyframes scale-up-center {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-5px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  .animate-scale-up {
+    animation: scale-up-center 0.3s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

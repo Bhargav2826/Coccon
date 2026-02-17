@@ -1,19 +1,30 @@
 import { Link, useLocation } from "react-router";
-import { BellIcon, LogOutIcon, MenuIcon } from "lucide-react";
+import { BellIcon, LogOutIcon, MenuIcon, CameraIcon } from "lucide-react";
+import { useState } from "react";
 import ThemeSelector from "./ThemeSelector";
 import useNotificationCount from "../hooks/useNotificationCount";
 import Logo from "./Logo";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import AvatarEditor from "./AvatarEditor";
+import ProfilePreview from "./ProfilePreview";
+import UserAvatar from "./UserAvatar";
 
 const Navbar = ({ onMenuClick }) => {
-  const { authUser, logout } = useAuth();
+  const { authUser, logout, updateProfilePic, isUpdatingProfile } = useAuth();
   const location = useLocation();
   const isChatPage = location.pathname?.startsWith("/chat");
   const { count } = useNotificationCount();
 
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
   const handleLogout = () => {
     console.log("🔘 Logout button clicked");
     logout();
+  };
+
+  const handleSaveAvatar = async (base64) => {
+    await updateProfilePic(base64);
   };
 
   return (
@@ -55,9 +66,26 @@ const Navbar = ({ onMenuClick }) => {
 
             <ThemeSelector />
 
-            <div className="avatar">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full">
-                <img src={authUser?.profilePic} alt="User Avatar" rel="noreferrer" />
+            <div className="flex items-center gap-1">
+              <div
+                className="group relative"
+                title="View Profile"
+              >
+                <UserAvatar
+                  user={authUser}
+                  size="md"
+                  onClick={() => setIsPreviewOpen(true)}
+                  showStatus={false}
+                />
+
+                {/* Upload Trigger */}
+                <button
+                  onClick={() => setIsEditorOpen(true)}
+                  className="absolute -bottom-1 -right-1 size-5 bg-primary rounded-full flex items-center justify-center text-white border-2 border-base-100 shadow-lg hover:scale-110 transition-transform z-20"
+                  title="Change Photo"
+                >
+                  <CameraIcon size={10} />
+                </button>
               </div>
             </div>
 
@@ -71,6 +99,23 @@ const Navbar = ({ onMenuClick }) => {
           </div>
         </div>
       </div>
+
+      {/* Profile Modals */}
+      <AvatarEditor
+        isOpen={isEditorOpen}
+        onClose={() => setIsEditorOpen(false)}
+        onSave={handleSaveAvatar}
+        currentAvatar={authUser?.profilePic}
+        isUploading={isUpdatingProfile}
+        userHistory={authUser?.avatarHistory}
+        currentVisibility={authUser?.profileVisibility}
+      />
+
+      <ProfilePreview
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        user={authUser}
+      />
     </nav>
   );
 };

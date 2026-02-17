@@ -14,7 +14,10 @@ import {
   PhoneIcon,
   UserIcon
 } from "lucide-react";
-import { DashboardCardSkeleton } from "../components/SkeletonLoaders";
+import {
+  DashboardCardSkeleton
+} from "../components/SkeletonLoaders";
+import UserAvatar from "../components/UserAvatar";
 
 const StudentDashboard = () => {
   const queryClient = useQueryClient();
@@ -276,9 +279,7 @@ const StudentDashboard = () => {
                 <div className="card-body p-6">
                   <div className="flex items-center gap-3">
                     <div className="avatar">
-                      <div className="w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                        <GraduationCapIcon className="size-6 text-primary" />
-                      </div>
+                      <UserAvatar user={room.faculty} size="md" showStatus={false} />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold">{room.roomName}</h3>
@@ -337,9 +338,7 @@ const StudentDashboard = () => {
                 <div className="card-body p-6">
                   <div className="flex items-center gap-3">
                     <div className="avatar">
-                      <div className="w-12 rounded-full">
-                        <img src={parent.profilePic} alt={parent.fullName} />
-                      </div>
+                      <UserAvatar user={parent} size="md" showStatus={false} />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold">{parent.fullName}</h3>

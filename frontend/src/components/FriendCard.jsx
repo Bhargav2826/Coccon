@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import { LANGUAGE_TO_FLAG } from "../constants";
 import useAuthUser from "../hooks/useAuthUser";
 import { useChatStore } from "../store/useChatStore";
+import UserAvatar from "./UserAvatar";
 
 const FriendCard = ({ friend }) => {
   const queryClient = useQueryClient();
@@ -43,9 +44,7 @@ const FriendCard = ({ friend }) => {
       <div className="card-body p-4">
         {/* USER INFO */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="avatar size-12">
-            <img src={friend.profilePic} alt={friend.fullName} />
-          </div>
+          <UserAvatar user={friend} size="md" />
           <h3 className="font-semibold truncate">{friend.fullName}</h3>
         </div>
 
