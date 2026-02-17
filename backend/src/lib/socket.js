@@ -620,12 +620,41 @@ io.on("connection", async (socket) => {
             );
             console.log("🏁 Call marked as ended:", data.callId);
 
+            // Notify all participants in the call room to force end
+            io.to(data.callId).emit("call:force_end");
+
             // Clean up deepgram
             const service = transcriptionServices[socket.id];
             if (service) {
                 service.finish();
                 delete transcriptionServices[socket.id];
             }
+
+            // NEW: Mark the group message as ended if it exists
+            const linkedMessage = await GroupMessage.findOne({ callLink: { $regex: data.callId } }).populate({
+                path: 'group',
+                populate: { path: 'members' }
+            });
+
+            if (linkedMessage && !linkedMessage.isCallEnded) {
+                linkedMessage.isCallEnded = true;
+                await linkedMessage.save();
+
+                await linkedMessage.populate("sender", "fullName profilePic");
+
+                // Notify all group members about the update
+                if (linkedMessage.group && linkedMessage.group.members) {
+                    for (const member of linkedMessage.group.members) {
+                        const memberId = member._id ? member._id.toString() : member.toString();
+                        const socketId = getReceiverSocketId(memberId);
+                        if (socketId) {
+                            io.to(socketId).emit("messageUpdate", linkedMessage);
+                        }
+                    }
+                }
+                console.log("✅ Group message marked as call ended.");
+            }
+
         } catch (err) {
             console.error("Error ending call:", err);
         }

@@ -1,6 +1,8 @@
 import Room from "../models/Room.js";
 import User from "../models/User.js";
 import Call from "../models/Call.js";
+import GroupChat from "../models/GroupChat.js";
+import GroupMessage from "../models/GroupMessage.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 
 // Start faculty video call and send link to classroom members
@@ -109,6 +111,47 @@ export async function startFacultyVideoCall(req, res) {
           status: "failed",
           error: error.message
         });
+      }
+    }
+
+    // NEW: Send a message to the classroom group chat with the join link
+    if (room.linkedGroup) {
+      try {
+        const joinLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/call/${callId}`;
+        const newMessage = new GroupMessage({
+          group: room.linkedGroup,
+          sender: facultyId,
+          text: `📞 Started a Video Call: ${callTitle}`,
+          callLink: joinLink
+        });
+
+        await newMessage.save();
+
+        // Populate sender info for frontend display
+        await newMessage.populate("sender", "fullName profilePic");
+
+        // Update last message in GroupChat
+        await GroupChat.findByIdAndUpdate(room.linkedGroup, {
+          lastMessage: newMessage._id,
+        });
+
+        // Notify group members via socket about the new message
+        // We can reuse the room.members list since group members are the same
+        for (const member of room.members) {
+          const receiverSocketId = getReceiverSocketId(member._id.toString());
+          if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newGroupMessage", newMessage);
+          }
+        }
+        // Also notify the sender (faculty)
+        const senderSocketId = getReceiverSocketId(facultyId.toString());
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("newGroupMessage", newMessage);
+        }
+
+        console.log("✅ Call link message sent to group chat");
+      } catch (msgError) {
+        console.error("❌ Failed to send call link message to group:", msgError);
       }
     }
 

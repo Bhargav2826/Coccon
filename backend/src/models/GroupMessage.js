@@ -69,6 +69,13 @@ const groupMessageSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
+        callLink: {
+            type: String,
+        },
+        isCallEnded: {
+            type: Boolean,
+            default: false
+        },
     },
     { timestamps: true }
 );

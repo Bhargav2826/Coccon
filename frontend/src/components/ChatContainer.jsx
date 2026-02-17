@@ -196,7 +196,13 @@ const ChatContainer = () => {
                         </div>
                     ))}
                 </div>
-                <MessageInput />
+                {selectedGroup?.type === 'classroom' && selectedGroup.admin !== authUser._id ? (
+                    <div className="p-4 bg-base-200 border-t border-base-300 text-center">
+                        <p className="text-primary font-medium">Only Faculty Make or Send The Messages</p>
+                    </div>
+                ) : (
+                    <MessageInput />
+                )}
             </div>
         );
     }
@@ -311,6 +317,26 @@ const ChatContainer = () => {
                                     </div>
                                 )}
 
+                                {message.callLink && (
+                                    <div className="mt-2 mb-1">
+                                        {message.isCallEnded ? (
+                                            <div className="flex items-center justify-center p-2 rounded-lg bg-black/20 text-sm font-medium opacity-80 cursor-not-allowed w-full">
+                                                This call is ended
+                                            </div>
+                                        ) : (
+                                            <a
+                                                href={message.callLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-primary btn-sm w-full gap-2 no-underline text-white"
+                                            >
+                                                <div className="size-2 rounded-full bg-red-500 animate-pulse" />
+                                                Join Video Call
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+
                                 {editingMessage?._id === message._id ? (
                                     <div className="flex flex-col gap-1">
                                         <textarea className="textarea textarea-bordered textarea-xs text-base-content" value={editText} onChange={(e) => setEditText(e.target.value)} />
@@ -363,7 +389,13 @@ const ChatContainer = () => {
                 </div>
             )}
 
-            <MessageInput />
+            {selectedGroup?.type === 'classroom' && selectedGroup.admin !== authUser._id ? (
+                <div className="p-4 bg-base-200 border-t border-base-300 text-center">
+                    <p className="text-primary font-medium">Only Faculty Make or Send The Messages</p>
+                </div>
+            ) : (
+                <MessageInput />
+            )}
 
             {/* Image Modal */}
             {expandedImage && (

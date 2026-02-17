@@ -196,20 +196,35 @@ const CallPage = () => {
 
     socket.on("call:rejected", handleRejected);
 
+    return () => {
+      socket.off("call:rejected", handleRejected);
+      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+    };
+  }, [socket, location.state, navigate]);
+
+  // Listen for global events for ALL participants (both host and joiners)
+  useEffect(() => {
+    if (!socket) return;
+
     const handleRemoteDraw = () => {
       if (authUser?.role !== 'faculty') {
         setShowWhiteboard(true);
       }
     };
 
+    const handleForceEnd = () => {
+      toast("The host has ended the call", { icon: "🛑" });
+      navigate('/');
+    };
+
     socket.on("whiteboard:draw", handleRemoteDraw);
+    socket.on("call:force_end", handleForceEnd);
 
     return () => {
-      socket.off("call:rejected", handleRejected);
       socket.off("whiteboard:draw", handleRemoteDraw);
-      if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
+      socket.off("call:force_end", handleForceEnd);
     };
-  }, [socket, location.state, navigate, authUser]);
+  }, [socket, authUser, navigate]);
 
   if ((authLoading && !authUser) || (!token && !isError)) {
     return (
