@@ -36,7 +36,7 @@ const VoicePlayer = ({ url }) => {
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
-        <div className="flex items-center gap-4 bg-white/10 dark:bg-base-300/80 backdrop-blur-md p-3 rounded-2xl min-w-[240px] border border-white/5 shadow-lg group transition-all hover:bg-white/20">
+        <div className="flex items-center gap-2 sm:gap-4 bg-white/10 dark:bg-base-300/80 backdrop-blur-md p-2 sm:p-3 rounded-2xl min-w-0 flex-1 border border-white/5 shadow-lg group transition-all hover:bg-white/20">
             <audio
                 ref={audioRef}
                 src={url}
@@ -279,7 +279,7 @@ const ChatContainer = () => {
 
                                 {/* Context Menu */}
                                 {!isDeleted && (
-                                    <div className={`absolute top-0 ${isSentByMe ? "-left-8" : "-right-8"} opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1`}>
+                                    <div className={`absolute top-0 ${isSentByMe ? "-left-6 sm:-left-8" : "-right-6 sm:-right-8"} opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-0.5 sm:gap-1 z-10`}>
                                         <button onClick={() => setShowReactionPicker(showReactionPicker === message._id ? null : message._id)} className="btn btn-ghost btn-circle btn-xs text-base-content"><Smile size={12} /></button>
                                         <button onClick={() => setReplyMessage(message)} className="btn btn-ghost btn-circle btn-xs text-base-content"><Reply size={12} /></button>
                                         <button onClick={() => starMessage(message._id)} className="btn btn-ghost btn-circle btn-xs text-base-content"><Star size={12} className={message.starredBy?.includes(authUser._id) ? "fill-yellow-400 text-yellow-400" : ""} /></button>
@@ -318,8 +318,8 @@ const ChatContainer = () => {
                                     <>
                                         {/* Reply Preview */}
                                         {message.replyTo && (
-                                            <div className="mb-1 p-2 bg-black/10 rounded border-l-2 border-primary text-xs opacity-80 cursor-pointer overflow-hidden max-w-xs">
-                                                <span className="font-bold block">{message.replyTo.sender?.fullName || "User"}</span>
+                                            <div className="mb-1 p-2 bg-black/10 rounded border-l-2 border-primary text-[10px] sm:text-xs opacity-80 cursor-pointer overflow-hidden max-w-full">
+                                                <span className="font-bold block truncate">{message.replyTo.sender?.fullName || "User"}</span>
                                                 <span className="truncate block">{message.replyTo.text || "Media"}</span>
                                             </div>
                                         )}
@@ -332,7 +332,7 @@ const ChatContainer = () => {
                                                     <div className="relative group/image">
                                                         <img
                                                             src={message.fileUrl || message.image}
-                                                            className="max-w-[250px] rounded-lg border border-black/5 cursor-pointer hover:opacity-90 transition-opacity"
+                                                            className="max-w-full sm:max-w-[250px] rounded-lg border border-black/5 cursor-pointer hover:opacity-90 transition-opacity h-auto object-cover"
                                                             onClick={() => setExpandedImage(message.fileUrl || message.image)}
                                                         />
                                                         <button

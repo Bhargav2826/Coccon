@@ -322,8 +322,8 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-base-100 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-base-300 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-base-100 w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-base-300 flex flex-col max-h-screen sm:max-h-[90vh]">
 
                 {/* Header */}
                 <div className="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
@@ -337,24 +337,24 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
                 </div>
 
                 {/* Main Content Area - Split View for tabs */}
-                <div className="flex flex-1 overflow-hidden min-h-0">
-                    {/* Left Sidebar Tabs */}
-                    <div className="w-48 bg-base-200/50 border-r border-base-300 flex flex-col p-2 gap-1 overflow-y-auto">
+                <div className="flex flex-col sm:flex-row flex-1 overflow-hidden min-h-0">
+                    {/* Sidebar Tabs - Horizontal on mobile, vertical on desktop */}
+                    <div className="w-full sm:w-48 bg-base-200/50 border-b sm:border-b-0 sm:border-r border-base-300 flex flex-row sm:flex-col p-1 sm:p-2 gap-1 overflow-x-auto sm:overflow-y-auto scrollbar-hide">
                         {[
-                            { id: "personal", label: "Photo / Upload", icon: <ImageIcon size={18} /> },
-                            { id: "emoji", label: "Emoji / Color", icon: <span className="text-lg">😀</span> },
-                            { id: "animated", label: "Animated", icon: <RotateCw size={18} className="text-secondary" /> },
-                            { id: "history", label: "History", icon: <RotateCw size={18} /> },
-                            { id: "cocoon", label: "Cocoon Styles", icon: <Shield size={18} /> },
-                            { id: "settings", label: "Privacy", icon: <Lock size={18} /> },
+                            { id: "personal", label: "Photo", icon: <ImageIcon size={16} /> },
+                            { id: "emoji", label: "Emoji", icon: <span className="text-base sm:text-lg">😀</span> },
+                            { id: "animated", label: "Animated", icon: <RotateCw size={16} className="text-secondary" /> },
+                            { id: "history", label: "History", icon: <RotateCw size={16} /> },
+                            { id: "cocoon", label: "Styles", icon: <Shield size={16} /> },
+                            { id: "settings", label: "Privacy", icon: <Lock size={16} /> },
                         ].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-left ${activeTab === tab.id ? "bg-primary text-primary-content shadow-lg" : "hover:bg-base-300 text-base-content/70"}`}
+                                className={`flex items-center gap-2 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center sm:text-left shrink-0 sm:shrink ${activeTab === tab.id ? "bg-primary text-primary-content shadow-md sm:shadow-lg" : "hover:bg-base-300 text-base-content/70"}`}
                             >
                                 {tab.icon}
-                                {tab.label}
+                                <span className="whitespace-nowrap">{tab.label}</span>
                             </button>
                         ))}
                     </div>
@@ -365,7 +365,7 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
                             <div className="space-y-6">
                                 {image ? (
                                     <>
-                                        <div className="relative h-64 w-full bg-black rounded-2xl overflow-hidden shadow-inner border border-base-300">
+                                        <div className="relative h-48 sm:h-64 w-full bg-black rounded-2xl overflow-hidden shadow-inner border border-base-300">
                                             <Cropper
                                                 image={image}
                                                 crop={crop}

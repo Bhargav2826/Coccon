@@ -79,13 +79,11 @@ const HomePage = () => {
 
       {/* Room Selection */}
       {joinedRooms.length > 0 ? (
-        <>
-          <div className="mb-6">
-            <label className="label">
-              <span className="label-text">Select a classroom:</span>
-            </label>
+        <div className="px-2 sm:px-0">
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <span className="text-sm font-bold opacity-70 uppercase tracking-widest text-center sm:text-left">Select a classroom:</span>
             <select
-              className="select select-bordered w-full max-w-xs"
+              className="select select-bordered w-full sm:max-w-xs bg-base-200 border-base-content/10 focus:border-primary shadow-sm"
               value={selectedRoom || ""}
               onChange={(e) => setSelectedRoom(e.target.value || null)}
             >
@@ -99,8 +97,8 @@ const HomePage = () => {
           </div>
 
           {/* Room Members */}
-          {selectedRoom && (
-            <>
+          {selectedRoom ? (
+            <div className="space-y-6">
               {loadingRoomMembers ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {[1, 2, 3, 4].map(i => <MemberCardSkeleton key={i} />)}
@@ -120,25 +118,24 @@ const HomePage = () => {
                   ))}
                 </div>
               ) : (
-                <div className="card bg-base-200 p-6 text-center">
+                <div className="card bg-base-200/50 p-8 text-center border border-dashed border-base-content/10">
                   <h3 className="font-semibold text-lg mb-2">No members found</h3>
-                  <p className="text-base-content opacity-70">
+                  <p className="text-sm opacity-70">
                     This classroom doesn't have any members yet.
                   </p>
                 </div>
               )}
-            </>
-          )}
-
-          {!selectedRoom && (
-            <div className="card bg-base-200 p-6 text-center">
-              <h3 className="font-semibold text-lg mb-2">Select a classroom</h3>
-              <p className="text-base-content opacity-70">
-                Choose a classroom from the dropdown above to see its members.
+            </div>
+          ) : (
+            <div className="card bg-base-200/30 p-10 sm:p-20 text-center border-2 border-dashed border-base-content/5">
+              <UsersIcon className="size-12 sm:size-16 mx-auto mb-4 opacity-10" />
+              <h3 className="font-bold text-lg sm:text-xl mb-2">Classroom Directory</h3>
+              <p className="text-sm sm:text-base opacity-60 max-w-sm mx-auto">
+                Pick a classroom from the dropdown to discover students and faculty members.
               </p>
             </div>
           )}
-        </>
+        </div>
       ) : (
         <div className="card bg-base-200 p-8 text-center">
           <h3 className="font-semibold text-lg mb-2">No classrooms joined</h3>

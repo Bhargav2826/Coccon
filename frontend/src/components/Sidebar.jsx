@@ -41,17 +41,17 @@ const Sidebar = ({ onMobileClose }) => {
         </Link>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2 sm:p-4 space-y-1 overflow-y-auto">
         {/* Parent Dashboard Link - Only show for parent users */}
         {authUser?.role === "parent" && (
           <Link
             to="/parent-dashboard"
             onClick={handleLinkClick}
-            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/parent-dashboard" ? "btn-active" : ""
+            className={`btn btn-ghost justify-start w-full gap-3 px-3 h-12 min-h-0 normal-case text-base ${currentPath === "/parent-dashboard" ? "btn-active bg-primary/10 text-primary" : ""
               }`}
           >
-            <ShieldIcon className="size-4 sm:size-5 text-base-content opacity-70" />
-            <span>Parent Dashboard</span>
+            <ShieldIcon className="size-5 text-base-content/70" />
+            <span className="font-medium">Parent Dashboard</span>
           </Link>
         )}
 
@@ -60,11 +60,11 @@ const Sidebar = ({ onMobileClose }) => {
           <Link
             to="/faculty-dashboard"
             onClick={handleLinkClick}
-            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/faculty-dashboard" ? "btn-active" : ""
+            className={`btn btn-ghost justify-start w-full gap-3 px-3 h-12 min-h-0 normal-case text-base ${currentPath === "/faculty-dashboard" ? "btn-active bg-primary/10 text-primary" : ""
               }`}
           >
-            <GraduationCapIcon className="size-4 sm:size-5 text-base-content opacity-70" />
-            <span>Faculty Dashboard</span>
+            <GraduationCapIcon className="size-5 text-base-content/70" />
+            <span className="font-medium">Faculty Dashboard</span>
           </Link>
         )}
 
@@ -75,45 +75,45 @@ const Sidebar = ({ onMobileClose }) => {
             <Link
               to="/student-dashboard"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/student-dashboard" ? "btn-active" : ""
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 h-12 min-h-0 normal-case text-base ${currentPath === "/student-dashboard" ? "btn-active bg-primary/10 text-primary" : ""
                 }`}
             >
-              <UserIcon className="size-4 sm:size-5 text-base-content opacity-70" />
-              <span>Student Dashboard</span>
+              <UserIcon className="size-5 text-base-content/70" />
+              <span className="font-medium">Student Dashboard</span>
             </Link>
 
             {/* 2. Classroom Members */}
             <Link
               to="/"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/" ? "btn-active" : ""
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 h-12 min-h-0 normal-case text-base ${currentPath === "/" ? "btn-active bg-primary/10 text-primary" : ""
                 }`}
             >
-              <HomeIcon className="size-4 sm:size-5 text-base-content opacity-70" />
-              <span>Classroom Members</span>
+              <HomeIcon className="size-5 text-base-content/70" />
+              <span className="font-medium">Classroom Members</span>
             </Link>
 
             {/* 3. Friends */}
             <Link
               to="/friends"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/friends" ? "btn-active" : ""
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 h-12 min-h-0 normal-case text-base ${currentPath === "/friends" ? "btn-active bg-primary/10 text-primary" : ""
                 }`}
             >
-              <UsersIcon className="size-4 sm:size-5 text-base-content opacity-70" />
-              <span>Friends</span>
+              <UsersIcon className="size-5 text-base-content/70" />
+              <span className="font-medium">Friends</span>
             </Link>
 
             {/* 4. Chat */}
             <Link
               to="/chat"
               onClick={handleLinkClick}
-              className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/chat" ? "btn-active" : ""
+              className={`btn btn-ghost justify-start w-full gap-3 px-3 h-12 min-h-0 normal-case text-base ${currentPath === "/chat" ? "btn-active bg-primary/10 text-primary" : ""
                 }`}
             >
               <div className="flex-1 flex items-center gap-3">
-                <MessageSquare className="size-4 sm:size-5 text-base-content opacity-70" />
-                <span>Chat</span>
+                <MessageSquare className="size-5 text-base-content/70" />
+                <span className="font-medium">Chat</span>
               </div>
               {totalUnreadMessages > 0 && (
                 <span className="badge badge-primary badge-sm ml-auto animate-pulse">
@@ -129,11 +129,11 @@ const Sidebar = ({ onMobileClose }) => {
           <Link
             to="/notifications"
             onClick={handleLinkClick}
-            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case text-sm sm:text-base ${currentPath === "/notifications" ? "btn-active" : ""
+            className={`btn btn-ghost justify-start w-full gap-3 px-3 h-12 min-h-0 normal-case text-base ${currentPath === "/notifications" ? "btn-active bg-primary/10 text-primary" : ""
               }`}
           >
-            <BellIcon className="size-4 sm:size-5 text-base-content opacity-70" />
-            <span>Notifications</span>
+            <BellIcon className="size-5 text-base-content/70" />
+            <span className="font-medium">Notifications</span>
           </Link>
         )}
       </nav>
