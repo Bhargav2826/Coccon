@@ -4,7 +4,8 @@ import { X, Check, RotateCw, Image as ImageIcon, Trash2, Camera, Shield, Lock } 
 import imageCompression from "browser-image-compression";
 import toast from "react-hot-toast";
 import Lottie from "lottie-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { Search } from "lucide-react";
 
 const COCOON_AVATARS = [
     "https://api.dicebear.com/7.x/bottts/svg?seed=Butterfly&backgroundColor=b6e3f4",
@@ -23,7 +24,19 @@ const LOTTIE_AVATARS = [
     { name: "Ghost", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f47b/lottie.json" },
     { name: "Robot", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f916/lottie.json" },
     { name: "Unicorn", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f984/lottie.json" },
-    { name: "Brain", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f9e0/lottie.json" }
+    { name: "Brain", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f9e0/lottie.json" },
+    { name: "Cool", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/lottie.json" },
+    { name: "Nerd", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f913/lottie.json" },
+    { name: "Thinking", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/lottie.json" },
+    { name: "Party", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f973/lottie.json" },
+    { name: "Panda", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f43c/lottie.json" },
+    { name: "Dragon", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f432/lottie.json" },
+    { name: "Fire", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/lottie.json" },
+    { name: "Star", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/2b50/lottie.json" },
+    { name: "Heart", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/2764_fe0f/lottie.json" },
+    { name: "Pizza", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f355/lottie.json" },
+    { name: "Coffee", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/2615_fe0f/lottie.json" },
+    { name: "Meditation", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f9d8/lottie.json" }
 ];
 
 const GRADIENTS = [
@@ -37,7 +50,79 @@ const GRADIENTS = [
     "linear-gradient(to right, #fa709a 0%, #fee140 100%)"
 ];
 
-const EMOJIS = ["🦋", "🦁", "🚀", "🎨", "⚽", "🎮", "🦄", "🌈", "🍕", "🎸", "🎓", "🧩"];
+const EMOJI_DATA = [
+    // Smiles & People
+    { char: "😀", tags: ["smile", "happy", "face", "grin"] },
+    { char: "😂", tags: ["laugh", "funny", "joy", "tear", "lol"] },
+    { char: "🥰", tags: ["love", "heart", "smile", "adore", "crush"] },
+    { char: "😎", tags: ["cool", "glasses", "sunglasses", "chill"] },
+    { char: "🤩", tags: ["star", "eyes", "wow", "amazing", "excited"] },
+    { char: "🥳", tags: ["party", "celebrate", "birthday", "hat"] },
+    { char: "🤔", tags: ["think", "ponder", "wonder", "hmm"] },
+    { char: "🤫", tags: ["quiet", "shh", "silence", "secret"] },
+    { char: "🫠", tags: ["melt", "hot", "embarrassed", "soft"] },
+    { char: "🥺", tags: ["pleading", "beg", "sad", "eyes", "cute"] },
+    { char: "🤯", tags: ["mind", "blown", "explosion", "wow", "brain"] },
+    { char: "👽", tags: ["alien", "space", "ufo", "world"] },
+    { char: "🤖", tags: ["robot", "bot", "tech", "ai"] },
+    { char: "👻", tags: ["ghost", "scary", "boo", "halloween"] },
+    { char: "😈", tags: ["devil", "evil", "purple", "horn", "mischievous"] },
+    { char: "🤡", tags: ["clown", "funny", "circus", "mask"] },
+    { char: "💩", tags: ["poop", "funny", "brown", "smile"] },
+
+    // Animals & Nature
+    { char: "🦋", tags: ["butterfly", "insect", "fly", "blue", "wing"] },
+    { char: "🦁", tags: ["lion", "cat", "animal", "king", "roar"] },
+    { char: "🦄", tags: ["unicorn", "magic", "horse", "fantasy"] },
+    { char: "🐼", tags: ["panda", "bear", "animal", "bamboo", "china"] },
+    { char: "🦊", tags: ["fox", "animal", "orange", "smart"] },
+    { char: "🐙", tags: ["octopus", "sea", "ocean", "purple", "ink"] },
+    { char: "🦖", tags: ["dino", "trex", "dinosaur", "green", "scary"] },
+    { char: "🐉", tags: ["dragon", "fire", "myth", "fantasy"] },
+    { char: "🌵", tags: ["cactus", "desert", "plant", "green", "spike"] },
+    { char: "🌈", tags: ["rainbow", "color", "sky", "peace"] },
+    { char: "🔥", tags: ["fire", "hot", "burn", "lit", "flame"] },
+    { char: "✨", tags: ["sparkle", "star", "magic", "shiny", "glitter"] },
+    { char: "🍀", tags: ["clover", "luck", "green", "nature"] },
+    { char: "🌸", tags: ["flower", "pink", "cherry", "spring"] },
+    { char: "🌍", tags: ["earth", "world", "globe", "planet"] },
+    { char: "🌕", tags: ["moon", "night", "dark", "planet"] },
+    { char: "🐯", tags: ["tiger", "cat", "stripes", "orange"] },
+
+    // Food & Drink
+    { char: "🍕", tags: ["pizza", "food", "cheese", "slice", "dinner"] },
+    { char: "🍔", tags: ["burger", "food", "meat", "fast", "lunch"] },
+    { char: "🍣", tags: ["sushi", "food", "fish", "japan", "rice"] },
+    { char: "🍦", tags: ["icecream", "cold", "sweet", "dessert"] },
+    { char: "🍩", tags: ["donut", "sweet", "pink", "sugar"] },
+    { char: "🍓", tags: ["strawberry", "fruit", "red", "sweet"] },
+    { char: "🥑", tags: ["avocado", "food", "green", "guac"] },
+    { char: "☕", tags: ["coffee", "drink", "cup", "morning", "hot"] },
+    { char: "🍹", tags: ["cocktail", "drink", "beach", "summer"] },
+    { char: "🍺", tags: ["beer", "drink", "party", "alcohol"] },
+    { char: "🥂", tags: ["cheers", "drink", "wine", "celebrate"] },
+    { char: "🍿", tags: ["popcorn", "movie", "cinema", "snack"] },
+    { char: "🍪", tags: ["cookie", "sweet", "snack", "bake"] },
+    { char: "🍭", tags: ["lollipop", "sweet", "candy"] },
+
+    // Activities & Objects
+    { char: "⚽", tags: ["soccer", "ball", "sport", "game", "play"] },
+    { char: "🎮", tags: ["gaming", "video", "play", "controller"] },
+    { char: "🎸", tags: ["guitar", "music", "rock", "instrument"] },
+    { char: "🎨", tags: ["art", "paint", "color", "draw"] },
+    { char: "🚀", tags: ["rocket", "space", "fly", "launch"] },
+    { char: "🎓", tags: ["grad", "school", "college", "degree"] },
+    { char: "🧩", tags: ["puzzle", "game", "think", "logic"] },
+    { char: "💼", tags: ["work", "office", "business", "bag"] },
+    { char: "💎", tags: ["diamond", "gem", "shiny", "rich"] },
+    { char: "🔮", tags: ["magic", "future", "crystal", "mystic"] },
+    { char: "📷", tags: ["camera", "photo", "pic", "lens"] },
+    { char: "💡", tags: ["idea", "light", "bright", "smart"] },
+    { char: "🔑", tags: ["key", "lock", "access", "open"] },
+    { char: "🛹", tags: ["skate", "board", "sport", "cool"] },
+    { char: "🎭", tags: ["theatre", "mask", "drama", "art"] },
+    { char: "🎧", tags: ["music", "sound", "headphone", "listen"] }
+];
 
 const FILTERS = [
     { name: "Normal", value: "none" },
@@ -58,10 +143,45 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
     const [activeTab, setActiveTab] = useState("personal");
 
     // Emoji & Lottie State
-    const [selectedEmoji, setSelectedEmoji] = useState(EMOJIS[0]);
+    const [selectedEmoji, setSelectedEmoji] = useState(EMOJI_DATA[0].char);
     const [selectedGradient, setSelectedGradient] = useState(GRADIENTS[0]);
     const [selectedLottie, setSelectedLottie] = useState(null);
     const [lottieData, setLottieData] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    // Reset search when changing tabs
+    useEffect(() => {
+        setSearchTerm("");
+    }, [activeTab]);
+
+    const filteredEmojis = useMemo(() => {
+        if (!searchTerm) return EMOJI_DATA;
+        const lowSearch = searchTerm.toLowerCase();
+        return EMOJI_DATA.filter(e =>
+            e.char.includes(searchTerm) ||
+            e.tags.some(t => t.toLowerCase().includes(lowSearch))
+        );
+    }, [searchTerm]);
+
+    const filteredLotties = useMemo(() => {
+        if (!searchTerm) return LOTTIE_AVATARS;
+        const lowSearch = searchTerm.toLowerCase();
+        return LOTTIE_AVATARS.filter(l =>
+            l.name.toLowerCase().includes(lowSearch)
+        );
+    }, [searchTerm]);
+
+    // Generative Search Results (using DiceBear for "related related pictures")
+    const searchResults = useMemo(() => {
+        if (!searchTerm || activeTab !== "personal") return [];
+        // Generate a few seeds related to search term
+        return [
+            `https://api.dicebear.com/7.x/identicon/svg?seed=${searchTerm}&backgroundColor=b6e3f4`,
+            `https://api.dicebear.com/7.x/shapes/svg?seed=${searchTerm}&backgroundColor=ffdfbf`,
+            `https://api.dicebear.com/7.x/bottts/svg?seed=${searchTerm}&backgroundColor=c0aede`,
+            `https://api.dicebear.com/7.x/micah/svg?seed=${searchTerm}&backgroundColor=ffd5dc`
+        ];
+    }, [searchTerm, activeTab]);
 
     useEffect(() => {
         if (selectedLottie) {
@@ -297,7 +417,7 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
                                             <p className="text-xs opacity-50">High resolution JPG or PNG</p>
                                         </div>
                                         <label className="btn btn-primary btn-wide rounded-full shadow-lg cursor-pointer">
-                                            Browse Photos
+                                            Browse Local Files
                                             <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
@@ -310,6 +430,49 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
                                                 }
                                             }} />
                                         </label>
+
+                                        {/* Related Search Results */}
+                                        <div className="w-full space-y-3 pt-4 border-t border-base-300">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xs font-bold opacity-50 uppercase tracking-widest">Search Generations</p>
+                                                <div className="relative group">
+                                                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 opacity-30" size={12} />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Keyword..."
+                                                        className="input input-xs input-bordered pl-7 rounded-full w-32 focus:w-48 transition-all"
+                                                        value={searchTerm}
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {searchResults.length > 0 ? (
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {searchResults.map((url, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={async () => {
+                                                                // Fetch image and set as local image for cropping
+                                                                try {
+                                                                    const res = await fetch(url);
+                                                                    const blob = await res.blob();
+                                                                    const reader = new FileReader();
+                                                                    reader.onload = () => setImage(reader.result);
+                                                                    reader.readAsDataURL(blob);
+                                                                } catch (e) {
+                                                                    toast.error("Failed to load image");
+                                                                }
+                                                            }}
+                                                            className="aspect-square bg-base-300 rounded-xl overflow-hidden hover:ring-2 ring-primary transition-all p-1"
+                                                        >
+                                                            <img src={url} className="w-full h-full object-contain" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-[10px] opacity-40 italic text-center py-2">Try searching "Space", "Abstract", or "Hero" for related results</p>
+                                            )}
+                                        </div>
                                         {currentAvatar && <button onClick={handleRemove} className="btn btn-ghost text-error btn-xs"><Trash2 size={14} className="mr-1" /> Remove Current</button>}
                                     </div>
                                 )}
@@ -328,17 +491,30 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
                                 </div>
 
                                 <div className="space-y-4">
-                                    <p className="text-xs font-bold uppercase tracking-widest opacity-50">Pick an Emoji</p>
-                                    <div className="grid grid-cols-6 gap-3">
-                                        {EMOJIS.map(e => (
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-bold uppercase tracking-widest opacity-50">Pick an Emoji</p>
+                                        <div className="relative group">
+                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-40 group-focus-within:opacity-100 transition-opacity" size={14} />
+                                            <input
+                                                type="text"
+                                                placeholder="Search..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="input input-xs input-bordered pl-8 rounded-full bg-base-200 focus:bg-base-100 transition-all w-32"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-6 gap-3 max-h-48 overflow-y-auto p-1 scrollbar-hide">
+                                        {filteredEmojis.map(e => (
                                             <button
-                                                key={e}
-                                                onClick={() => setSelectedEmoji(e)}
-                                                className={`text-2xl p-2 rounded-xl transition-all ${selectedEmoji === e ? "bg-primary/10 ring-2 ring-primary scale-110" : "hover:bg-base-200"}`}
+                                                key={e.char}
+                                                onClick={() => setSelectedEmoji(e.char)}
+                                                className={`text-2xl p-2 rounded-xl transition-all ${selectedEmoji === e.char ? "bg-primary/10 ring-2 ring-primary scale-110" : "hover:bg-base-200"}`}
                                             >
-                                                {e}
+                                                {e.char}
                                             </button>
                                         ))}
+                                        {filteredEmojis.length === 0 && <p className="col-span-6 text-center py-4 opacity-40 text-xs italic">No emoji found</p>}
                                     </div>
                                 </div>
 
@@ -377,16 +553,32 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-3">
-                                    {LOTTIE_AVATARS.map(l => (
-                                        <button
-                                            key={l.url}
-                                            onClick={() => setSelectedLottie(l.url)}
-                                            className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${selectedLottie === l.url ? "bg-secondary/10 ring-2 ring-secondary scale-105" : "bg-base-200 hover:bg-base-300"}`}
-                                        >
-                                            <span className="text-xs font-bold opacity-70">{l.name}</span>
-                                        </button>
-                                    ))}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-bold uppercase tracking-widest opacity-50">Select Animation</p>
+                                        <div className="relative group">
+                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-40 group-focus-within:opacity-100 transition-opacity" size={14} />
+                                            <input
+                                                type="text"
+                                                placeholder="Search lottie..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="input input-xs input-bordered pl-8 rounded-full bg-base-200 focus:bg-base-100 transition-all w-40"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-3 max-h-48 overflow-y-auto p-1 scrollbar-hide">
+                                        {filteredLotties.map(l => (
+                                            <button
+                                                key={l.url}
+                                                onClick={() => setSelectedLottie(l.url)}
+                                                className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${selectedLottie === l.url ? "bg-secondary/10 ring-2 ring-secondary scale-105" : "bg-base-200 hover:bg-base-300"}`}
+                                            >
+                                                <span className="text-xs font-bold opacity-70">{l.name}</span>
+                                            </button>
+                                        ))}
+                                        {filteredLotties.length === 0 && <p className="col-span-4 text-center py-4 opacity-40 text-xs italic">No animation found</p>}
+                                    </div>
                                 </div>
 
                                 <button onClick={handleSave} disabled={isUploading} className="btn btn-secondary w-full rounded-full shadow-lg shadow-secondary/20 mt-4">

@@ -190,7 +190,7 @@ const MessageInput = () => {
         const messageData = {
             poll: {
                 question: pollData.question,
-                options: pollData.options.map(text => ({ text, votes: [] }))
+                options: pollData.options.map(text => ({ text, voters: [] }))
             },
             replyTo: replyMessage?._id,
         };
@@ -595,12 +595,13 @@ const MessageInput = () => {
                                                     }}
                                                 />
                                                 {pollData.options.length > 2 && (
-                                                    <button onClick={() => setPollData({ ...pollData, options: pollData.options.filter((_, idx) => idx !== i) })} className="btn btn-ghost btn-xs text-error">Remove</button>
+                                                    <button type="button" onClick={() => setPollData({ ...pollData, options: pollData.options.filter((_, idx) => idx !== i) })} className="btn btn-ghost btn-xs text-error">Remove</button>
                                                 )}
                                             </div>
                                         ))}
                                         {pollData.options.length < 5 && (
                                             <button
+                                                type="button"
                                                 className="btn btn-ghost btn-xs btn-primary"
                                                 onClick={() => setPollData({ ...pollData, options: [...pollData.options, ""] })}
                                             >
@@ -608,7 +609,7 @@ const MessageInput = () => {
                                             </button>
                                         )}
                                     </div>
-                                    <button className="btn btn-primary w-full" onClick={handleSendPoll}>Create Poll</button>
+                                    <button type="button" className="btn btn-primary w-full" onClick={handleSendPoll}>Create Poll</button>
                                 </div>
                             </div>
                         </div>

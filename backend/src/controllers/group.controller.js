@@ -177,14 +177,14 @@ export const voteGroupPoll = async (req, res) => {
         if (!option) return res.status(400).json({ error: "Option not found" });
 
         // Check vote
-        const existingVoteIndex = option.voters.indexOf(userId);
+        const existingVoteIndex = option.voters.findIndex(id => id.toString() === userId.toString());
 
         if (existingVoteIndex !== -1) {
             option.voters.splice(existingVoteIndex, 1);
         } else {
             if (!poll.allowMultiple) {
                 poll.options.forEach((opt) => {
-                    const idx = opt.voters.indexOf(userId);
+                    const idx = opt.voters.findIndex(id => id.toString() === userId.toString());
                     if (idx !== -1) opt.voters.splice(idx, 1);
                 });
             }
@@ -193,22 +193,21 @@ export const voteGroupPoll = async (req, res) => {
 
         await message.save();
 
+        const populatedMessage = await GroupMessage.findById(message._id)
+            .populate("sender", "fullName profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility")
+            .populate("replyTo")
+            .populate("contact", "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility");
+
         // Broadcast to group members
         const group = message.group;
         if (group && group.members) {
             group.members.forEach((memberId) => {
-                const socketId = getReceiverSocketId(memberId);
-                // Front-end should listen for 'messageUpdate' or similar. 
-                // We'll use 'groupMessageUpdate' to be specific if needed, or re-use 'messageUpdate' if frontend is generic.
-                // ChatStore likely handles message updates differently for groups?
-                // Let's use 'messageUpdate' which seems generic enough, but check frontend logic later.
-                if (socketId) {
-                    io.to(socketId).emit("messageUpdate", message);
-                }
+                const socketStr = memberId.toString();
+                io.to(socketStr).emit("messageUpdate", populatedMessage);
             });
         }
 
-        res.status(200).json(message);
+        res.status(200).json(populatedMessage);
     } catch (error) {
         console.error("Error in voteGroupPoll:", error);
         res.status(500).json({ error: "Internal server error" });

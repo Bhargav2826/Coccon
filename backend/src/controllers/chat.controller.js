@@ -255,14 +255,14 @@ export const votePoll = async (req, res) => {
         const option = poll.options[optionIndex];
         if (!option) return res.status(400).json({ error: "Option not found" });
 
-        const existingVoteIndex = option.voters.indexOf(userId);
+        const existingVoteIndex = option.voters.findIndex(id => id.toString() === userId.toString());
 
         if (existingVoteIndex !== -1) {
             option.voters.splice(existingVoteIndex, 1);
         } else {
             if (!poll.allowMultiple) {
                 poll.options.forEach((opt) => {
-                    const idx = opt.voters.indexOf(userId);
+                    const idx = opt.voters.findIndex(id => id.toString() === userId.toString());
                     if (idx !== -1) opt.voters.splice(idx, 1);
                 });
             }
@@ -271,13 +271,18 @@ export const votePoll = async (req, res) => {
 
         await message.save();
 
-        const otherUserId = message.sender.toString() === userId.toString() ? message.receiver : message.sender;
-        const otherSocketId = getReceiverSocketId(otherUserId);
-        if (otherSocketId) {
-            io.to(otherSocketId).emit("messageUpdate", message);
-        }
+        const populatedMessage = await ChatMessage.findById(message._id)
+            .populate("replyTo")
+            .populate("contact", "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility");
 
-        res.status(200).json(message);
+        // Broadcast to both so all their active devices instantly sync
+        const receiverSocketStr = message.receiver.toString();
+        const senderSocketStr = message.sender.toString();
+
+        io.to(receiverSocketStr).emit("messageUpdate", populatedMessage);
+        io.to(senderSocketStr).emit("messageUpdate", populatedMessage);
+
+        res.status(200).json(populatedMessage);
     } catch (error) {
         console.error("Error in votePoll:", error);
         res.status(500).json({ error: "Internal server error" });

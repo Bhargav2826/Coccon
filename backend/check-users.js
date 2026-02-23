@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+                                                                                                                                import mongoose from "mongoose";
 import dotenv from "dotenv";
 import User from "./src/models/User.js";
 
@@ -22,14 +22,14 @@ async function checkUsers() {
       console.log(`${index + 1}. ${user.fullName} (${user.email}) - ${user.role}`);
     });
     
-    // Show faculty users specifically
-    const facultyUsers = users.filter(user => user.role === 'faculty');
+    // Show faculty users specifically                                                                                                                                                                                                
+    const facultyUsers = users.filter(user => user.role === 'faculty'); 
     console.log(`\n👨‍🏫 Faculty users (${facultyUsers.length}):`);
     facultyUsers.forEach((user, index) => {
       console.log(`   ${index + 1}. ${user.fullName} (${user.email})`);
     });
     
-    // Show student users
+    // Show student users   
     const studentUsers = users.filter(user => user.role === 'student');
     console.log(`\n👨‍🎓 Student users (${studentUsers.length}):`);
     studentUsers.forEach((user, index) => {

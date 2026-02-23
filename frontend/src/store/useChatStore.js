@@ -141,7 +141,7 @@ export const useChatStore = create((set, get) => ({
             const { messages } = get();
             set({
                 messages: messages.map(m =>
-                    m._id === updatedMessage._id ? updatedMessage : m
+                    m._id === updatedMessage._id ? { ...m, ...updatedMessage, poll: updatedMessage.poll || m.poll } : m
                 )
             });
         });
@@ -343,7 +343,13 @@ export const useChatStore = create((set, get) => ({
     votePoll: async (messageId, optionIndex, isGroup = false) => {
         try {
             const { votePoll: voteApi } = await import("../lib/api");
-            await voteApi(messageId, optionIndex, isGroup);
+            const res = await voteApi(messageId, optionIndex, isGroup);
+            const { messages } = get();
+            set({
+                messages: messages.map(m =>
+                    m._id === messageId ? { ...m, poll: res.poll } : m
+                )
+            });
         } catch (error) {
             toast.error("Failed to vote");
         }

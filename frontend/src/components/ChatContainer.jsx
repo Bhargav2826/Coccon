@@ -122,6 +122,7 @@ const ChatContainer = () => {
         searchQuery,
         updateLastSeen,
         starMessage,
+        votePoll,
     } = useChatStore();
     const { authUser } = useAuth();
     const { socket } = useSocketContext();
@@ -374,11 +375,50 @@ const ChatContainer = () => {
                                             <button onClick={saveEdit} className="btn btn-xs btn-primary">Save</button>
                                         </div>
                                     </div>
-                                ) : message.text && (
+                                ) : message.text ? (
                                     <p className={`text-sm ${isDeleted ? 'italic opacity-50' : ''}`}>
                                         {message.text}
                                         {message.isEdited && <span className="text-[10px] opacity-50 ml-1">(edited)</span>}
                                     </p>
+                                ) : null}
+
+                                {/* Poll Widget */}
+                                {message.poll && message.poll.question && (
+                                    <div className="mt-1 flex flex-col gap-2 w-full max-w-sm">
+                                        <h4 className="font-bold text-sm mb-1">{message.poll.question}</h4>
+                                        <div className="flex flex-col gap-2">
+                                            {message.poll.options.map((option, idx) => {
+                                                const totalVotes = message.poll.options.reduce((sum, opt) => sum + (opt.voters?.length || 0), 0);
+                                                const votes = option.voters?.length || 0;
+                                                const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
+                                                const hasVoted = option.voters?.includes(authUser._id);
+
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className={`relative rounded-lg p-2.5 cursor-pointer transition-all border ${isSentByMe
+                                                                ? (hasVoted ? 'border-white bg-white/20 shadow-sm' : 'border-white/20 hover:bg-white/10')
+                                                                : (hasVoted ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-content/20 hover:bg-base-content/10')
+                                                            } flex justify-between items-center overflow-hidden`}
+                                                        onClick={() => votePoll(message._id, idx, !!selectedGroup)}
+                                                    >
+                                                        <div
+                                                            className={`absolute left-0 top-0 bottom-0 ${isSentByMe
+                                                                    ? (hasVoted ? 'bg-white/30' : 'bg-white/10')
+                                                                    : (hasVoted ? 'bg-primary/20' : 'bg-base-content/5')
+                                                                }`}
+                                                            style={{ width: `${percentage}%`, transition: 'width 0.3s ease-in-out' }}
+                                                        />
+                                                        <span className="relative z-10 text-sm pr-2 break-words leading-tight whitespace-normal">{option.text}</span>
+                                                        {votes > 0 && <span className="relative z-10 text-xs font-bold">{votes}</span>}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="text-[10px] opacity-60 mt-1 min-w-[150px]">
+                                            {message.poll.options.reduce((sum, opt) => sum + (opt.voters?.length || 0), 0)} votes
+                                        </div>
+                                    </div>
                                 )}
 
                                 {/* Reactions and Metadata */}
