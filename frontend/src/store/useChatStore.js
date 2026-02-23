@@ -190,7 +190,7 @@ export const useChatStore = create((set, get) => ({
             await deleteMsgApi(messageId);
             set({
                 messages: get().messages.map(m =>
-                    m._id === messageId ? { ...m, isDeleted: true, text: "This message was deleted" } : m
+                    m._id === messageId ? { ...m, isDeleted: true } : m
                 )
             });
         } catch (error) {

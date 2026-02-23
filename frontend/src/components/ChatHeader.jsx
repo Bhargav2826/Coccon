@@ -1,4 +1,4 @@
-import { X, Search, Phone, Video, MoreVertical, Settings } from "lucide-react";
+import { X, Search, Phone, Video, MoreVertical, Settings, ArrowLeft } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 import { useSocketContext } from "../contexts/SocketContext";
 import { useState } from "react";
@@ -36,10 +36,20 @@ const ChatHeader = () => {
     return (
         <div className="p-2.5 border-b border-base-300 bg-base-100/50 backdrop-blur-md sticky top-0 z-30">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    {/* Back button for mobile */}
+                    <button
+                        onClick={() => selectedGroup ? setSelectedGroup(null) : setSelectedUser(null)}
+                        className="btn btn-ghost btn-sm btn-circle md:hidden"
+                        title="Back"
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                    </button>
+
                     <UserAvatar
                         user={selectedUser || { fullName: selectedGroup?.name, profilePic: selectedGroup?.groupPic }}
-                        size="md"
+                        size="sm"
+                        className="sm:size-10"
                         onClick={() => setIsPreviewOpen(true)}
                     />
 
@@ -107,7 +117,7 @@ const ChatHeader = () => {
                     {!selectedGroup && (
                         <button onClick={() => setShowSettings(true)} className="btn btn-ghost btn-circle btn-sm"><Settings size={18} /></button>
                     )}
-                    <button onClick={() => selectedGroup ? setSelectedGroup(null) : setSelectedUser(null)} className="btn btn-ghost btn-circle btn-sm">
+                    <button onClick={() => selectedGroup ? setSelectedGroup(null) : setSelectedUser(null)} className="btn btn-ghost btn-circle btn-sm hidden md:flex">
                         <X size={20} />
                     </button>
                 </div>

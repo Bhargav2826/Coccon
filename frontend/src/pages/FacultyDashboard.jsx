@@ -182,36 +182,39 @@ const FacultyDashboard = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col items-center text-center space-y-4 sm:flex-row sm:items-start sm:text-left sm:justify-between sm:space-y-0">
-        <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Faculty Dashboard</h1>
-          <p className="text-sm sm:text-base text-base-content opacity-70 max-w-2xl mx-auto sm:mx-0">
-            Manage your classroom chat rooms and monitor student interactions
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-base-200/50 p-6 rounded-2xl border border-base-content/5 shadow-sm">
+        <div className="space-y-1.5 text-center lg:text-left">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+            Faculty Management
+          </h1>
+          <p className="text-sm sm:text-base text-base-content opacity-70 max-w-xl">
+            Control classroom environments, start video sessions, and manage student rooms with ease.
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {isDeleteMode && (
-            <>
-              <button onClick={handleBulkDelete} disabled={selectedRooms.size === 0 || deletingRooms} className="btn btn-error w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+          {isDeleteMode ? (
+            <div className="flex gap-2 w-full">
+              <button onClick={handleBulkDelete} disabled={selectedRooms.size === 0 || deletingRooms} className="btn btn-error flex-1 sm:flex-none">
                 {deletingRooms ? <span className="loading loading-spinner loading-xs" /> : <TrashIcon className="size-4 mr-1" />}
                 Delete Selected ({selectedRooms.size})
               </button>
-              <button onClick={toggleDeleteMode} className="btn btn-ghost w-full sm:w-auto">
-                <XIcon className="size-4 mr-1" /> Cancel
+              <button onClick={toggleDeleteMode} className="btn btn-ghost">
+                <XIcon className="size-4" />
               </button>
-            </>
-          )}
-          {!isDeleteMode && (
+            </div>
+          ) : (
             <>
-              <Link to="/friends" className="btn btn-outline w-full sm:w-auto">
-                <UsersIcon className="size-4 mr-1" /> Friends & Messages
-              </Link>
-              <button onClick={toggleDeleteMode} className="btn btn-outline w-full sm:w-auto border-error/30 text-error hover:bg-error hover:text-error-content">
-                <TrashIcon className="size-4 mr-1" /> Delete Rooms
-              </button>
-              <button onClick={() => setIsModalOpen(true)} className="btn btn-primary w-full sm:w-auto">
-                <PlusIcon className="mr-2 size-4" /> Create New Room
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2 w-full">
+                <Link to="/friends" className="btn btn-outline btn-sm sm:btn-md">
+                  <UsersIcon className="size-4 mr-1" /> Friends
+                </Link>
+                <button onClick={toggleDeleteMode} className="btn btn-outline btn-sm sm:btn-md border-error/20 text-error hover:bg-error">
+                  <TrashIcon className="size-4 mr-1" /> Delete
+                </button>
+                <button onClick={() => setIsModalOpen(true)} className="btn btn-primary btn-sm sm:btn-md sm:col-span-2 lg:col-span-1">
+                  <PlusIcon className="mr-1 size-4" /> New Room
+                </button>
+              </div>
             </>
           )}
         </div>

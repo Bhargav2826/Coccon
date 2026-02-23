@@ -560,17 +560,17 @@ const ParentDashboard = () => {
       {/* Conversations Analysis */}
       {selectedChild && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-base-content/5 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-base-content/10 pb-4">
             <div className="flex items-center gap-2">
               <MessageSquareIcon className="size-5 sm:size-6 text-primary" />
-              <h2 className="text-xl sm:text-2xl font-semibold">Conversations Analysis</h2>
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">Conversations Analysis</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {['all', 'friends', 'classroom', 'direct'].map(f => (
                 <button
                   key={f}
                   onClick={() => setConversationFilter(f)}
-                  className={`btn btn-xs sm:btn-sm flex-1 sm:flex-none ${conversationFilter === f ? 'btn-primary shadow-md' : 'btn-outline border-base-content/10'}`}
+                  className={`btn btn-[10px] sm:btn-xs lg:btn-sm flex-1 sm:flex-none h-8 sm:h-auto px-2 sm:px-4 ${conversationFilter === f ? 'btn-primary shadow-md' : 'btn-outline border-base-content/10'}`}
                 >
                   {f.toUpperCase()}
                 </button>
@@ -902,10 +902,45 @@ const ParentDashboard = () => {
                                                       </div>
                                                       <span className="text-[9px] opacity-40">{new Date(msg.createdAt).toLocaleTimeString()}</span>
                                                     </div>
-                                                    {msg.fileUrl ? (
-                                                      <div className="text-xs opacity-70 italic">[Attachment: {msg.fileName || 'File'}]</div>
-                                                    ) : null}
-                                                    {msg.text && <p className="text-base-content/80 leading-relaxed font-sans">{msg.text}</p>}
+                                                    <div>
+                                                      {msg.poll && msg.poll.question && (
+                                                        <div className="text-xs font-semibold italic flex items-center gap-1 mt-0.5">
+                                                          📊 [Poll: {msg.poll.question}]
+                                                          {msg.isDeleted && <span className="text-error font-bold ml-1"> (🚫 Deleted by {msg.sender?.fullName || 'User'})</span>}
+                                                        </div>
+                                                      )}
+                                                      {msg.voiceUrl && (
+                                                        <div className="text-xs text-accent italic font-medium flex items-center gap-1 mt-0.5">
+                                                          <span className="opacity-80">🎤 [Voice Message]</span>
+                                                          {msg.isDeleted && <span className="text-error font-bold ml-1"> (🚫 Deleted by {msg.sender?.fullName || 'User'})</span>}
+                                                        </div>
+                                                      )}
+                                                      {(msg.image || (msg.fileType === 'image' && msg.fileUrl)) && (
+                                                        <div className="mt-1.5">
+                                                          <div className="text-xs italic opacity-70 mb-1 flex items-center gap-1">
+                                                            📷 [Photo]
+                                                            {msg.isDeleted && <span className="text-error font-bold ml-1"> (🚫 Deleted by {msg.sender?.fullName || 'User'})</span>}
+                                                          </div>
+                                                          <img src={msg.image || msg.fileUrl} alt="Attachment" className="max-w-[150px] max-h-[150px] rounded-lg object-cover border border-base-content/10 shadow-sm" />
+                                                        </div>
+                                                      )}
+                                                      {msg.fileUrl && !(msg.image || msg.fileType === 'image') && !msg.voiceUrl && (
+                                                        <div className="text-xs opacity-70 italic mt-0.5 flex items-center gap-1">
+                                                          📎 [File: {msg.fileName || 'Attachment'}]
+                                                          {msg.isDeleted && <span className="text-error font-bold ml-1"> (🚫 Deleted by {msg.sender?.fullName || 'User'})</span>}
+                                                        </div>
+                                                      )}
+                                                      {msg.text && (
+                                                        <p className="leading-relaxed font-sans mt-0.5 text-sm text-base-content/80">
+                                                          {msg.text !== "This message was deleted" && <span>{msg.text}</span>}
+                                                          {(msg.isDeleted || msg.text === "This message was deleted") && (
+                                                            <span className="text-error font-bold ml-1 italic text-[11px]">
+                                                              (🚫 This message was deleted by {msg.sender?.fullName || 'user'})
+                                                            </span>
+                                                          )}
+                                                        </p>
+                                                      )}
+                                                    </div>
                                                   </div>
                                                 ))
                                               )

@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import ChatMessage from "../models/ChatMessage.js";
+import GroupMessage from "../models/GroupMessage.js";
 import Call from "../models/Call.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 import cloudinary from "../lib/cloudinary.js";
@@ -179,24 +180,48 @@ export const deleteMessage = async (req, res) => {
         const { messageId } = req.params;
         const userId = req.user._id;
 
-        const message = await ChatMessage.findById(messageId);
+        // Try direct chat first
+        let message = await ChatMessage.findById(messageId);
+        let isGroupMsg = false;
+
+        if (!message) {
+            // Try group chat
+            message = await GroupMessage.findById(messageId);
+            isGroupMsg = true;
+        }
+
         if (!message) return res.status(404).json({ error: "Message not found" });
         if (message.sender.toString() !== userId.toString()) return res.status(403).json({ error: "Unauthorized" });
 
         message.isDeleted = true;
-        message.text = "This message was deleted";
-        message.image = undefined;
-        message.fileUrl = undefined;
-        message.voiceUrl = undefined;
+        // Optimization: We No longer overwrite text/images/voice so Parents can see audits.
+        // User-facing UI logic (ChatContainer) will handle the obfuscation.
         await message.save();
 
-        const receiverSocketId = getReceiverSocketId(message.receiver);
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("messageUpdate", message);
+        const populatedMessage = await (isGroupMsg ? GroupMessage : ChatMessage)
+            .findById(message._id)
+            .populate("sender", "fullName profilePic role");
+
+        if (isGroupMsg) {
+            const GroupChat = (await import("../models/GroupChat.js")).default;
+            const group = await GroupChat.findById(message.group);
+            if (group && group.members) {
+                group.members.forEach((memberId) => {
+                    const socketStr = memberId.toString();
+                    io.to(socketStr).emit("messageUpdate", populatedMessage);
+                });
+            }
+        } else {
+            const receiverSocketStr = message.receiver.toString();
+            const senderSocketStr = message.sender.toString();
+
+            io.to(receiverSocketStr).emit("messageUpdate", populatedMessage);
+            io.to(senderSocketStr).emit("messageUpdate", populatedMessage);
         }
 
-        res.status(200).json(message);
+        res.status(200).json(populatedMessage);
     } catch (error) {
+        console.error("Delete message error:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };

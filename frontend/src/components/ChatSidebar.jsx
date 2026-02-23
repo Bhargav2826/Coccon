@@ -38,14 +38,14 @@ const ChatSidebar = () => {
     const totalUnreadGroups = groups.reduce((acc, g) => acc + (g.unreadCount || 0), 0);
 
     return (
-        <aside className="h-full w-20 lg:w-80 border-r border-base-300 flex flex-col transition-all duration-200 bg-base-100">
+        <aside className="h-full w-full md:w-80 border-r border-base-300 flex flex-col transition-all duration-200 bg-base-100">
             <div className="p-4 border-b border-base-300">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold hidden lg:block text-primary">Messages</h2>
+                    <h2 className="text-xl font-bold text-primary">Messages</h2>
                     <button onClick={() => setShowCreateGroup(true)} className="btn btn-ghost btn-circle btn-sm"><Plus size={20} /></button>
                 </div>
 
-                <div className="relative hidden lg:block mb-4">
+                <div className="relative mb-4">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 opacity-50" />
                     <input
                         type="text"
@@ -62,7 +62,7 @@ const ChatSidebar = () => {
                         className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "chats" ? "bg-base-100 shadow-md text-primary" : "opacity-60 hover:opacity-100"}`}
                     >
                         <User size={14} />
-                        <span className="hidden lg:inline">Chats</span>
+                        <span>Chats</span>
                         {totalUnreadChats > 0 && (
                             <span className="badge badge-primary badge-sm px-1.5 min-w-[1.25rem] h-5 rounded-full">{totalUnreadChats}</span>
                         )}
@@ -72,7 +72,7 @@ const ChatSidebar = () => {
                         className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "groups" ? "bg-base-100 shadow-md text-primary" : "opacity-60 hover:opacity-100"}`}
                     >
                         <Users size={14} />
-                        <span className="hidden lg:inline">Groups</span>
+                        <span>Groups</span>
                         {totalUnreadGroups > 0 && (
                             <span className="badge badge-primary badge-sm px-1.5 min-w-[1.25rem] h-5 rounded-full">{totalUnreadGroups}</span>
                         )}
@@ -94,7 +94,7 @@ const ChatSidebar = () => {
                                 showStatus={true}
                                 className="shrink-0"
                             />
-                            <div className="hidden lg:flex flex-col flex-1 text-left min-w-0">
+                            <div className="flex flex-col flex-1 text-left min-w-0">
                                 <div className="flex justify-between items-center gap-2">
                                     <span className={`font-semibold truncate ${user.unreadCount > 0 ? "text-base-content" : "text-base-content/80"}`}>{user.fullName}</span>
                                     {user.unreadCount > 0 && (
@@ -104,7 +104,12 @@ const ChatSidebar = () => {
                                     )}
                                 </div>
                                 <div className={`text-xs truncate ${user.unreadCount > 0 ? "font-semibold text-primary" : "text-base-content/60"}`}>
-                                    {user.lastMessage?.text || (user.lastMessage?.image ? "🖼️ Image" : "No messages yet")}
+                                    {(user.lastMessage?.isDeleted || user.lastMessage?.text === "This message was deleted") ? <span className="italic">🚫 Deleted message</span> :
+                                        user.lastMessage?.text ? user.lastMessage.text :
+                                            user.lastMessage?.voiceUrl ? "🎤 Voice message" :
+                                                user.lastMessage?.image ? "📷 Photo" :
+                                                    user.lastMessage?.fileUrl ? "📎 Attachment" :
+                                                        user.lastMessage?.poll ? "📊 Poll" : "No messages yet"}
                                 </div>
                             </div>
                         </button>
@@ -122,7 +127,7 @@ const ChatSidebar = () => {
                                 showStatus={false}
                                 className="shrink-0"
                             />
-                            <div className="hidden lg:flex flex-col flex-1 text-left min-w-0">
+                            <div className="flex flex-col flex-1 text-left min-w-0">
                                 <div className="flex justify-between items-center gap-2">
                                     <span className={`font-semibold truncate ${group.unreadCount > 0 ? "text-base-content" : "text-base-content/80"}`}>{group.name}</span>
                                     {group.unreadCount > 0 && (
@@ -132,7 +137,12 @@ const ChatSidebar = () => {
                                     )}
                                 </div>
                                 <div className={`text-xs truncate ${group.unreadCount > 0 ? "font-semibold text-primary" : "text-base-content/60"}`}>
-                                    {group.lastMessage?.text || "No messages yet"}
+                                    {(group.lastMessage?.isDeleted || group.lastMessage?.text === "This message was deleted") ? <span className="italic">🚫 Deleted message</span> :
+                                        group.lastMessage?.text ? group.lastMessage.text :
+                                            group.lastMessage?.voiceUrl ? "🎤 Voice message" :
+                                                group.lastMessage?.image ? "📷 Photo" :
+                                                    group.lastMessage?.fileUrl ? "📎 Attachment" :
+                                                        group.lastMessage?.poll ? "📊 Poll" : "No messages yet"}
                                 </div>
                             </div>
                         </button>

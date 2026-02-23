@@ -426,8 +426,8 @@ const MessageInput = () => {
                     <button type="button" className="btn btn-circle btn-sm btn-ghost" onClick={() => setShowGiphy(!showGiphy)}><Smile size={20} /></button>
 
                     {showAttachments && (
-                        <div className="absolute bottom-12 left-0 bg-base-100 p-4 rounded-xl shadow-2xl border border-base-300 z-50 mb-2 animate-in fade-in slide-in-from-bottom-2 w-64">
-                            <div className="grid grid-cols-3 gap-4">
+                        <div className="absolute bottom-12 left-0 bg-base-100 p-4 rounded-xl shadow-2xl border border-base-300 z-50 mb-2 animate-in fade-in slide-in-from-bottom-2 w-[calc(100vw-2rem)] sm:w-80">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-4">
                                 <button className="flex flex-col items-center gap-1 group" onClick={() => { fileInputRef.current.accept = ".doc,.docx,.pdf,.txt"; fileInputRef.current.click(); setShowAttachments(false); }}>
                                     <div className="p-3 bg-indigo-100 text-indigo-600 rounded-full group-hover:scale-110 transition-transform">
                                         <FileText size={24} />
@@ -624,7 +624,7 @@ const MessageInput = () => {
                     />
 
                     {showGiphy && (
-                        <div className="absolute bottom-12 left-0 w-64 bg-base-200 p-2 rounded-lg shadow-xl z-50 border border-base-300">
+                        <div className="absolute bottom-12 left-0 w-[calc(100vw-2rem)] sm:w-72 bg-base-200 p-2 rounded-lg shadow-xl z-50 border border-base-300">
                             <div className="flex gap-1 mb-2">
                                 <input
                                     autoFocus
