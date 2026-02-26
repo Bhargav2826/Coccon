@@ -310,3 +310,9 @@ export async function votePoll(messageId, optionIndex, isGroup = false) {
   const response = await axiosInstance.put(url, { optionIndex });
   return response.data;
 }
+
+export async function forwardMessage(messageId, targetType, targetId) {
+  const response = await axiosInstance.post("/messages/forward", { messageId, targetType, targetId });
+  return response.data;
+}
+

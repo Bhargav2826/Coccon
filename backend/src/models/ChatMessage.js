@@ -79,6 +79,16 @@ const chatMessageSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "User"
         },
+        mentions: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User"
+            }
+        ],
+        isForwarded: {
+            type: Boolean,
+            default: false
+        },
     },
     { timestamps: true }
 );

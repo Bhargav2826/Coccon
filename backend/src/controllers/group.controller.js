@@ -34,7 +34,9 @@ export const createGroup = async (req, res) => {
 export const getGroups = async (req, res) => {
     try {
         const userId = req.user._id;
-        const groups = await GroupChat.find({ members: userId }).populate("lastMessage");
+        const groups = await GroupChat.find({ members: userId })
+            .populate("lastMessage")
+            .populate("members", "fullName profilePic role");
 
         const groupsWithUnread = await Promise.all(
             groups.map(async (group) => {
@@ -59,7 +61,7 @@ export const getGroups = async (req, res) => {
 
 export const sendGroupMessage = async (req, res) => {
     try {
-        const { text, image, file, fileName, fileType, voiceUrl, replyTo, poll, contact } = req.body;
+        const { text, image, file, fileName, fileType, voiceUrl, replyTo, poll, contact, mentions, isForwarded } = req.body;
         const { groupId } = req.params;
         const senderId = req.user._id;
 
@@ -122,13 +124,16 @@ export const sendGroupMessage = async (req, res) => {
             replyTo,
             poll,
             contact,
+            mentions: mentions || undefined,
+            isForwarded: isForwarded || false,
         });
 
         await newMessage.save();
         const populatedMessage = await newMessage.populate([
             { path: "sender", select: "fullName profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility" },
             { path: "replyTo" },
-            { path: "contact", select: "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility" }
+            { path: "contact", select: "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility" },
+            { path: "mentions", select: "fullName profilePic role" }
         ]);
 
         group.lastMessage = newMessage._id;
@@ -153,6 +158,7 @@ export const getGroupMessages = async (req, res) => {
         const messages = await GroupMessage.find({ group: groupId })
             .populate("sender", "fullName profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility")
             .populate("replyTo")
+            .populate("mentions", "fullName profilePic role")
             .sort({ createdAt: 1 });
 
         res.status(200).json(messages);
@@ -196,7 +202,8 @@ export const voteGroupPoll = async (req, res) => {
         const populatedMessage = await GroupMessage.findById(message._id)
             .populate("sender", "fullName profilePic role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility")
             .populate("replyTo")
-            .populate("contact", "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility");
+            .populate("contact", "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility")
+            .populate("mentions", "fullName profilePic role");
 
         // Broadcast to group members
         const group = message.group;

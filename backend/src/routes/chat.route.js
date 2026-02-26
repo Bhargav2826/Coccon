@@ -8,7 +8,8 @@ import {
     deleteMessage,
     searchMessages,
     getCallLogs,
-    votePoll
+    votePoll,
+    forwardMessage
 } from "../controllers/chat.controller.js";
 import {
     createGroup,
@@ -22,6 +23,7 @@ const router = express.Router();
 
 router.get("/users", protectRoute, getUsersForSidebar);
 router.get("/search", protectRoute, searchMessages);
+router.post("/forward", protectRoute, forwardMessage);
 
 // Group Chat Routes
 router.post("/groups", protectRoute, createGroup);

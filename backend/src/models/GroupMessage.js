@@ -69,6 +69,16 @@ const groupMessageSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
+        mentions: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User"
+            }
+        ],
+        isForwarded: {
+            type: Boolean,
+            default: false
+        },
         callLink: {
             type: String,
         },

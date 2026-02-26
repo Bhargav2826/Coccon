@@ -43,15 +43,32 @@ export const useChatStore = create((set, get) => ({
 
     sendMessage: async (messageData) => {
         const { selectedUser, messages, users } = get();
+        const tempId = `temp-${Date.now()}`;
+
+        // Optimistic message
+        const optimisticMessage = {
+            _id: tempId,
+            sender: "me", // Will be handled by isSentByMe logic in UI
+            text: messageData.text || "",
+            image: messageData.image || null,
+            fileUrl: messageData.fileUrl || null,
+            createdAt: new Date().toISOString(),
+            isOptimistic: true,
+            ...messageData
+        };
+
+        set({ messages: [...messages, optimisticMessage] });
+
         try {
             const res = await sendMessage(selectedUser._id, messageData);
             set({
-                messages: [...messages, res],
+                messages: get().messages.map(m => m._id === tempId ? res : m),
                 users: users.map(u =>
                     u._id === selectedUser._id ? { ...u, lastMessage: res } : u
                 )
             });
         } catch (error) {
+            set({ messages: get().messages.filter(m => m._id !== tempId) });
             toast.error(error.response?.data?.message || "Failed to send message");
         }
     },
@@ -83,6 +100,9 @@ export const useChatStore = create((set, get) => ({
         socket.on("newMessage", (newMessage) => {
             const { selectedUser, users, messages } = get();
             const isFromSelectedUser = selectedUser && newMessage.sender === selectedUser._id;
+
+            // Check if we already have this message (e.g. from optimistic update)
+            if (messages.some(m => m._id === newMessage._id)) return;
 
             if (isFromSelectedUser) {
                 set({
@@ -153,6 +173,9 @@ export const useChatStore = create((set, get) => ({
         socket.on("newGroupMessage", ({ groupId, message }) => {
             const { selectedGroup, messages, groups } = get();
             const isFromSelectedGroup = selectedGroup && selectedGroup._id === groupId;
+
+            // Check if we already have this message (e.g. from optimistic update)
+            if (messages.some(m => m._id === message._id)) return;
 
             if (isFromSelectedGroup) {
                 set({ messages: [...messages, message] });
@@ -268,11 +291,28 @@ export const useChatStore = create((set, get) => ({
 
     sendGroupMessage: async (messageData) => {
         const { selectedGroup, messages } = get();
+        const tempId = `temp-group-${Date.now()}`;
+
+        // Optimistic message
+        const optimisticMessage = {
+            _id: tempId,
+            sender: "me",
+            text: messageData.text || "",
+            image: messageData.image || null,
+            fileUrl: messageData.fileUrl || null,
+            createdAt: new Date().toISOString(),
+            isOptimistic: true,
+            ...messageData
+        };
+
+        set({ messages: [...messages, optimisticMessage] });
+
         try {
             const { sendGroupMessage: sendGM } = await import("../lib/api");
             const res = await sendGM(selectedGroup._id, messageData);
-            set({ messages: [...messages, res] });
+            set({ messages: get().messages.map(m => m._id === tempId ? res : m) });
         } catch (error) {
+            set({ messages: get().messages.filter(m => m._id !== tempId) });
             toast.error("Failed to send group message");
         }
     },
@@ -352,6 +392,38 @@ export const useChatStore = create((set, get) => ({
             });
         } catch (error) {
             toast.error("Failed to vote");
+        }
+    },
+
+    forwardMessage: async (messageId, targetType, targetId) => {
+        try {
+            const { forwardMessage: forwardApi } = await import("../lib/api");
+            const res = await forwardApi(messageId, targetType, targetId);
+
+            const { selectedUser, selectedGroup, messages, users, groups } = get();
+
+            // If forwarded to current open chat, add to messages
+            const isCurrentChat = (targetType === "user" && selectedUser?._id === targetId) ||
+                (targetType === "group" && selectedGroup?._id === targetId);
+
+            if (isCurrentChat) {
+                set({ messages: [...messages, res] });
+            }
+
+            // Update sidebar last message
+            if (targetType === "user") {
+                set({
+                    users: users.map(u => u._id === targetId ? { ...u, lastMessage: res } : u)
+                });
+            } else {
+                set({
+                    groups: groups.map(g => g._id === targetId ? { ...g, lastMessage: res } : g)
+                });
+            }
+
+            toast.success("Message forwarded!");
+        } catch (error) {
+            toast.error("Failed to forward message");
         }
     },
 }));

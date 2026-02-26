@@ -23,6 +23,9 @@ const MessageInput = () => {
     const [cameraStream, setCameraStream] = useState(null);
     const [capturedImage, setCapturedImage] = useState(null);
     const [pollData, setPollData] = useState({ question: "", options: ["", ""] });
+    const [mentions, setMentions] = useState([]); // Array of user IDs
+    const [showMentionList, setShowMentionList] = useState(false);
+    const [mentionSearch, setMentionSearch] = useState("");
 
     const fileInputRef = useRef(null);
     const cameraInputRef = useRef(null);
@@ -50,6 +53,17 @@ const MessageInput = () => {
         const value = e.target.value;
         setText(value);
 
+        // Mention Detection
+        const lastChar = value[value.length - 1];
+        const lastWord = value.split(" ").pop();
+
+        if (selectedGroup && lastWord.startsWith("@")) {
+            setShowMentionList(true);
+            setMentionSearch(lastWord.slice(1));
+        } else {
+            setShowMentionList(false);
+        }
+
         if (selectedUser && value.trim()) {
             setTyping(socket, true);
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -59,6 +73,16 @@ const MessageInput = () => {
         } else {
             setTyping(socket, false);
         }
+    };
+
+    const handleMentionSelect = (user) => {
+        const words = text.split(" ");
+        words.pop(); // Remove the @search part
+        const prefix = words.length > 0 ? words.join(" ") + " " : "";
+        const newText = `${prefix}@${user.fullName} `;
+        setText(newText);
+        setMentions(prev => [...new Set([...prev, user._id])]);
+        setShowMentionList(false);
     };
 
     const startRecording = async () => {
@@ -161,6 +185,7 @@ const MessageInput = () => {
             fileName: fileName,
             fileType: fileType,
             replyTo: replyMessage?._id,
+            mentions: mentions.length > 0 ? mentions : undefined,
         };
 
         try {
@@ -171,6 +196,7 @@ const MessageInput = () => {
             }
 
             setText("");
+            setMentions([]);
             setReplyMessage(null);
             removeFile();
             setShowGiphy(false);
@@ -622,6 +648,37 @@ const MessageInput = () => {
                         value={text}
                         onChange={handleInputChange}
                     />
+
+                    {/* Mention List Dropdown */}
+                    {showMentionList && selectedGroup && (
+                        <div className="absolute bottom-full left-0 mb-2 w-64 bg-base-100 rounded-xl shadow-2xl border border-base-300 z-50 overflow-hidden animate-in slide-in-from-bottom-2">
+                            <div className="p-2 border-b border-base-300 bg-base-200">
+                                <span className="text-[10px] font-bold uppercase opacity-50 px-2 tracking-wider">Mention Someone</span>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto">
+                                {selectedGroup.members
+                                    .filter(m => m.fullName.toLowerCase().includes(mentionSearch.toLowerCase()))
+                                    .map(member => (
+                                        <button
+                                            key={member._id}
+                                            type="button"
+                                            className="w-full flex items-center gap-3 p-3 hover:bg-base-200 transition-colors"
+                                            onClick={() => handleMentionSelect(member)}
+                                        >
+                                            <div className="avatar">
+                                                <div className="size-8 rounded-full">
+                                                    <img src={member.profilePic || "/avatar.png"} alt={member.fullName} />
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-start translate-y-[-1px]">
+                                                <span className="text-sm font-semibold">{member.fullName}</span>
+                                                <span className="text-[10px] opacity-60">@{member.role}</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                            </div>
+                        </div>
+                    )}
 
                     {showGiphy && (
                         <div className="absolute bottom-12 left-0 w-[calc(100vw-2rem)] sm:w-72 bg-base-200 p-2 rounded-lg shadow-xl z-50 border border-base-300">

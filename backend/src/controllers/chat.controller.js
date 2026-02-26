@@ -55,7 +55,7 @@ export const getMessages = async (req, res) => {
                 { sender: myId, receiver: userToChatId },
                 { sender: userToChatId, receiver: myId },
             ],
-        }).sort({ createdAt: 1 });
+        }).populate("mentions", "fullName profilePic role").sort({ createdAt: 1 });
 
         res.status(200).json(messages);
     } catch (error) {
@@ -66,7 +66,7 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
     try {
-        const { text, image, file, fileName, fileType, voiceUrl, replyTo, poll, contact } = req.body;
+        const { text, image, file, fileName, fileType, voiceUrl, replyTo, poll, contact, mentions, isForwarded } = req.body;
         const { id: receiverId } = req.params;
         const senderId = req.user._id;
 
@@ -125,6 +125,8 @@ export const sendMessage = async (req, res) => {
             replyTo: replyTo || undefined,
             poll: poll || undefined,
             contact: contact || undefined,
+            mentions: mentions || undefined,
+            isForwarded: isForwarded || false,
         });
 
         await newMessage.save();
@@ -134,6 +136,10 @@ export const sendMessage = async (req, res) => {
         }
         if (contact) {
             await newMessage.populate("contact", "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility");
+        }
+
+        if (mentions && mentions.length > 0) {
+            await newMessage.populate("mentions", "fullName profilePic role");
         }
 
         // Broadcast via socket
@@ -298,7 +304,8 @@ export const votePoll = async (req, res) => {
 
         const populatedMessage = await ChatMessage.findById(message._id)
             .populate("replyTo")
-            .populate("contact", "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility");
+            .populate("contact", "fullName profilePic email role academicSubjects emojiAvatar lottieAvatar lastProfileUpdate profileVisibility")
+            .populate("mentions", "fullName profilePic role");
 
         // Broadcast to both so all their active devices instantly sync
         const receiverSocketStr = message.receiver.toString();
@@ -310,6 +317,90 @@ export const votePoll = async (req, res) => {
         res.status(200).json(populatedMessage);
     } catch (error) {
         console.error("Error in votePoll:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const forwardMessage = async (req, res) => {
+    try {
+        const { messageId, targetType, targetId } = req.body; // targetType: 'user' or 'group'
+        const senderId = req.user._id;
+
+        if (!messageId || !targetType || !targetId) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        // 1. Find the original message (could be in ChatMessage or GroupMessage)
+        let originalMessage = await ChatMessage.findById(messageId);
+        if (!originalMessage) {
+            originalMessage = await GroupMessage.findById(messageId);
+        }
+
+        if (!originalMessage) {
+            return res.status(404).json({ error: "Original message not found" });
+        }
+
+        // 2. Prepare the new message content (cloning from original)
+        const messageData = {
+            sender: senderId,
+            text: originalMessage.text,
+            image: originalMessage.image,
+            fileUrl: originalMessage.fileUrl,
+            fileName: originalMessage.fileName,
+            fileType: originalMessage.fileType,
+            voiceUrl: originalMessage.voiceUrl,
+            contact: originalMessage.contact,
+            poll: originalMessage.poll,
+            isForwarded: true,
+        };
+
+        let newMessage;
+
+        if (targetType === "user") {
+            newMessage = new ChatMessage({
+                ...messageData,
+                receiver: targetId,
+            });
+            await newMessage.save();
+
+            // Populate sender
+            await newMessage.populate("sender", "fullName profilePic role");
+
+            // Broadcast via socket
+            const receiverSocketId = getReceiverSocketId(targetId);
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit("newMessage", newMessage);
+            }
+        } else if (targetType === "group") {
+            newMessage = new GroupMessage({
+                ...messageData,
+                group: targetId,
+            });
+            await newMessage.save();
+
+            // Populate sender
+            await newMessage.populate("sender", "fullName profilePic role");
+
+            // Update group's last message
+            const GroupChat = (await import("../models/GroupChat.js")).default;
+            const group = await GroupChat.findById(targetId);
+            if (group) {
+                group.lastMessage = newMessage._id;
+                await group.save();
+
+                // Broadcast to all group members
+                group.members.forEach(memberId => {
+                    const socketId = getReceiverSocketId(memberId);
+                    if (socketId) io.to(socketId).emit("newGroupMessage", { groupId: targetId, message: newMessage });
+                });
+            }
+        } else {
+            return res.status(400).json({ error: "Invalid target type" });
+        }
+
+        res.status(201).json(newMessage);
+    } catch (error) {
+        console.error("Error in forwardMessage:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
