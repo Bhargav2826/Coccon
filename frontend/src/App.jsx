@@ -112,7 +112,7 @@ const App = () => {
           path="/chat"
           element={
             <ProtectedRoute>
-              <Layout showSidebar={true}>
+              <Layout showSidebar={true} fullWidth={true}>
                 <ChatPage />
               </Layout>
             </ProtectedRoute>

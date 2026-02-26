@@ -82,7 +82,7 @@ const SignUpPage = () => {
                       required
                     />
                   </div>
-                  
+
                   {/* EMAIL */}
                   <div className="form-control w-full">
                     <label className="label">
@@ -126,11 +126,10 @@ const SignUpPage = () => {
                       ].map((role) => (
                         <label
                           key={role.value}
-                          className={`cursor-pointer border-2 rounded-lg p-3 text-center transition-all ${
-                            signupData.role === role.value
+                          className={`cursor-pointer border-2 rounded-lg p-3 text-center transition-all ${signupData.role === role.value
                               ? "border-primary bg-primary/10"
                               : "border-base-300 hover:border-primary/50"
-                          }`}
+                            }`}
                         >
                           <input
                             type="radio"
@@ -147,9 +146,9 @@ const SignUpPage = () => {
                     </div>
                   </div>
 
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary w-full h-12 text-base font-medium" 
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-full h-12 text-base font-medium"
                     disabled={isPending}
                   >
                     {isPending ? (

@@ -36,7 +36,7 @@ const LOTTIE_AVATARS = [
     { name: "Heart", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/2764_fe0f/lottie.json" },
     { name: "Pizza", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f355/lottie.json" },
     { name: "Coffee", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/2615_fe0f/lottie.json" },
-    { name: "Meditation", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f9d8/lottie.json" }
+    { name: "Magic", url: "https://fonts.gstatic.com/s/e/notoemoji/latest/2728/lottie.json" }
 ];
 
 const GRADIENTS = [
@@ -185,10 +185,24 @@ const AvatarEditor = ({ isOpen, onClose, onSave, currentAvatar, isUploading, use
 
     useEffect(() => {
         if (selectedLottie) {
+            setLottieData(null); // Clear old data while loading
             fetch(selectedLottie)
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const contentType = res.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error("Response is not JSON");
+                    }
+                    return res.json();
+                })
                 .then(data => setLottieData(data))
-                .catch(err => console.error("Lottie select error:", err));
+                .catch(err => {
+                    // Silence "Response is not JSON" to avoid console spam with HTML 404s
+                    if (err.message !== "Response is not JSON") {
+                        console.error("Lottie select error:", err);
+                    }
+                    setLottieData(null);
+                });
         }
     }, [selectedLottie]);
 

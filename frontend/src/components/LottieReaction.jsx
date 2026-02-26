@@ -17,9 +17,21 @@ const LottieReaction = ({ emoji, size = 20, loop = true }) => {
     useEffect(() => {
         if (lottieUrl) {
             fetch(lottieUrl)
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const contentType = res.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error("Response is not JSON");
+                    }
+                    return res.json();
+                })
                 .then(data => setAnimationData(data))
-                .catch(err => console.error("Error loading lottie:", err));
+                .catch(err => {
+                    if (err.message !== "Response is not JSON") {
+                        console.error("Error loading lottie:", err);
+                    }
+                    setAnimationData(null);
+                });
         }
     }, [lottieUrl]);
 

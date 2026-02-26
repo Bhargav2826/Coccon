@@ -77,9 +77,9 @@ const LoginPage = () => {
                     />
                   </div>
 
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary w-full h-12 text-base font-medium" 
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-full h-12 text-base font-medium"
                     disabled={isPending}
                   >
                     {isPending ? (

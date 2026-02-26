@@ -7,10 +7,10 @@ const ChatPage = () => {
     const { selectedUser, selectedGroup } = useChatStore();
 
     return (
-        <div className="h-screen bg-base-100 flex flex-col">
-            <div className="flex-1 flex items-center justify-center p-0 sm:p-4 overflow-hidden">
-                <div className="bg-base-200 rounded-none sm:rounded-lg shadow-xl w-full max-w-6xl h-full sm:h-[calc(100vh-10rem)] border border-base-300 overflow-hidden">
-                    <div className="flex h-full rounded-none sm:rounded-lg overflow-hidden">
+        <div className="h-full bg-base-100 flex flex-col overflow-hidden">
+            <div className="flex-1 flex overflow-hidden">
+                <div className="bg-base-200 w-full h-full border border-base-300 overflow-hidden">
+                    <div className="flex h-full overflow-hidden">
                         {/* Sidebar: hidden on mobile when a chat is selected */}
                         <div className={`${(selectedUser || selectedGroup) ? "hidden md:block" : "w-full"} md:w-80 h-full border-r border-base-300 shrink-0`}>
                             <ChatSidebar />

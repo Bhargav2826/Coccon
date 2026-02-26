@@ -58,9 +58,22 @@ const UserAvatar = ({ user, size = "md", className = "", onClick, showStatus = t
         if (user?.lottieAvatar) {
             if (typeof user.lottieAvatar === 'string' && user.lottieAvatar.startsWith('http')) {
                 fetch(user.lottieAvatar)
-                    .then(res => res.json())
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const contentType = res.headers.get("content-type");
+                        if (!contentType || !contentType.includes("application/json")) {
+                            throw new Error("Response is not JSON");
+                        }
+                        return res.json();
+                    })
                     .then(data => setLottieData(data))
-                    .catch(err => console.error("Lottie fetch error:", err));
+                    .catch(err => {
+                        // Silence "Response is not JSON" to avoid console spam with HTML 404s
+                        if (err.message !== "Response is not JSON") {
+                            console.error("Lottie fetch error:", err);
+                        }
+                        setLottieData(null);
+                    });
             } else if (typeof user.lottieAvatar === 'string') {
                 try {
                     setLottieData(JSON.parse(user.lottieAvatar));
