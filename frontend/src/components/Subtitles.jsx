@@ -3,6 +3,7 @@ import { Languages, Globe, Volume2, VolumeX } from "lucide-react";
 import { axiosInstance } from "../lib/axios";
 
 const LANGUAGES = [
+    { label: "English", value: "English" },
     { label: "Hindi", value: "Hindi" },
     { label: "Marathi", value: "Marathi" },
     { label: "Gujarati", value: "Gujarati" },
@@ -240,23 +241,65 @@ const Subtitles = ({ socket, authUser }) => {
 
             {/* Subtitles Area */}
             {showSubtitles && subtitles.length > 0 && (
-                <div className="w-full max-w-4xl space-y-2 flex flex-col items-center">
+                <div className="w-full max-w-4xl space-y-4 flex flex-col items-center">
                     {subtitles.map((sub, idx) => (
                         <div
                             key={sub.id || idx}
-                            className="transition-all duration-300 transform scale-100 opacity-100 animate-in fade-in slide-in-from-bottom-2"
+                            className="transition-all duration-500 transform scale-100 opacity-100 animate-in fade-in slide-in-from-bottom-4 flex flex-col items-center gap-3 w-full"
                         >
-                            <div className="bg-black/70 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-2xl text-center">
-                                {/* Original Text */}
-                                <p className={`text-white/90 text-lg font-medium tracking-wide ${useTranslation && sub.translatedText ? 'text-sm opacity-60' : 'text-xl font-bold'}`}>
-                                    {sub.text}
+                            {/* 📚 Smart Notes / Vocabulary Simplifier */}
+                            {sub.isFinal && sub.annotations && sub.annotations.length > 0 && (
+                                <div className="flex flex-wrap justify-center gap-2 mb-1 animate-in zoom-in-90 duration-500">
+                                    {sub.annotations.map((note, nIdx) => (
+                                        <div
+                                            key={nIdx}
+                                            className="group relative bg-blue-600/20 backdrop-blur-xl border border-blue-400/30 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg hover:bg-blue-600/30 transition-all cursor-help pointer-events-auto"
+                                        >
+                                            <span className="size-2 bg-blue-400 rounded-full animate-pulse"></span>
+                                            <span className="text-[10px] font-black uppercase tracking-tight text-blue-100">{note.word}</span>
+
+                                            {/* Definition Tooltip */}
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-base-100 rounded-2xl shadow-2xl border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[120]">
+                                                <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Simple Definition</p>
+                                                <p className="text-xs font-medium text-base-content leading-relaxed">{note.definition}</p>
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-base-100"></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Main Subtitle Box */}
+                            <div className={`w-fit max-w-[90%] bg-gradient-to-b from-black/80 to-black/90 backdrop-blur-2xl px-8 py-4 rounded-[2rem] border-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-center ring-1 ring-white/5 relative overflow-hidden group transition-all duration-700 ${sub.sentiment === 'positive' ? 'border-emerald-500/40 shadow-emerald-500/20' :
+                                    sub.sentiment === 'negative' ? 'border-rose-500/40 shadow-rose-500/20' :
+                                        'border-white/15'
+                                }`}>
+                                {/* Ambient Glow */}
+                                <div className={`absolute -inset-1 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 ${sub.sentiment === 'positive' ? 'bg-gradient-to-r from-emerald-500/10 via-transparent to-emerald-500/10' :
+                                        sub.sentiment === 'negative' ? 'bg-gradient-to-r from-rose-500/10 via-transparent to-rose-500/10' :
+                                            'bg-gradient-to-r from-blue-500/10 via-transparent to-purple-500/10'
+                                    }`}></div>
+
+                                {/* Original Text (Smaller, for context) */}
+                                {useTranslation && sub.translatedText && (
+                                    <p className="text-white/40 text-[10px] font-black tracking-widest uppercase mb-1.5 line-clamp-1 opacity-60">
+                                        {sub.text}
+                                    </p>
+                                )}
+
+                                {/* Main Text (Localized or English) */}
+                                <p className={`relative z-10 font-bold leading-tight tracking-tight drop-shadow-md ${useTranslation && sub.translatedText
+                                    ? 'text-yellow-400 text-xl sm:text-2xl'
+                                    : 'text-white text-xl sm:text-2xl'}`}>
+                                    {useTranslation && sub.translatedText ? sub.translatedText : sub.text}
                                 </p>
 
-                                {/* Translated Text */}
-                                {useTranslation && sub.translatedText && (
-                                    <p className="text-yellow-400 text-xl font-bold mt-1 leading-relaxed drop-shadow-lg">
-                                        {sub.translatedText}
-                                    </p>
+                                {/* Progress Indicator for non-final */}
+                                {!sub.isFinal && (
+                                    <div className={`absolute bottom-0 left-0 h-0.5 animate-pulse w-full ${sub.sentiment === 'positive' ? 'bg-emerald-500/50' :
+                                            sub.sentiment === 'negative' ? 'bg-rose-500/50' :
+                                                'bg-blue-500/50'
+                                        }`}></div>
                                 )}
                             </div>
                         </div>

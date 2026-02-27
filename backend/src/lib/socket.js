@@ -419,18 +419,95 @@ io.on("connection", async (socket) => {
                     }
 
                     if (transcript && dgData.is_final && transcript.trim().length > 0) {
-                        // Translation Logic for ALL Calls (Multi-Language Support)
+                        // Translation & Educational Context Logic
                         if (socket.activeCallId && process.env.SARVAM_API_KEY) {
                             try {
-                                // Get all unique languages currently requested in this call
                                 const currentRoomSockets = await io.in(socket.activeCallId).fetchSockets();
                                 const uniqueLanguages = [...new Set(currentRoomSockets.map(s => s.preferredLanguage).filter(Boolean))];
 
+                                // 1. VOCABULARY SIMPLIFIER (Educational Context)
+                                // Detect complex words and provide simple definitions
+                                let annotations = [];
+                                try {
+                                    const vocabPrompt = {
+                                        model: "sarvam-m",
+                                        messages: [
+                                            {
+                                                role: "system",
+                                                content: `Analyze this classroom transcript. If it contains any COMPLEX educational, scientific, or technical terms, list them with a VERY SIMPLE one-line definition in English. Format: JSON array of objects [{ "word": "...", "definition": "..." }]. If no complex words, return [].`
+                                            },
+                                            {
+                                                role: "user",
+                                                content: transcript
+                                            }
+                                        ],
+                                        temperature: 0.1
+                                    };
+
+                                    const vocabRes = await axios.post(
+                                        "https://api.sarvam.ai/v1/chat/completions",
+                                        vocabPrompt,
+                                        {
+                                            headers: {
+                                                "api-subscription-key": process.env.SARVAM_API_KEY,
+                                                "Content-Type": "application/json"
+                                            },
+                                            timeout: 3000
+                                        }
+                                    );
+
+                                    const rawVocab = vocabRes.data?.choices[0]?.message?.content || "[]";
+                                    // Strip potential markdown backticks
+                                    const cleanVocab = rawVocab.replace(/```json|```/g, "").trim();
+                                    annotations = JSON.parse(cleanVocab);
+                                } catch (vErr) {
+                                    console.log("ℹ️ Vocabulary Simplifier skipped or failed:", vErr.message);
+                                }
+
+                                // 1.1 SENTIMENT ANALYSIS (Emotional Safety)
+                                let sentiment = "neutral";
+                                try {
+                                    const sentRes = await axios.post(
+                                        "https://api.sarvam.ai/v1/chat/completions",
+                                        {
+                                            model: "sarvam-m",
+                                            messages: [
+                                                { role: "system", content: "Analyze the sentiment of this text. Return ONLY one word: positive, neutral, or negative." },
+                                                { role: "user", content: transcript }
+                                            ],
+                                            temperature: 0.1
+                                        },
+                                        {
+                                            headers: { "api-subscription-key": process.env.SARVAM_API_KEY, "Content-Type": "application/json" },
+                                            timeout: 2000
+                                        }
+                                    );
+                                    sentiment = sentRes.data?.choices[0]?.message?.content?.toLowerCase().trim();
+                                } catch (sErr) {
+                                    console.log("ℹ️ Sentiment check skipped:", sErr.message);
+                                }
+
+                                // 2. MULTI-LANGUAGE TRANSLATION
                                 console.log(`🌍 Translating to unique languages: ${uniqueLanguages.join(', ')}`);
 
                                 for (const lang of uniqueLanguages) {
-                                    // If English is selected as a preference, we already broadcasted the raw transcript
-                                    if (lang === 'English') continue;
+                                    // Always send the English version with annotations first if English is a preference
+                                    // or just use it as the base for localized subtitles.
+
+                                    if (lang === 'English') {
+                                        const usersTargetingEnglish = currentRoomSockets.filter(s => s.preferredLanguage === 'English');
+                                        usersTargetingEnglish.forEach(targetSocket => {
+                                            io.to(targetSocket.id).emit("call:subtitle", {
+                                                userId,
+                                                text: transcript,
+                                                isFinal: true,
+                                                targetLanguage: 'English',
+                                                annotations: annotations,
+                                                sentiment: sentiment
+                                            });
+                                        });
+                                        continue;
+                                    }
 
                                     const translationPrompt = {
                                         model: "sarvam-m",
@@ -471,7 +548,9 @@ io.on("connection", async (socket) => {
                                                 text: transcript,
                                                 translatedText: translatedText,
                                                 isFinal: true,
-                                                targetLanguage: lang
+                                                targetLanguage: lang,
+                                                annotations: annotations, // Include vocabulary help in all languages
+                                                sentiment: sentiment
                                             });
                                         });
                                     }
